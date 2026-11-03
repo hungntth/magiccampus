@@ -11,3 +11,5 @@ Legacy (Go/Flash) knowledge: `D:\mcgame\docs\PROJECT_KNOWLEDGE_BASE.md`.
 ## Feature memory
 
 - [SWF tools](memory/swf-tools.md) — Go → TypeScript port of `tools/swf`: parity results, known output differences, gotchas.
+- [NPC dialog](memory/npc-dialog.md) — clickNpc RPC, npcFuncInit push, speech bubble vs Đối thoại dialog, client walk-to flow.
+- [Quests](memory/quest.md) — newbie/main quest chain: take/finish/cancel/initQuestManager, NPC markers, tracker, exp/level-up, quest_pre import.

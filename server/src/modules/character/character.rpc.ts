@@ -9,6 +9,7 @@ import { SceneManager } from '../../gateway/scene.manager';
 import { CharacterService } from './character.service';
 import { GameDataService } from '../gamedata/gamedata.service';
 import { AuthService } from '../auth/auth.service';
+import { QuestService } from '../quest/quest.service';
 
 @Injectable()
 export class CharacterRpc {
@@ -17,6 +18,7 @@ export class CharacterRpc {
     private readonly gameData: GameDataService,
     private readonly auth: AuthService,
     private readonly scenes: SceneManager,
+    private readonly quests: QuestService,
   ) {}
 
   @Rpc('getClassList', { quiet: true })
@@ -70,7 +72,7 @@ export class CharacterRpc {
     session.characterId = doc._id;
     session.characterName = doc.name;
     this.scenes.bindCharacter(session, doc._id);
-    return this.characters.toPlayerData(doc);
+    return this.characters.toPlayerData(doc, await this.quests.loginInfo(doc._id));
   }
 
   @Rpc('backToCharSelect', { requireCharacter: true })

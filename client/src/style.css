@@ -269,3 +269,226 @@ body {
   border-color: var(--danger);
   color: var(--danger);
 }
+
+.npc-dialog {
+  position: absolute;
+  left: 50%;
+  top: 22%;
+  transform: translateX(-50%);
+  width: 340px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+  pointer-events: auto;
+}
+
+.npc-dialog h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  text-align: center;
+}
+
+.npc-dialog .npc-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.npc-dialog .npc-head img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.npc-dialog .npc-name {
+  font-weight: 600;
+}
+
+.npc-dialog .npc-text {
+  line-height: 1.45;
+  max-height: 180px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+  white-space: pre-wrap;
+}
+
+.npc-dialog .npc-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.npc-dialog button {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 0;
+  background: var(--accent);
+  color: #1a1200;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.npc-dialog button.secondary {
+  background: #232a3a;
+  color: var(--text);
+}
+
+/* NPC dialog quest rows */
+.npc-dialog .npc-quests {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.npc-dialog button.npc-quest {
+  background: transparent;
+  color: var(--accent);
+  text-align: left;
+  padding: 4px 6px;
+  font-weight: 600;
+}
+
+.npc-dialog button.npc-quest.s103 {
+  color: var(--muted);
+}
+
+.npc-dialog button.npc-quest:hover {
+  background: #232a3a;
+}
+
+/* Quest panel (reuses the npc-dialog look) */
+.quest-panel {
+  position: absolute;
+  left: 50%;
+  top: 14%;
+  transform: translateX(-50%);
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+  pointer-events: auto;
+}
+
+.quest-panel h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  text-align: center;
+}
+
+.quest-panel .npc-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.quest-panel .npc-head img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.quest-panel .npc-name,
+.quest-panel .quest-title {
+  font-weight: 600;
+}
+
+.quest-panel .quest-title {
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+
+.quest-panel .quest-body {
+  line-height: 1.45;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+  white-space: pre-wrap;
+}
+
+.quest-panel .quest-text {
+  margin-bottom: 6px;
+}
+
+.quest-panel .quest-info {
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.quest-panel .quest-label {
+  color: var(--accent-2);
+  margin-top: 6px;
+}
+
+.quest-panel .npc-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.quest-panel button {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 0;
+  background: var(--accent);
+  color: #1a1200;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.quest-panel button.secondary {
+  background: #232a3a;
+  color: var(--text);
+}
+
+.quest-panel button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Quest tracker (right side) */
+.quest-tracker {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: min(260px, 45vw);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  pointer-events: auto;
+}
+
+.quest-tracker h4 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: var(--accent);
+}
+
+.quest-tracker a {
+  cursor: pointer;
+}
+
+.quest-tracker .qt-name:hover {
+  text-decoration: underline;
+}
+
+.quest-tracker .qt-find {
+  color: #7fd17f;
+  text-decoration: underline;
+}

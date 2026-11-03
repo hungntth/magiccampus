@@ -73,6 +73,9 @@ export class Character {
   money: number;
 
   @Prop({ default: 0 })
+  moneyBind: number;
+
+  @Prop({ default: 0 })
   gold: number;
 
   @Prop({ default: false })

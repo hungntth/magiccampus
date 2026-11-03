@@ -15,14 +15,30 @@ interface ParsedInsert {
   rows: Value[][];
 }
 
+// Column order for seeds written as `INSERT INTO t VALUES (...)` without a column list
+// (from D:/mcgame/supabase/migrations/20260328184527_baseline_mcgame_schema.sql).
+const KNOWN_COLUMNS: Record<string, string[]> = {
+  data_tbl_quest_pre: ['id', 'item_id', 'kind', 'num', 'qid', 'type'],
+};
+
 function parseFile(sql: string): ParsedInsert[] {
   const out: ParsedInsert[] = [];
-  const re = /INSERT INTO\s+"?(\w+)"?\."?(\w+)"?\s*\(([^)]*)\)\s*VALUES\s*/g;
+  const re = /INSERT INTO\s+"?(\w+)"?\."?(\w+)"?\s*(?:\(([^)]*)\)\s*)?VALUES\s*/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(sql)) !== null) {
-    const columns = m[3].split(',').map((c) => c.trim().replace(/^"|"$/g, ''));
+    const table = m[2];
+    let columns: string[];
+    if (m[3] !== undefined) {
+      columns = m[3].split(',').map((c) => c.trim().replace(/^"|"$/g, ''));
+    } else if (KNOWN_COLUMNS[table]) {
+      columns = KNOWN_COLUMNS[table];
+    } else {
+      console.error(`ERROR ${table}: INSERT without a column list and no KNOWN_COLUMNS entry; rows skipped`);
+      re.lastIndex = parseTuples(sql, re.lastIndex).end;
+      continue;
+    }
     const { rows, end } = parseTuples(sql, re.lastIndex);
-    out.push({ table: m[2], columns, rows });
+    out.push({ table, columns, rows });
     re.lastIndex = end;
   }
   return out;

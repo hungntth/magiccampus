@@ -104,7 +104,7 @@ export class CharacterService {
     };
   }
 
-  toPlayerData(doc: CharacterDocument): PlayerData {
+  toPlayerData(doc: CharacterDocument, quests: { questLog: string; qn: number } = { questLog: '|', qn: 0 }): PlayerData {
     return {
       id: doc._id,
       name: doc.name,
@@ -121,8 +121,12 @@ export class CharacterService {
       maxMp: doc.maxMp,
       currentMp: doc.currentMp,
       money: doc.money,
+      moneyBind: doc.moneyBind ?? 0,
       gold: doc.gold,
       iconCode: this.iconCode(doc.classId, doc.gender),
+      attrPoints: doc.attrPoints,
+      questLog: quests.questLog,
+      qn: quests.qn,
       attStrength: doc.strength,
       attAgility: doc.agility,
       attStamina: doc.stamina,

@@ -9,6 +9,8 @@ import { GameDataModule } from './modules/gamedata/gamedata.module';
 import { SceneModule } from './modules/scene/scene.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { AssetsModule } from './modules/assets/assets.module';
+import { NpcModule } from './modules/npc/npc.module';
+import { QuestModule } from './modules/quest/quest.module';
 
 @Module({
   imports: [
@@ -21,6 +23,8 @@ import { AssetsModule } from './modules/assets/assets.module';
     SceneModule,
     ChatModule,
     AssetsModule,
+    NpcModule,
+    QuestModule,
   ],
 })
 export class AppModule {}

@@ -10,6 +10,7 @@ import { SceneManager } from '../../gateway/scene.manager';
 import { GameGateway } from '../../gateway/game.gateway';
 import { CharacterService } from '../character/character.service';
 import { GameDataService } from '../gamedata/gamedata.service';
+import { QuestService } from '../quest/quest.service';
 
 const MOVE_MIN_INTERVAL_MS = 50;
 
@@ -20,6 +21,7 @@ export class SceneRpc implements OnModuleInit {
     private readonly gateway: GameGateway,
     private readonly characters: CharacterService,
     private readonly gameData: GameDataService,
+    private readonly quests: QuestService,
   ) {}
 
   onModuleInit(): void {
@@ -56,8 +58,11 @@ export class SceneRpc implements OnModuleInit {
   }
 
   @Rpc('createNpcs', { requireCharacter: true })
-  createNpcs(session: Session): SceneNpc[] {
-    return this.gameData.npcsOnMap(session.mapId).map((r) => this.gameData.toSceneNpc(r));
+  async createNpcs(session: Session): Promise<SceneNpc[]> {
+    const npcs = this.gameData.npcsOnMap(session.mapId).map((r) => this.gameData.toSceneNpc(r));
+    const states = await this.quests.npcStates(session.characterId!, npcs.map((n) => n.id));
+    for (const n of npcs) n.questState = states.get(n.id) ?? -1;
+    return npcs;
   }
 
   @Rpc('udcp', { requireCharacter: true, quiet: true })

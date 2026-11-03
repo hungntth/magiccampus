@@ -6,6 +6,7 @@ import { CharacterService } from './character.service';
 import { CharacterRpc } from './character.rpc';
 import { GameDataModule } from '../gamedata/gamedata.module';
 import { AuthModule } from '../auth/auth.module';
+import { QuestModule } from '../quest/quest.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { AuthModule } from '../auth/auth.module';
     ]),
     GameDataModule,
     AuthModule,
+    QuestModule,
   ],
   providers: [CharacterService, CharacterRpc],
   exports: [CharacterService],

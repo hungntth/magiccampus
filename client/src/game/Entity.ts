@@ -8,6 +8,8 @@ import { iconUrl } from '../assets';
 import { Behavior, SheetAnim, dirFromDelta, loadSheet } from './SheetAnim';
 
 const MOVE_SPEED = 220;
+const BUBBLE_MS = 5000;
+const BUBBLE_WRAP = 220;
 
 const nameStyle = new TextStyle({
   fontFamily: 'system-ui, sans-serif',
@@ -15,6 +17,24 @@ const nameStyle = new TextStyle({
   fill: '#ffffff',
   stroke: { color: '#000000', width: 3 },
 });
+
+const bubbleStyle = new TextStyle({
+  fontFamily: 'system-ui, sans-serif',
+  fontSize: 13,
+  fill: '#ffffff',
+  wordWrap: true,
+  wordWrapWidth: BUBBLE_WRAP,
+});
+
+const markerStyle = (fill: string): TextStyle =>
+  new TextStyle({ fontFamily: 'system-ui, sans-serif', fontSize: 22, fontWeight: '700', fill, stroke: { color: '#000000', width: 4 } });
+
+// H5 placeholder for the Flash STATE_ICON art (not in the dump): 102 '!', 103 grey '?', 104 yellow '?'.
+const QUEST_MARKERS: Record<number, { text: string; style: TextStyle }> = {
+  102: { text: '!', style: markerStyle('#ffd23f') },
+  103: { text: '?', style: markerStyle('#b0b6c2') },
+  104: { text: '?', style: markerStyle('#ffd23f') },
+};
 
 export type EntityKind = 'self' | 'player' | 'npc';
 
@@ -34,6 +54,9 @@ export class Entity extends Container {
   private nameText: Text;
   dir = 0;
   private behavior: number = Behavior.STAND;
+  private bubble: Container | null = null;
+  private bubbleTimer: ReturnType<typeof setTimeout> | null = null;
+  private questMarker: Text | null = null;
 
   constructor(
     readonly entityId: number,
@@ -44,6 +67,7 @@ export class Entity extends Container {
     x: number,
     y: number,
     dir = 0,
+    readonly npcType = 0,
   ) {
     super();
     this.position.set(x, y);
@@ -63,7 +87,63 @@ export class Entity extends Container {
     this.nameText.position.set(0, -44);
     this.addChild(this.nameText);
 
+    if (kind === 'npc') {
+      this.eventMode = 'static';
+      this.cursor = 'pointer';
+    }
+
     void this.loadVisual(resCode, iconCode);
+  }
+
+  /** Speech bubble above the name label (legacy NPC greeting); empty text shows nothing. */
+  say(text: string): void {
+    this.clearBubble();
+    if (!text.trim() || this.destroyed) return;
+    const label = new Text({ text, style: bubbleStyle });
+    label.anchor.set(0.5, 1);
+    const pad = 8;
+    const bg = new Graphics()
+      .roundRect(-label.width / 2 - pad, -label.height - pad, label.width + pad * 2, label.height + pad * 2, 8)
+      .fill({ color: 0x1b1f2a, alpha: 0.9 })
+      .stroke({ color: 0x4a5163, width: 1 });
+    const bubble = new Container();
+    bubble.addChild(bg, label);
+    bubble.eventMode = 'none';
+    const above = this.questMarker ? this.questMarker.height : 0;
+    bubble.position.set(0, this.nameText.y - this.nameText.height - above - 6 - pad);
+    this.addChild(bubble);
+    this.bubble = bubble;
+    this.bubbleTimer = setTimeout(() => this.clearBubble(), BUBBLE_MS);
+  }
+
+  /** Quest marker above the name (QuestState 102/103/104); any other value hides it. */
+  setQuestState(state: number): void {
+    this.questMarker?.destroy();
+    this.questMarker = null;
+    const m = QUEST_MARKERS[state];
+    if (!m || this.destroyed) return;
+    this.questMarker = new Text({ text: m.text, style: m.style });
+    this.questMarker.anchor.set(0.5, 1);
+    this.questMarker.eventMode = 'none';
+    this.addChild(this.questMarker);
+    this.layoutMarker();
+  }
+
+  private layoutMarker(): void {
+    this.questMarker?.position.set(0, this.nameText.y - this.nameText.height - 2);
+  }
+
+  private clearBubble(): void {
+    if (this.bubbleTimer) clearTimeout(this.bubbleTimer);
+    this.bubbleTimer = null;
+    this.bubble?.destroy({ children: true });
+    this.bubble = null;
+  }
+
+  override destroy(options?: Parameters<Container['destroy']>[0]): void {
+    if (this.bubbleTimer) clearTimeout(this.bubbleTimer);
+    this.bubbleTimer = null;
+    super.destroy(options);
   }
 
   private async loadVisual(resCode: string, iconCode: string): Promise<void> {
@@ -83,6 +163,7 @@ export class Entity extends Container {
       this.fallback.visible = false;
       const top = meta?.bodyY ?? meta?.headY ?? 0;
       this.nameText.position.set(0, top - footY - 4);
+      this.layoutMarker();
       this.applyAnim(true);
       return;
     }
