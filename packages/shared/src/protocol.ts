@@ -264,3 +264,8 @@ export const LEVEL_EXP: readonly number[] = [
   1, 73, 358, 926, 1775, 3162, 5360, 8649, 13232, 18510, 25771, 38644, 62425, 98030, 139609, 187700, 242854,
   305634, 376620, 456403, 545587,
 ];
+
+// --- Main HUD ---
+
+/** checkNetDelay(): server epoch ms. Client delay = round((now - start) / 2) (MiniMapCanvas.checkNetDelay). */
+export type NetDelayReply = number;

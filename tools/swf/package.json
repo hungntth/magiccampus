@@ -9,7 +9,9 @@
     "swf2sheet": "tsx src/cli/swf2sheet.ts",
     "swfbatch": "tsx src/cli/swfbatch.ts",
     "swfhit": "tsx src/cli/swfhit.ts",
-    "lint": "tsc -p tsconfig.json --noEmit"
+    "swfui": "tsx src/cli/swfui.ts",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test --import tsx ./src/**/*.test.ts"
   },
   "devDependencies": {
     "@types/node": "^22.13.10",

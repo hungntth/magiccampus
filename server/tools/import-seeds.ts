@@ -19,6 +19,12 @@ interface ParsedInsert {
 // (from D:/mcgame/supabase/migrations/20260328184527_baseline_mcgame_schema.sql).
 const KNOWN_COLUMNS: Record<string, string[]> = {
   data_tbl_quest_pre: ['id', 'item_id', 'kind', 'num', 'qid', 'type'],
+  // Legacy baseline schema order (migrations/20260328184527_baseline_mcgame_schema.sql).
+  data_tbl_quest: [
+    'id', 'a_script_text', 'at', 'award_exp_re', 'color', 'complete_text', 'finish_npc', 'gender', 'info', 'is_rebirth',
+    'lm', 'max_level', 'min_level', 'money_num', 'money_type', 'name', 'pre_quest_type', 'qtest', 'req_class', 'rn',
+    'rt', 'script_give_up', 'start_npc', 'start_text', 'sub_type', 'type',
+  ],
 };
 
 function parseFile(sql: string): ParsedInsert[] {
@@ -115,6 +121,8 @@ function parseValue(sql: string, i: number): [Value, number] {
     }
     return [s, skipCast(sql, i)];
   }
+  // `now()` (newer game_tuning_* seeds' updated_at) becomes the import time.
+  if (/^now\(\)/i.test(sql.slice(i, i + 5))) return [new Date().toISOString(), skipCast(sql, i + 5)];
   const m = /^(NULL|TRUE|FALSE|true|false|-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?)/.exec(sql.slice(i, i + 64));
   if (!m) throw new Error(`cannot parse value at ${i}: ${sql.slice(i, i + 40)}`);
   const tok = m[1];

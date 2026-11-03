@@ -2,7 +2,7 @@
 // (sceneLogin / createChars / createNpcs / udcr / sceneChange + onCR / onScenePlayer* pushes). Quests: QuestController.
 
 import { Application, Container, FederatedPointerEvent } from 'pixi.js';
-import { LEVEL_EXP, NpcType } from '@mc/shared';
+import { NpcType } from '@mc/shared';
 import type {
   ChatMessage,
   MoveUpdate,
@@ -20,7 +20,8 @@ import { dirFromDelta } from './SheetAnim';
 import { NpcDialog } from '../ui/npcDialog';
 import { QuestController } from './QuestController';
 import { runSceneCommand } from './sceneCommands';
-import { ChatBox, Hud } from '../ui/chat';
+import { ChatBox } from '../ui/chat';
+import { MainHud } from '../ui/hud/mainHud';
 import { toast } from '../ui/screens';
 
 const MOVE_SEND_INTERVAL_MS = 120;
@@ -49,7 +50,7 @@ export class GameScene {
   private hitMask: HitMask | null = null;
   private lastSent = 0;
   private readonly chat: ChatBox;
-  private readonly hud: Hud;
+  private readonly hud: MainHud;
   private readonly quest: QuestController;
   private readonly offs: (() => void)[] = [];
 
@@ -60,12 +61,12 @@ export class GameScene {
   ) {
     const ui = document.getElementById('ui')!;
     ui.replaceChildren();
-    this.hud = new Hud(ui);
     this.chat = new ChatBox(
       ui,
       (channelId, msg) => void this.client.call('say', channelId, msg).catch((e) => toast((e as Error).message, true)),
       (cmd, args) => void runSceneCommand(cmd, args, this.client, this.chat, (res) => this.applyScene(res)),
     );
+    this.hud = new MainHud(ui, client, () => document.activeElement instanceof HTMLInputElement);
     this.quest = new QuestController({
       client, chat: this.chat, player,
       npc: (id) => this.npcs.get(id),
@@ -92,6 +93,7 @@ export class GameScene {
   destroy(): void {
     for (const off of this.offs) off();
     this.quest.destroy();
+    this.hud.destroy();
     this.npcDialog.close();
     this.pendingNpc = null;
     this.app.ticker.stop();
@@ -138,6 +140,7 @@ export class GameScene {
       this.entityLayer.addChild(e);
     }
     this.chat.system(`Đã vào ${res.map.name} (map ${res.map.id}, ${res.map.width}×${res.map.height}, ${npcs.length} NPC)`);
+    this.hud.setMap(res.map.name);
     this.updateHud();
     await this.quest.load().catch((e) => toast((e as Error).message, true));
   }
@@ -168,7 +171,6 @@ export class GameScene {
     const e = new Entity(data.id, 'player', data.name, data.iconCode, data.resCode, data.posX, data.posY, data.posDir);
     this.players.set(data.id, e);
     this.entityLayer.addChild(e);
-    this.updateHud();
   }
 
   private removePlayer(id: number): void {
@@ -176,7 +178,6 @@ export class GameScene {
     if (!e) return;
     e.destroy({ children: true });
     this.players.delete(id);
-    this.updateHud();
   }
 
   private onRemoteMove(data: MoveUpdate): void {
@@ -275,6 +276,7 @@ export class GameScene {
   private tick(dt: number): void {
     if (!this.self || !this.mapInfo) return;
     this.self.tick(dt);
+    this.hud.setPosition(this.self.x, this.self.y);
     this.closeDialogIfFar();
     for (const e of this.players.values()) e.tick(dt);
     for (const e of this.npcs.values()) e.tick(0);
@@ -295,14 +297,7 @@ export class GameScene {
   }
 
   private updateHud(): void {
-    this.hud.set({
-      'Nhân vật': `${this.player.name} (Lv ${this.player.level})`,
-      Exp: `${this.player.exp}/${LEVEL_EXP[Math.min(this.player.level, LEVEL_EXP.length - 1)]}`,
-      'Tiền': `${this.player.moneyBind ?? 0}`,
-      Map: this.mapInfo ? `${this.mapInfo.name} [${this.mapInfo.id}]` : '-',
-      'Người chơi quanh đây': String(this.players.size),
-      HP: `${this.player.currentHp}/${this.player.maxHp}`,
-    });
+    this.hud.setPlayer(this.player);
   }
 }
 

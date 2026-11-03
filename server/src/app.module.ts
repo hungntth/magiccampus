@@ -11,6 +11,7 @@ import { ChatModule } from './modules/chat/chat.module';
 import { AssetsModule } from './modules/assets/assets.module';
 import { NpcModule } from './modules/npc/npc.module';
 import { QuestModule } from './modules/quest/quest.module';
+import { SystemModule } from './modules/system/system.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { QuestModule } from './modules/quest/quest.module';
     AssetsModule,
     NpcModule,
     QuestModule,
+    SystemModule,
   ],
 })
 export class AppModule {}

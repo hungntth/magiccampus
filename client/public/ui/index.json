@@ -1,0 +1,1358 @@
+{
+ "MainStage_CharInfo/CharacterPortrait": {
+  "w": 192,
+  "h": 57,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/ExpBar": {
+  "w": 105,
+  "h": 4,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/GroupMemberBox": {
+  "w": 40,
+  "h": 40,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/HealEmptyDisabled": {
+  "w": 11,
+  "h": 9,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/HealEmptyDown": {
+  "w": 11,
+  "h": 9,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/HealEmptyOver": {
+  "w": 11,
+  "h": 9,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/HealEmptyUp": {
+  "w": 11,
+  "h": 9,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/HealHPFullDisabled": {
+  "w": 15,
+  "h": 8,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/HealHPFullDown": {
+  "w": 15,
+  "h": 8,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/HealHPFullOver": {
+  "w": 15,
+  "h": 8,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/HealHPFullUp": {
+  "w": 15,
+  "h": 8,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/HealHPHalfDisabled": {
+  "w": 15,
+  "h": 8,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/HealHPHalfDown": {
+  "w": 15,
+  "h": 8,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/HealHPHalfOver": {
+  "w": 15,
+  "h": 8,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/HealHPHalfUp": {
+  "w": 15,
+  "h": 8,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/HealMPEmptyDisabled": {
+  "w": 11,
+  "h": 9,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/HealMPEmptyDown": {
+  "w": 11,
+  "h": 9,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/HealMPEmptyOver": {
+  "w": 11,
+  "h": 9,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/HealMPEmptyUp": {
+  "w": 11,
+  "h": 9,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/HealMPFullDisabled": {
+  "w": 15,
+  "h": 8,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/HealMPFullDown": {
+  "w": 15,
+  "h": 8,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/HealMPFullOver": {
+  "w": 15,
+  "h": 8,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/HealMPFullUp": {
+  "w": 15,
+  "h": 8,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/HealMPHalfDisabled": {
+  "w": 15,
+  "h": 8,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/HealMPHalfDown": {
+  "w": 15,
+  "h": 8,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/HealMPHalfOver": {
+  "w": 15,
+  "h": 8,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/HealMPHalfUp": {
+  "w": 15,
+  "h": 8,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/HPBar": {
+  "w": 89,
+  "h": 5,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/ItemBagDisabled": {
+  "w": 15,
+  "h": 12,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/ItemBagDown": {
+  "w": 15,
+  "h": 12,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/ItemBagOver": {
+  "w": 15,
+  "h": 12,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/ItemBagUp": {
+  "w": 15,
+  "h": 12,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/LevelUpDisabled": {
+  "w": 39,
+  "h": 19,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/LevelUpDown": {
+  "w": 39,
+  "h": 19,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/LevelUpOver": {
+  "w": 39,
+  "h": 19,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/LevelUpUp": {
+  "w": 39,
+  "h": 19,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/MPBar": {
+  "w": 89,
+  "h": 5,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/PetPortrait_png": {
+  "w": 179,
+  "h": 46,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_CharInfo/SPBar": {
+  "w": 105,
+  "h": 4,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/1_Lock": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/2": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/3": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/4": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/ChannelButtonAquaDown": {
+  "w": 33,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/ChannelButtonAquaOver": {
+  "w": 33,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/ChannelButtonAquaUp": {
+  "w": 33,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/ChannelButtonBlueDown": {
+  "w": 33,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/ChannelButtonBlueOver": {
+  "w": 33,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/ChannelButtonBlueUp": {
+  "w": 33,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/ChannelButtonDisabled": {
+  "w": 33,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/ChannelButtonGreenDown": {
+  "w": 33,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/ChannelButtonGreenOver": {
+  "w": 33,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/ChannelButtonGreenUp": {
+  "w": 33,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/ChannelButtonRedDown": {
+  "w": 33,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/ChannelButtonRedOver": {
+  "w": 33,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/ChannelButtonRedUp": {
+  "w": 33,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/ChannelButtonYellowDown": {
+  "w": 33,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/ChannelButtonYellowOver": {
+  "w": 33,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/ChannelButtonYellowUp": {
+  "w": 33,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/ChatBar": {
+  "w": 68,
+  "h": 38,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/ChatButtonDisabled": {
+  "w": 47,
+  "h": 23,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/ChatButtonDown": {
+  "w": 47,
+  "h": 23,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/ChatButtonOver": {
+  "w": 47,
+  "h": 23,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/ChatButtonUp": {
+  "w": 47,
+  "h": 23,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/ClearDisabled": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/ClearDown": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/ClearOver": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/ClearUp": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/DiminishDisabled": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/DiminishDown": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/DiminishOver": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/DiminishUp": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/EmotionButtonDisabled": {
+  "w": 24,
+  "h": 23,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/EmotionButtonDown": {
+  "w": 24,
+  "h": 23,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/EmotionButtonOver": {
+  "w": 24,
+  "h": 23,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/EmotionButtonUp": {
+  "w": 24,
+  "h": 23,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/EnlargeDisabled": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/EnlargeDown": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/EnlargeOver": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/EnlargeUp": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/LockDisabled": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/LockDown": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/LockOver": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ChatArea/LockUp": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_Emotions/BtnEm_mc0": {
+  "w": 30,
+  "h": 30,
+  "ox": 1,
+  "oy": 1
+ },
+ "MainStage_Emotions/BtnEm_mc1": {
+  "w": 30,
+  "h": 30,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_Emotions/CanvasEm_mc1": {
+  "w": 192,
+  "h": 132,
+  "ox": 6,
+  "oy": 6
+ },
+ "MainStage_fuli/disable": {
+  "w": 45,
+  "h": 43,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_fuli/down": {
+  "w": 45,
+  "h": 43,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_fuli/normal": {
+  "w": 45,
+  "h": 43,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_fuli/over": {
+  "w": 45,
+  "h": 43,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_LocationBar/ChangeChannelDisabled": {
+  "w": 26,
+  "h": 24,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_LocationBar/ChangeChannelDown": {
+  "w": 26,
+  "h": 24,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_LocationBar/ChangeChannelOver": {
+  "w": 26,
+  "h": 24,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_LocationBar/ChangeChannelUp": {
+  "w": 26,
+  "h": 24,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_LocationBar/LocationIndicator": {
+  "w": 161,
+  "h": 24,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_LocationBar/shizhongOver": {
+  "w": 26,
+  "h": 24,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_LocationBar/shizhongUp": {
+  "w": 26,
+  "h": 24,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/1": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/2": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/3": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/4": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/1320": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/21038": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/31742": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/41162": {
+  "w": 18,
+  "h": 18,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/AutoBattleDown": {
+  "w": 40,
+  "h": 40,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/AutoBattleOver": {
+  "w": 40,
+  "h": 40,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/AutoBattleUp": {
+  "w": 40,
+  "h": 40,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/HideShortcutsDisabled": {
+  "w": 21,
+  "h": 21,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/HideShortcutsDown": {
+  "w": 21,
+  "h": 21,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/HideShortcutsOver": {
+  "w": 21,
+  "h": 21,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/HideShortcutsUp": {
+  "w": 21,
+  "h": 21,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/LastRowDisabled": {
+  "w": 14,
+  "h": 12,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/LastRowDown": {
+  "w": 14,
+  "h": 12,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/LastRowOver": {
+  "w": 14,
+  "h": 12,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/LastRowUp": {
+  "w": 14,
+  "h": 12,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/NextRowDisabled": {
+  "w": 14,
+  "h": 12,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/NextRowDown": {
+  "w": 14,
+  "h": 12,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/NextRowOver": {
+  "w": 14,
+  "h": 12,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/NextRowUp": {
+  "w": 14,
+  "h": 12,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/SettingBg": {
+  "w": 87,
+  "h": 51,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/SettingDisabled": {
+  "w": 38,
+  "h": 21,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/SettingDown": {
+  "w": 38,
+  "h": 21,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/SettingOver": {
+  "w": 38,
+  "h": 21,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/SettingUp": {
+  "w": 38,
+  "h": 21,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/ShortcutBackground": {
+  "w": 44,
+  "h": 51,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/ShowShortcutsDisabled": {
+  "w": 21,
+  "h": 21,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/ShowShortcutsDown": {
+  "w": 21,
+  "h": 21,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/ShowShortcutsOver": {
+  "w": 21,
+  "h": 21,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_ShortcutCanvas/ShowShortcutsUp": {
+  "w": 21,
+  "h": 21,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_SystemBarButtons/button_Achievement_disable_mc": {
+  "w": 41,
+  "h": 46,
+  "ox": 1,
+  "oy": 0
+ },
+ "MainStage_SystemBarButtons/button_Achievement_down_mc": {
+  "w": 41,
+  "h": 46,
+  "ox": 1,
+  "oy": 0
+ },
+ "MainStage_SystemBarButtons/button_Achievement_over_mc": {
+  "w": 41,
+  "h": 46,
+  "ox": 1,
+  "oy": 0
+ },
+ "MainStage_SystemBarButtons/button_Achievement_up_mc": {
+  "w": 41,
+  "h": 46,
+  "ox": 1,
+  "oy": 0
+ },
+ "MainStage_SystemBarButtons/button_bag_disabled_mc": {
+  "w": 41,
+  "h": 46,
+  "ox": 1,
+  "oy": -2
+ },
+ "MainStage_SystemBarButtons/button_bag_down_mc": {
+  "w": 41,
+  "h": 46,
+  "ox": 1,
+  "oy": -2
+ },
+ "MainStage_SystemBarButtons/button_bag_over_mc": {
+  "w": 41,
+  "h": 46,
+  "ox": 1,
+  "oy": -2
+ },
+ "MainStage_SystemBarButtons/button_bag_up_mc": {
+  "w": 41,
+  "h": 46,
+  "ox": 1,
+  "oy": -2
+ },
+ "MainStage_SystemBarButtons/button_Contest_disabled_mc": {
+  "w": 41,
+  "h": 45,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_SystemBarButtons/button_Contest_down_mc": {
+  "w": 41,
+  "h": 45,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_SystemBarButtons/button_Contest_over_mc": {
+  "w": 41,
+  "h": 45,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_SystemBarButtons/button_Contest_up_mc": {
+  "w": 41,
+  "h": 45,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_SystemBarButtons/button_friend_disabled_mc": {
+  "w": 41,
+  "h": 46,
+  "ox": 0,
+  "oy": -2
+ },
+ "MainStage_SystemBarButtons/button_friend_down_mc": {
+  "w": 41,
+  "h": 46,
+  "ox": 0,
+  "oy": -2
+ },
+ "MainStage_SystemBarButtons/button_friend_over_mc": {
+  "w": 41,
+  "h": 46,
+  "ox": 0,
+  "oy": -2
+ },
+ "MainStage_SystemBarButtons/button_friend_up_mc": {
+  "w": 41,
+  "h": 46,
+  "ox": 0,
+  "oy": -2
+ },
+ "MainStage_SystemBarButtons/button_person_disabled_mc": {
+  "w": 41,
+  "h": 45,
+  "ox": 0,
+  "oy": -2
+ },
+ "MainStage_SystemBarButtons/button_person_down_mc": {
+  "w": 41,
+  "h": 45,
+  "ox": 0,
+  "oy": -2
+ },
+ "MainStage_SystemBarButtons/button_person_over_mc": {
+  "w": 41,
+  "h": 45,
+  "ox": 0,
+  "oy": -2
+ },
+ "MainStage_SystemBarButtons/button_person_up_mc": {
+  "w": 41,
+  "h": 45,
+  "ox": 0,
+  "oy": -2
+ },
+ "MainStage_SystemBarButtons/button_pet_down_mc": {
+  "w": 40,
+  "h": 45,
+  "ox": 0,
+  "oy": -1
+ },
+ "MainStage_SystemBarButtons/button_pet_over_mc": {
+  "w": 40,
+  "h": 45,
+  "ox": 0,
+  "oy": -1
+ },
+ "MainStage_SystemBarButtons/button_pet_up_mc": {
+  "w": 40,
+  "h": 45,
+  "ox": 0,
+  "oy": -1
+ },
+ "MainStage_SystemBarButtons/button_skills_disabled_mc": {
+  "w": 43,
+  "h": 46,
+  "ox": 0,
+  "oy": -2
+ },
+ "MainStage_SystemBarButtons/button_skills_down_mc": {
+  "w": 43,
+  "h": 46,
+  "ox": 0,
+  "oy": -2
+ },
+ "MainStage_SystemBarButtons/button_skills_over_mc": {
+  "w": 43,
+  "h": 46,
+  "ox": 0,
+  "oy": -2
+ },
+ "MainStage_SystemBarButtons/button_skills_up_mc": {
+  "w": 43,
+  "h": 46,
+  "ox": 0,
+  "oy": -2
+ },
+ "MainStage_SystemBarButtons/button_task_diasbled_mc": {
+  "w": 52,
+  "h": 60,
+  "ox": 26,
+  "oy": 30
+ },
+ "MainStage_SystemBarButtons/button_task_down_mc": {
+  "w": 52,
+  "h": 60,
+  "ox": 26,
+  "oy": 30
+ },
+ "MainStage_SystemBarButtons/button_task_over_mc": {
+  "w": 52,
+  "h": 60,
+  "ox": 26,
+  "oy": 30
+ },
+ "MainStage_SystemBarButtons/button_task_up_mc": {
+  "w": 52,
+  "h": 60,
+  "ox": 26,
+  "oy": 30
+ },
+ "MainStage_SystemBarButtons/button_task_upbig_mc": {
+  "w": 52,
+  "h": 60,
+  "ox": 26,
+  "oy": 30
+ },
+ "MainStage_SystemBarButtons/button_team_disabled_mc": {
+  "w": 42,
+  "h": 46,
+  "ox": 1,
+  "oy": -1
+ },
+ "MainStage_SystemBarButtons/button_team_down_mc": {
+  "w": 42,
+  "h": 46,
+  "ox": 1,
+  "oy": -1
+ },
+ "MainStage_SystemBarButtons/button_team_over_mc": {
+  "w": 42,
+  "h": 46,
+  "ox": 1,
+  "oy": -1
+ },
+ "MainStage_SystemBarButtons/button_team_up_mc": {
+  "w": 42,
+  "h": 46,
+  "ox": 1,
+  "oy": -1
+ },
+ "MainStage_SystemBarButtons/button_team_upbig_mc": {
+  "w": 48,
+  "h": 52,
+  "ox": 4,
+  "oy": 2
+ },
+ "MainStage_SystemBarButtons/button_union_disabled_mc": {
+  "w": 41,
+  "h": 46,
+  "ox": 0,
+  "oy": 1
+ },
+ "MainStage_SystemBarButtons/button_union_down_mc": {
+  "w": 41,
+  "h": 46,
+  "ox": 0,
+  "oy": 1
+ },
+ "MainStage_SystemBarButtons/button_union_over_mc": {
+  "w": 41,
+  "h": 46,
+  "ox": 0,
+  "oy": 1
+ },
+ "MainStage_SystemBarButtons/button_union_up_mc": {
+  "w": 41,
+  "h": 46,
+  "ox": 0,
+  "oy": 1
+ },
+ "MainStage_SystemBarButtons2/richang1": {
+  "w": 40,
+  "h": 45,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_SystemBarButtons2/richang2": {
+  "w": 40,
+  "h": 45,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_SystemBarButtons2/richang3": {
+  "w": 40,
+  "h": 45,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_SystemBarButtons2/richang4": {
+  "w": 40,
+  "h": 45,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/AllowPKDisabled": {
+  "w": 25,
+  "h": 25,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/AllowPKDown": {
+  "w": 25,
+  "h": 25,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/AllowPKOver": {
+  "w": 25,
+  "h": 25,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/AllowPKUp": {
+  "w": 25,
+  "h": 25,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/EarthDisabled": {
+  "w": 36,
+  "h": 38,
+  "ox": 3,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/EarthDown": {
+  "w": 36,
+  "h": 38,
+  "ox": 3,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/EarthOver": {
+  "w": 36,
+  "h": 38,
+  "ox": 3,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/EarthUp": {
+  "w": 36,
+  "h": 38,
+  "ox": 3,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/HelpDisabled": {
+  "w": 40,
+  "h": 38,
+  "ox": 6,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/HelpDown": {
+  "w": 40,
+  "h": 38,
+  "ox": 6,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/HelpOver": {
+  "w": 40,
+  "h": 38,
+  "ox": 6,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/HelpUp": {
+  "w": 40,
+  "h": 38,
+  "ox": 6,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/MouseDisabled": {
+  "w": 39,
+  "h": 35,
+  "ox": 6,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/MouseDown": {
+  "w": 39,
+  "h": 35,
+  "ox": 6,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/Mouseover": {
+  "w": 39,
+  "h": 35,
+  "ox": 6,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/MouseUp": {
+  "w": 39,
+  "h": 35,
+  "ox": 6,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/NotAllowPKDisabled": {
+  "w": 25,
+  "h": 25,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/NotAllowPKDown": {
+  "w": 25,
+  "h": 25,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/NotAllowPKOver": {
+  "w": 25,
+  "h": 25,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/NotAllowPKUp": {
+  "w": 25,
+  "h": 25,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/putDisabled": {
+  "w": 13,
+  "h": 28,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/putdown": {
+  "w": 13,
+  "h": 28,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/putover": {
+  "w": 13,
+  "h": 28,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/putup": {
+  "w": 13,
+  "h": 28,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/rankingDisabled": {
+  "w": 44,
+  "h": 36,
+  "ox": 9,
+  "oy": 1
+ },
+ "MainStage_TopRightButtonTray/rankingDown": {
+  "w": 44,
+  "h": 36,
+  "ox": 9,
+  "oy": 1
+ },
+ "MainStage_TopRightButtonTray/rankingover": {
+  "w": 44,
+  "h": 36,
+  "ox": 9,
+  "oy": 1
+ },
+ "MainStage_TopRightButtonTray/rankingup": {
+  "w": 44,
+  "h": 36,
+  "ox": 9,
+  "oy": 1
+ },
+ "MainStage_TopRightButtonTray/RightButtonsHideDisabled": {
+  "w": 12,
+  "h": 25,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/RightButtonsHideDown": {
+  "w": 12,
+  "h": 25,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/RightButtonsHideOver": {
+  "w": 12,
+  "h": 25,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/RightButtonsHideUp": {
+  "w": 12,
+  "h": 25,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/RightButtonsShowDisabled": {
+  "w": 12,
+  "h": 25,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/RightButtonsShowDown": {
+  "w": 12,
+  "h": 25,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/RightButtonsShowOver": {
+  "w": 12,
+  "h": 25,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/RightButtonsShowUp": {
+  "w": 12,
+  "h": 25,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/ShopDisabled": {
+  "w": 57,
+  "h": 57,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/ShopDown": {
+  "w": 57,
+  "h": 57,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/ShopOver": {
+  "w": 57,
+  "h": 57,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/shopup": {
+  "w": 57,
+  "h": 57,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/shrinkageDisabled": {
+  "w": 13,
+  "h": 28,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/shrinkagedown": {
+  "w": 13,
+  "h": 28,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/shrinkageover": {
+  "w": 13,
+  "h": 28,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/shrinkageup": {
+  "w": 13,
+  "h": 28,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/SpeakerDisabled": {
+  "w": 45,
+  "h": 36,
+  "ox": 11,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/SpeakerDown": {
+  "w": 45,
+  "h": 36,
+  "ox": 11,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/Speakerover": {
+  "w": 45,
+  "h": 36,
+  "ox": 11,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/SpeakerUp": {
+  "w": 45,
+  "h": 36,
+  "ox": 11,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/Tray": {
+  "w": 129,
+  "h": 73,
+  "ox": 0,
+  "oy": 0
+ },
+ "MainStage_TopRightButtonTray/Tray2": {
+  "w": 62,
+  "h": 72,
+  "ox": 0,
+  "oy": 0
+ }
+}

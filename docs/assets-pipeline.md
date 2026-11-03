@@ -6,7 +6,7 @@ Go-style `-name value` form. Inputs are the md5-named blobs of the old resource 
 (`D:\mcgame\frontend\s\res`, override with `-cache`).
 
 Source layout: `src/swf/` (container, tags, shapes, timelines, bitmap decoding via `jpeg-js`/`pngjs`),
-`src/sheet/` (atlas + animation JSON), `src/png.ts` (PNG writer), `src/gojson.ts` (JSON writer that
+`src/sheet/` (atlas + animation JSON, UI symbol composer), `src/render/` (vector rasterizer), `src/png.ts` (PNG writer), `src/gojson.ts` (JSON writer that
 keeps the byte-exact format of the original Go tools), `src/cli/` (one file per tool).
 
 ## What is inside the SWFs (3 822 files)
@@ -44,6 +44,7 @@ handY, totalWidth, totalHeight`. The Flash client positions every resource at `(
 | `swf2sheet` | Converts one bitmap SWF to `<name>.png` atlas + `<name>.json`. |
 | `swfbatch`  | Runs the conversion for every convertible SWF → `client/public/sheets/<family>/<name>.{png,json}` + `manifest.json` (worker threads, `-workers N`). |
 | `swfhit`    | Extracts walkability masks → `client/public/sheets/scene/SCENE_FOLDER_xxxxxx/hit.{bin,json,png}`. |
+| `swfui`     | Renders named UI skin symbols (vector + bitmap) of one SWF to one PNG each + `index.json`. |
 
 `resmap.json` (md5 → logical path) is produced by `pnpm --filter @mc/server exec tsx tools/resmap.ts`:
 it decodes every 13-digit resource code found in the `data_tbl_*` collections, tries the known path
@@ -76,10 +77,35 @@ grid size (e.g. `2031.45 × 1530.4` for a 2000×1500 map — the grid is slightl
 Bit `i = y*w + x` of the inflated data, tested as `byte[i>>3] & (1 << (i&7))`, is 1 when walkable.
 `client/src/game/HitMask.ts` loads it and snaps clicks to the nearest walkable pixel.
 
+## UI skins (`swfui`)
+
+```powershell
+pnpm swfui -out <dir> -xor 1,2,0 [-match REGEX] D:/mcgame/frontend/s/6a41a5ba5c0006ab4e0c1321a2b05027.orig
+```
+
+The main client SWF is XOR-obfuscated with the repeating key `[1,2,0]`; `-xor 1,2,0` undoes it before
+parsing (omit it for plain SWFs). Every `SymbolClass` name matching `-match` (default `_embed_css_`,
+the Flex CSS skin classes) is rendered from frame 0 by `src/sheet/compose.ts` and written as
+`<lib>/<symbol>.png`, e.g. `MainStage_SystemBarButtons/button_bag_up_mc.png`, plus `index.json`:
+
+```json
+{ "MainStage_SystemBarButtons/button_bag_up_mc": { "w": 41, "h": 46, "ox": 1, "oy": -2 } }
+```
+
+`w`/`h` are the PNG size; `ox`/`oy` is the symbol's registration point (its (0,0)) in PNG pixels, so
+draw the PNG at `(-ox, -oy)` relative to where Flash placed the symbol.
+
+The renderer (`src/swf/vector.ts`, `styles.ts`, `display.ts`, `src/render/`) parses DefineShape1–4
+records into per-style edge lists and scanline-fills them (even-odd, or nonzero for DefineShape4 with
+the winding flag; 5 sub-scanlines + exact horizontal coverage for anti-aliasing). Supported: solid,
+linear/radial/focal gradients (pad/reflect/repeat), bitmap fills (clipped/repeating, smoothed), strokes
+(approximated with round joins/caps), sprites and button up states, PlaceObject colour transforms and
+clip-depth masks. Not rendered (reported as "unsupported parts"): text, morph shapes, filters, blend modes.
+
 ## Not covered yet
 
-- Vector SWFs (274) and the vector parts of mixed files: export with JPEXS
-  (`C:\Program Files (x86)\FFDec\ffdec-cli.exe -export shape|frame …`) then pack with the same JSON.
-- UI skins (`resource/ui/*.swf`, login screens) — vector, rebuild as HTML/CSS instead.
+- Vector SWFs (274) and the vector parts of mixed files for animated sheets (`swf2sheet` stays
+  bitmap-only; `swfui`'s renderer could be reused for them).
+- Text fields inside UI skins (rare: 3 symbols), filters (glow/shadow), blend modes.
 - Sounds (`resource/sound`), fonts.
 - Atlas PNGs are written with fast compression (754 MB total). Run `oxipng`/`pngquant` before shipping.
