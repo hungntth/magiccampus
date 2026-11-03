@@ -1,0 +1,13 @@
+{
+  "name": "mc-game-new",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev:server": "pnpm --filter @mc/server dev",
+    "dev:client": "pnpm --filter @mc/client dev",
+    "import:seeds": "pnpm --filter @mc/server import:seeds",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test"
+  }
+}

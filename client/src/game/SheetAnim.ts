@@ -1,0 +1,168 @@
+// Plays animations converted by tools/swf (swf2sheet): a PNG atlas plus JSON describing, per label
+// ("dir-behavior"), a list of frames; each frame holds N placed images with an affine matrix.
+// Direction indices run counter-clockwise from south: 0=S 1=SW 2=W 3=NW 4=N 5=NE 6=E 7=SE.
+
+import { Assets, Container, Matrix, Rectangle, Sprite, Texture } from 'pixi.js';
+
+export interface SheetObj {
+  i: number;
+  m: [number, number, number, number, number, number];
+}
+
+export interface SheetFrame {
+  d: number;
+  objs: SheetObj[];
+}
+
+export interface SheetData {
+  fps: number;
+  width: number;
+  height: number;
+  ox?: number;
+  oy?: number;
+  images: { x: number; y: number; w: number; h: number }[];
+  anims: Record<string, SheetFrame[]>;
+  order: string[];
+  // Anchor metrics from the SWF's GameResInst class, in sheet coordinates. The Flash client places a
+  // resource at (-midX, -footY) so its feet land on the entity position.
+  meta?: SheetMeta;
+}
+
+export interface SheetMeta {
+  midX: number;
+  footY: number;
+  bodyY?: number;
+  bodyHeight?: number;
+  headY?: number;
+  totalWidth?: number;
+  totalHeight?: number;
+}
+
+export const Behavior = {
+  STAND: 0,
+  RUN_FAST: 1,
+  RUN: 2,
+  ATTACK: 3,
+  HURT: 4,
+  DEAD: 5,
+  DEFENCE: 6,
+  MAGIC: 7,
+} as const;
+
+export function dirFromDelta(dx: number, dy: number, fallback = 0): number {
+  if (dx === 0 && dy === 0) return fallback;
+  const angle = Math.atan2(dy, dx);
+  const south = Math.PI / 2;
+  const ccw = (south - angle + Math.PI * 2) % (Math.PI * 2);
+  return Math.round(ccw / (Math.PI / 4)) % 8;
+}
+
+const loaded = new Map<string, Promise<LoadedSheet | null>>();
+
+export interface LoadedSheet {
+  data: SheetData;
+  textures: Texture[];
+}
+
+export function loadSheet(name: string): Promise<LoadedSheet | null> {
+  let p = loaded.get(name);
+  if (!p) {
+    p = (async () => {
+      try {
+        const data = (await (await fetch(`/sheets/${name}.json`)).json()) as SheetData;
+        const base = (await Assets.load<Texture>({ src: `/sheets/${name}.png`, loadParser: 'loadTextures' })) as Texture;
+        const textures = data.images.map(
+          (r) => new Texture({ source: base.source, frame: new Rectangle(r.x, r.y, r.w, r.h) }),
+        );
+        return { data, textures };
+      } catch {
+        return null;
+      }
+    })();
+    loaded.set(name, p);
+  }
+  return p;
+}
+
+export class SheetAnim extends Container {
+  private frames: SheetFrame[] = [];
+  private frameIdx = 0;
+  private elapsed = 0;
+  private pool: Sprite[] = [];
+  private labelName = '';
+  loop = true;
+  onComplete: (() => void) | null = null;
+
+  constructor(private readonly sheet: LoadedSheet) {
+    super();
+  }
+
+  get currentLabel(): string {
+    return this.labelName;
+  }
+
+  get firstLabel(): string {
+    return this.sheet.data.order[0] ?? '';
+  }
+
+  has(label: string): boolean {
+    return label in this.sheet.data.anims;
+  }
+
+  play(label: string, restart = false): boolean {
+    if (!this.has(label)) return false;
+    if (this.labelName === label && !restart) return true;
+    this.labelName = label;
+    this.frames = this.sheet.data.anims[label];
+    this.frameIdx = 0;
+    this.elapsed = 0;
+    this.render();
+    return true;
+  }
+
+  playDir(dir: number, behavior: number, restart = false): boolean {
+    return this.play(`${dir}-${behavior}`, restart);
+  }
+
+  tick(dtSeconds: number): void {
+    if (this.frames.length === 0) return;
+    this.elapsed += dtSeconds * this.sheet.data.fps;
+    let changed = false;
+    while (this.elapsed >= this.frames[this.frameIdx].d) {
+      this.elapsed -= this.frames[this.frameIdx].d;
+      if (this.frameIdx + 1 >= this.frames.length) {
+        if (!this.loop) {
+          this.elapsed = 0;
+          this.onComplete?.();
+          return;
+        }
+        this.frameIdx = 0;
+      } else {
+        this.frameIdx++;
+      }
+      changed = true;
+    }
+    if (changed) this.render();
+  }
+
+  private render(): void {
+    const frame = this.frames[this.frameIdx];
+    while (this.pool.length < frame.objs.length) {
+      const s = new Sprite();
+      this.pool.push(s);
+      this.addChild(s);
+    }
+    for (let i = 0; i < this.pool.length; i++) {
+      const s = this.pool[i];
+      const obj = frame.objs[i];
+      if (!obj) {
+        s.visible = false;
+        continue;
+      }
+      s.visible = true;
+      s.texture = this.sheet.textures[obj.i];
+      const [a, b, c, d, tx, ty] = obj.m;
+      s.setFromMatrix(new Matrix(a, b, c, d, tx, ty));
+    }
+  }
+}
