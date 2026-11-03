@@ -70,6 +70,7 @@ export interface PlayerData {
   money: number;
   moneyBind: number;
   gold: number;
+  goldBind: number;
   iconCode: string;
   attrPoints: number;
   questLog: string; // "|id|id|" finished quests, "|" when none
@@ -125,6 +126,24 @@ export interface SceneLoginResponse {
   self: SceneCharacter;
 }
 
+/** createSceneItems(): scene items on the caller's map. H5 joins the template (no client gameData tables). */
+export interface SceneItem {
+  id: number;
+  tid: number;
+  type: number; // template type; 3 = transport gate
+  name: string; // for gates: destination map name
+  posX: number; // top-left of the item SWF stage, map pixels
+  posY: number;
+  posDir: number; // 1 = mirrored
+  layer: number; // 0 = opaque, else alpha 0.6
+  resCode: string;
+}
+
+export const SceneItemType = { TRANSPORT: 3 } as const;
+
+/** onSceneEnter push after sceneChange(gateId) (H5 payload: same shape as the sceneLogin reply). */
+export type SceneEnterPush = SceneLoginResponse;
+
 export interface MoveUpdate {
   id: number;
   x: number;
@@ -164,6 +183,48 @@ export interface NpcFuncInit {
   loopInfo: { d: unknown; flag: boolean };
   // H5 extension: the Flash client read this from its static NPC table; we have no client copy.
   onServiceText: string;
+}
+
+// --- NPC shop (view only): push onOpenShop after clickNpc / npcFuncClick ---
+
+/** Currency a shop price is paid in (legacy Currency.TYPE_*; 'special' = GamePredef.CURRENCY_* id in `pType`). */
+export const ShopCurrency = {
+  MONEY: 'money', // bạc only (gt = 1)
+  MONEY_ALL: 'moneyAll', // bạc or bạc khóa
+  GOLD: 'gold', // vàng only (gt = 1)
+  GOLD_ALL: 'goldAll', // vàng or kim phiếu
+  EX_POINT: 'exPoint',
+  HONOR: 'honor',
+  SPECIAL: 'special',
+} as const;
+export type ShopCurrencyKind = (typeof ShopCurrency)[keyof typeof ShopCurrency];
+
+export interface ShopPrice {
+  currency: ShopCurrencyKind;
+  cost: number;
+  pType?: number; // only for 'special'
+}
+
+export interface ShopSlotView {
+  slotId: number; // data_tbl_shop_slot.id (future buy arg)
+  type: number; // 19 equip / 29 item
+  itemId: number;
+  name: string;
+  iconCode: string; // template icon_code, '0' if none
+  color: number; // palette index 0..8
+  info: string; // template info / description for the tooltip ('' if none)
+  amount: number; // -1 unlimited
+  stackMax: number; // NumPanel max for the amount dialog (template stack_max; 1 when single_flag)
+  st: number; // 1 Hot, 2 Sale, 3 Limit, 4 New, else none
+  prices: ShopPrice[]; // 0..2 entries
+}
+
+/** Push `onOpenShop` (to the caller). */
+export interface OpenShop {
+  shopId: number;
+  npcId: number; // -1 when not opened from an NPC
+  shopType: number; // data_tbl_shop.type: 1 = 12 per page, else 9
+  slots: ShopSlotView[];
 }
 
 // --- Quests (takeQuest / finishQuest / cancelQuest / initQuestManager) ---
@@ -216,6 +277,8 @@ export interface QuestView {
   data: QuestData;
   require: QuestRequire[];
   sName: string; // start NPC name
+  sMid: number; // start NPC map id (legacy QuestCanvas sMid), 0 if unknown
+  sMap: string; // start NPC map name (H5: the client has no map table)
   fName: string; // finish NPC name
   pos: QuestPos | null; // finish NPC location
 }
@@ -250,7 +313,7 @@ export interface InitQuestManagerReply {
 }
 
 /** onUPP: partial player props after exp/money/level changes. */
-export type PlayerUpdate = Partial<Pick<PlayerData, 'level' | 'exp' | 'money' | 'moneyBind' | 'gold' | 'attrPoints'>>;
+export type PlayerUpdate = Partial<Pick<PlayerData, 'level' | 'exp' | 'money' | 'moneyBind' | 'gold' | 'goldBind' | 'attrPoints'>>;
 
 export interface PlayerLevelUp {
   id: number;

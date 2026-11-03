@@ -1,4 +1,5 @@
-/* In-game HUD (legacy MainLayer) built from the extracted Flex skins under /ui. Coordinates are legacy MXML pixels. */
+/* In-game HUD (legacy MainLayer) built from the extracted Flex skins under /ui. Coordinates are legacy MXML pixels
+   inside the scaled #stage (ui/stage.ts). Hover skins apply only to real pointers so taps don't leave them stuck. */
 
 .skin {
   position: absolute;
@@ -10,8 +11,10 @@
   background-image: var(--up);
 }
 
-.skin-btn:hover {
-  background-image: var(--over);
+@media (hover: hover) {
+  .skin-btn:hover {
+    background-image: var(--over);
+  }
 }
 
 .skin-btn:active {
@@ -93,7 +96,7 @@
 
 /* --- minimap (top-right) --- */
 
-#ui > .hud-minimap {
+#stage > .hud-minimap {
   position: absolute;
   right: 0;
   top: 0;
@@ -134,19 +137,26 @@
   user-select: none;
 }
 
-.hud-red-btn:hover {
-  background: linear-gradient(#fff, #f6e2bf);
-  color: #c0280c;
+@media (hover: hover) {
+  .hud-red-btn:hover {
+    background: linear-gradient(#fff, #f6e2bf);
+    color: #c0280c;
+  }
 }
 
-/* --- chat (bottom-left) --- */
+/* --- chat (bottom-left), plain CSS, no skin images --- */
 
-#ui > .hud-chat {
+#stage > .hud-chat {
   pointer-events: none; /* the log lets map clicks through; tabs and buttons stay clickable */
   position: absolute;
   left: 1px;
-  bottom: 38px;
+  bottom: 40px;
   width: 439px;
+}
+
+.hud-chat,
+.hud-chat-bar {
+  --chat-edge: rgba(120, 200, 230, 0.45);
 }
 
 .hud-chat-log {
@@ -154,12 +164,13 @@
   left: 0;
   right: 0;
   top: 0;
-  bottom: 20px;
+  bottom: 22px;
   overflow-y: auto;
-  padding: 2px 4px;
-  background: rgba(0, 0, 0, 0.3);
+  padding: 2px 6px;
+  background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.32) 28px);
   line-height: 16px;
   scrollbar-width: thin;
+  scrollbar-color: rgba(140, 210, 235, 0.5) transparent;
 }
 
 .hud-chat-log .line {
@@ -179,44 +190,95 @@
   color: #4cf;
 }
 
+.hud-chat-tools {
+  pointer-events: auto;
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  display: flex;
+  gap: 3px;
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}
+
+.hud-chat-tools:hover {
+  opacity: 1;
+}
+
+.hud-chat-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid var(--chat-edge);
+  border-radius: 4px;
+  background: linear-gradient(#2d5f7e, #163a52);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+@media (hover: hover) {
+  .hud-chat-btn:hover {
+    background: linear-gradient(#3b7ba1, #1d4a68);
+  }
+}
+
+.hud-chat-btn:active {
+  background: linear-gradient(#163a52, #2d5f7e);
+}
+
+.hud-chat-tools .hud-chat-btn {
+  width: 18px;
+  height: 18px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.hud-chat-tools .hud-chat-btn.active {
+  border-color: #f3c95c;
+  background: linear-gradient(#8a6a1e, #5a4210);
+}
+
 .hud-chat-tabs {
   pointer-events: auto;
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  height: 18px;
+  height: 20px;
+  display: flex;
+  gap: 2px;
 }
 
 .hud-chat-tab {
-  position: absolute;
+  flex: 1 1 0;
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
+  text-overflow: ellipsis;
   text-align: center;
   font-size: 11px;
   line-height: 18px;
   cursor: pointer;
-  background: url(/ui/MainStage_ChatArea/ChannelButtonBlueUp.png) 0 0 / 100% 100%;
+  user-select: none;
+  color: #cfe6f2;
+  border: 1px solid var(--chat-edge);
+  border-bottom: none;
+  border-radius: 5px 5px 0 0;
+  background: linear-gradient(rgba(36, 82, 112, 0.92), rgba(14, 40, 60, 0.92));
 }
 
-.hud-chat-tab:hover {
-  background-image: url(/ui/MainStage_ChatArea/ChannelButtonBlueOver.png);
+@media (hover: hover) {
+  .hud-chat-tab:hover {
+    color: #fff;
+    background: linear-gradient(rgba(52, 110, 146, 0.95), rgba(20, 56, 82, 0.95));
+  }
 }
 
 .hud-chat-tab.active {
-  background-image: url(/ui/MainStage_ChatArea/ChannelButtonRedUp.png);
-}
-
-.hud-chat-tools {
-  position: absolute;
-  right: 0;
-  top: 0;
-  width: 84px;
-  height: 18px;
-}
-
-.hud-chat-tools .active {
-  filter: brightness(1.5);
+  color: #fff;
+  border-color: #f0b25a;
+  background: linear-gradient(#c8562e, #7e2410);
 }
 
 .hud-chat-bar {
@@ -224,64 +286,117 @@
   left: 0;
   bottom: 0;
   width: 440px;
-  height: 38px;
-}
-
-.hud-chat-bar-bg {
-  background-size: 100% 100%;
+  height: 40px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 7px;
+  border: 1px solid var(--chat-edge);
+  border-radius: 8px 8px 0 0;
+  background: linear-gradient(rgba(22, 58, 82, 0.92), rgba(8, 24, 38, 0.95));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 -2px 6px rgba(0, 0, 0, 0.35);
 }
 
 .hud-chat-bar form {
-  position: absolute;
+  flex: 1;
+  height: 24px;
   margin: 0;
 }
 
 .hud-chat-bar input {
+  box-sizing: border-box;
   width: 100%;
   height: 100%;
-  border: 1px solid #3a5a7a;
-  border-radius: 3px;
-  background: rgba(10, 20, 35, 0.75);
+  border: 1px solid rgba(120, 200, 230, 0.35);
+  border-radius: 12px;
+  background: rgba(0, 10, 20, 0.7);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
   color: #fff;
   font: 12px Tahoma, Verdana, sans-serif;
-  padding: 0 4px;
+  padding: 0 10px;
   outline: none;
 }
 
+.hud-chat-bar input:focus {
+  border-color: #6fd0f0;
+}
+
+.hud-chat-bar input::placeholder {
+  color: #7f9aab;
+}
+
 .hud-chat-channel {
-  position: absolute;
+  flex: none;
+  height: 24px;
+  padding: 0 8px;
   font-size: 11px;
-  line-height: 21px;
-  text-align: center;
+  line-height: 22px;
+  box-sizing: border-box;
   white-space: nowrap;
   cursor: pointer;
-  border-radius: 3px;
-  background: url(/ui/MainStage_ChatArea/ChannelButtonAquaUp.png) 0 0 / 100% 100%;
+  user-select: none;
+  border: 1px solid #63c7c2;
+  border-radius: 12px;
+  background: linear-gradient(#2c8f95, #145459);
+}
+
+@media (hover: hover) {
+  .hud-chat-channel:hover {
+    background: linear-gradient(#37a8ae, #196569);
+  }
 }
 
 .hud-chat-menu {
   position: absolute;
-  left: 4px;
-  bottom: 32px;
-  width: 60px;
-  background: rgba(10, 20, 35, 0.92);
-  border: 1px solid #3a5a7a;
-  border-radius: 3px;
+  left: 6px;
+  bottom: 36px;
+  min-width: 72px;
+  padding: 3px 0;
+  background: rgba(8, 22, 36, 0.95);
+  border: 1px solid rgba(120, 200, 230, 0.45);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
 .hud-chat-menu-item {
-  padding: 2px 6px;
+  padding: 3px 10px;
   cursor: pointer;
 }
 
-.hud-chat-menu-item:hover {
-  background: #2c6fa8;
+@media (hover: hover) {
+  .hud-chat-menu-item:hover {
+    background: #2c6fa8;
+  }
 }
 
 .hud-chat-send {
-  text-align: center;
-  line-height: 23px;
+  flex: none;
+  height: 24px;
+  padding: 0 14px;
   font-weight: bold;
+  border-color: #f0c060;
+  border-radius: 12px;
+  background: linear-gradient(#f2a43a, #b4560f);
+}
+
+@media (hover: hover) {
+  .hud-chat-send:hover {
+    background: linear-gradient(#f8b955, #c86716);
+  }
+}
+
+.hud-chat-send:active {
+  background: linear-gradient(#b4560f, #f2a43a);
+}
+
+.hud-chat-emote {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  font-size: 16px;
+  border-radius: 50%;
+  color: #ffd84a;
 }
 
 /* --- menu bar + shortcut bar (bottom-right) --- */

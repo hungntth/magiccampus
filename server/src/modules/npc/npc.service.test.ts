@@ -13,6 +13,11 @@ test('function types map to themselves, others to 0', () => {
   assert.equal(svc.buildFuncInit({ id: 1, type: 10 }).npcType, 0);
 });
 
+test('shop_id > 0 forces npcType to Shop (2)', () => {
+  assert.equal(svc.buildFuncInit({ id: 1, type: 1, shop_id: 5 }).npcType, 2);
+  assert.equal(svc.buildFuncInit({ id: 1, type: 1, shop_id: 0 }).npcType, 0);
+});
+
 test('null on_service_text becomes empty string', () => {
   assert.equal(svc.buildFuncInit({ id: 1, type: 1, on_service_text: null }).onServiceText, '');
   assert.equal(svc.buildFuncInit({ id: 1, type: 1, on_service_text: 'Chào' }).onServiceText, 'Chào');
@@ -27,7 +32,7 @@ test('npcQuest defaults to empty with state -1', () => {
 
 test('npcQuest carries the quest state and list from QuestService', () => {
   const view = {
-    qid: 1, state: 102, require: [], sName: 'Tân Thủ Sứ', fName: 'Trưởng Thôn Stoff', pos: null,
+    qid: 1, state: 102, require: [], sName: 'Tân Thủ Sứ', sMid: 1, sMap: 'Xuất Vân Thôn', fName: 'Trưởng Thôn Stoff', pos: null,
     data: {
       id: 1, name: 'Bắt Đầu Thực Tập', info: '', type: 1, startText: '', completeText: '', awardExp: 48,
       moneyNum: 100, moneyType: 1, startNpc: 240, finishNpc: 231, minLevel: 1, color: 0,

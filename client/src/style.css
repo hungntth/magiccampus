@@ -32,6 +32,57 @@ body {
   display: block;
 }
 
+#game {
+  touch-action: none; /* no browser pan/zoom gestures on the map */
+}
+
+/* Virtual 900x570 Flash stage (ui/stage.ts): the frame is the safe area, #stage is sized in stage pixels and scaled. */
+#stage-frame {
+  position: fixed;
+  top: env(safe-area-inset-top, 0px);
+  right: env(safe-area-inset-right, 0px);
+  bottom: env(safe-area-inset-bottom, 0px);
+  left: env(safe-area-inset-left, 0px);
+  pointer-events: none;
+}
+
+#stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#stage > * {
+  pointer-events: auto;
+}
+
+#stage input {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* The original is a landscape game: on a phone held upright, ask to rotate while in game. */
+@media (orientation: portrait) and (pointer: coarse) {
+  #stage-frame:has(> #stage:not(:empty))::after {
+    content: 'Xoay ngang thiết bị để chơi';
+    pointer-events: auto;
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(11, 14, 20, 0.94);
+    color: var(--text);
+    font: bold 18px Tahoma, Verdana, sans-serif;
+  }
+}
+
+/* Login/char select screens and toasts: H5-only, unscaled, above the stage. */
 #ui {
   position: fixed;
   inset: 0;
@@ -193,201 +244,219 @@ body {
   color: var(--danger);
 }
 
+/* NPC "Đối thoại" window, styled after the Flash skin: navy panel, gold frame, banner title, inset boxes. */
 .npc-dialog {
+  --npc-gold: #e8c46a;
+  --npc-gold-dark: #8a6a26;
+  --npc-box: #0d2d4a;
+  --npc-box-border: #4f86b3;
   position: absolute;
   left: 50%;
-  top: 22%;
+  top: 18%;
   transform: translateX(-50%);
-  width: 340px;
-  background: var(--panel);
-  border: 1px solid var(--border);
+  width: 290px;
+  max-width: calc(100% - 32px);
+  padding: 30px 12px 10px;
+  background: linear-gradient(180deg, #1d4a72 0%, #123553 40%, #0e2a45 100%);
+  border: 2px solid var(--npc-gold);
   border-radius: 10px;
-  padding: 12px 14px;
-  font-size: 14px;
+  box-shadow: 0 0 0 1px #3a2a08, inset 0 0 0 1px #6fa3cf, 0 6px 18px rgba(0, 0, 0, 0.55);
+  font-family: Tahoma, Verdana, Arial, sans-serif;
+  font-size: 12px;
+  color: #fff;
   pointer-events: auto;
 }
 
-.npc-dialog h3 {
-  margin: 0 0 10px;
-  font-size: 15px;
+.npc-dialog .npc-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+}
+
+.npc-dialog .npc-title {
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 130px;
+  padding: 3px 18px 4px;
+  background: linear-gradient(180deg, #3e7fb5 0%, #1c4c7a 100%);
+  border: 2px solid var(--npc-gold);
+  border-top: 0;
+  border-radius: 0 0 12px 12px;
   text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffe9a8;
+  text-shadow: 0 1px 0 #3a2a08, 0 0 3px #000;
+  letter-spacing: 0.5px;
 }
 
 .npc-dialog .npc-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   margin-bottom: 8px;
 }
 
-.npc-dialog .npc-head img {
+.npc-dialog .npc-portrait {
+  flex: none;
   width: 56px;
   height: 56px;
-  object-fit: contain;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: 2px solid var(--npc-gold);
+  border-radius: 4px;
+  background: #081a2c;
+  overflow: hidden;
+}
+
+.npc-dialog .npc-portrait img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.npc-dialog .npc-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  padding-top: 2px;
+  min-width: 0;
 }
 
 .npc-dialog .npc-name {
-  font-weight: 600;
-}
-
-.npc-dialog .npc-text {
-  line-height: 1.45;
-  max-height: 180px;
-  overflow-y: auto;
-  margin-bottom: 12px;
-  white-space: pre-wrap;
-}
-
-.npc-dialog .npc-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
+  font-size: 13px;
+  text-shadow: 0 1px 1px #000;
 }
 
 .npc-dialog button {
-  padding: 8px 14px;
-  border-radius: 6px;
-  border: 0;
-  background: var(--accent);
-  color: #1a1200;
-  font-weight: 600;
+  font: inherit;
   cursor: pointer;
-  font-size: 13px;
 }
 
-.npc-dialog button.secondary {
-  background: #232a3a;
-  color: var(--text);
+.npc-dialog .npc-func,
+.npc-dialog .npc-leave {
+  padding: 2px 16px 3px;
+  border: 1px solid #fff2c4;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #ffc65a 0%, #f08a1c 55%, #d96a0a 100%);
+  color: #fff;
+  font-weight: 700;
+  text-shadow: 0 1px 1px #6b3300;
+  box-shadow: 0 0 0 1px #7a3d00;
 }
 
-/* NPC dialog quest rows */
+.npc-dialog .npc-func:hover,
+.npc-dialog .npc-leave:hover {
+  filter: brightness(1.12);
+}
+
+.npc-dialog .npc-text,
 .npc-dialog .npc-quests {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 12px;
-}
-
-.npc-dialog button.npc-quest {
-  background: transparent;
-  color: var(--accent);
-  text-align: left;
-  padding: 4px 6px;
-  font-weight: 600;
-}
-
-.npc-dialog button.npc-quest.s103 {
-  color: var(--muted);
-}
-
-.npc-dialog button.npc-quest:hover {
-  background: #232a3a;
-}
-
-/* Quest panel (reuses the npc-dialog look) */
-.quest-panel {
-  position: absolute;
-  left: 50%;
-  top: 14%;
-  transform: translateX(-50%);
-  width: 380px;
-  max-width: calc(100vw - 32px);
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px 14px;
-  font-size: 14px;
-  pointer-events: auto;
-}
-
-.quest-panel h3 {
-  margin: 0 0 10px;
-  font-size: 15px;
-  text-align: center;
-}
-
-.quest-panel .npc-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-
-.quest-panel .npc-head img {
-  width: 56px;
-  height: 56px;
-  object-fit: contain;
-  border: 1px solid var(--border);
+  background: var(--npc-box);
+  border: 1px solid var(--npc-box-border);
   border-radius: 8px;
-}
-
-.quest-panel .npc-name,
-.quest-panel .quest-title {
-  font-weight: 600;
-}
-
-.quest-panel .quest-title {
-  color: var(--accent);
-  margin-bottom: 6px;
-}
-
-.quest-panel .quest-body {
-  line-height: 1.45;
-  max-height: 300px;
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.6);
   overflow-y: auto;
-  margin-bottom: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: #7fb4dd #0a2238;
+}
+
+.npc-dialog .npc-text {
+  height: 92px;
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  line-height: 1.45;
   white-space: pre-wrap;
 }
 
-.quest-panel .quest-text {
-  margin-bottom: 6px;
+.npc-dialog .npc-label {
+  margin: 0 0 3px 4px;
+  color: #fff;
+  text-shadow: 0 1px 1px #000;
 }
 
-.quest-panel .quest-info {
-  color: var(--muted);
-  margin-bottom: 6px;
-}
-
-.quest-panel .quest-label {
-  color: var(--accent-2);
-  margin-top: 6px;
-}
-
-.quest-panel .npc-actions {
+.npc-dialog .npc-quests {
   display: flex;
-  gap: 8px;
-  justify-content: flex-end;
+  flex-direction: column;
+  max-height: 126px;
+  padding: 3px 0;
+  margin-bottom: 8px;
 }
 
-.quest-panel button {
-  padding: 8px 14px;
-  border-radius: 6px;
+.npc-dialog .npc-quest {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
   border: 0;
-  background: var(--accent);
-  color: #1a1200;
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 13px;
+  border-bottom: 1px solid rgba(79, 134, 179, 0.35);
+  background: transparent;
+  color: #fff;
+  text-align: left;
 }
 
-.quest-panel button.secondary {
-  background: #232a3a;
-  color: var(--text);
+.npc-dialog .npc-quest:last-child {
+  border-bottom: 0;
 }
 
-.quest-panel button:disabled {
-  opacity: 0.45;
-  cursor: default;
+.npc-dialog .npc-quest:hover {
+  background: rgba(111, 163, 207, 0.25);
+  color: #ffe9a8;
 }
+
+.npc-dialog .npc-mark {
+  flex: none;
+  width: 8px;
+  font-weight: 700;
+  text-align: center;
+  color: #ff3b2f;
+  text-shadow: 0 0 2px #000;
+}
+
+.npc-dialog .npc-quest.s103 .npc-mark {
+  color: #b8c2d0;
+}
+
+.npc-dialog .npc-quest.s104 .npc-mark {
+  color: #ffd54a;
+}
+
+.npc-dialog .npc-qname {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.npc-dialog .npc-leave {
+  display: block;
+  margin: 0 auto;
+}
+
+/* Quest panel (reuses the npc-dialog look) */
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* Quest tracker (right side) */
 .quest-tracker {
   position: absolute;
   top: 140px;
   right: 92px;
-  width: min(260px, 45vw);
+  width: 260px;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 8px;

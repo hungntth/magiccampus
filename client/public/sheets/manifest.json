@@ -4831,6 +4831,15 @@
   "images": 1,
   "anims": 64
  },
+ "resource/creature/NPC_FUNC_000094.swf": {
+  "md5": "34c5fdbe73456b2b0875c1c3927614a6",
+  "name": "resource/creature/NPC_FUNC_000094.swf",
+  "category": "vector-anim",
+  "sheet": "creature/NPC_FUNC_000094",
+  "images": 48,
+  "anims": 1,
+  "skipped": 2
+ },
  "resource/creature/NPC_FUNC_000095.swf": {
   "md5": "bc18320c63f288e15c7926ed6b30bd0f",
   "name": "resource/creature/NPC_FUNC_000095.swf",
@@ -10090,14 +10099,45 @@
   "anims": 1,
   "skipped": 4
  },
+ "resource/item/SITEM_SPAWN_000001.swf": {
+  "md5": "08de7c8d97ff775d5d6bf347ee5e2079",
+  "name": "resource/item/SITEM_SPAWN_000001.swf",
+  "category": "vector-anim",
+  "sheet": "item/SITEM_SPAWN_000001",
+  "images": 24,
+  "anims": 1
+ },
  "resource/item/SITEM_SPAWN_000002.swf": {
   "md5": "95b52f65e60467581be0608ea568aff1",
   "name": "resource/item/SITEM_SPAWN_000002.swf",
-  "category": "mixed",
+  "category": "vector-anim",
   "sheet": "item/SITEM_SPAWN_000002",
   "images": 1,
-  "anims": 1,
-  "skipped": 2
+  "anims": 1
+ },
+ "resource/item/SITEM_SPAWN_000003.swf": {
+  "md5": "23966e3c0607412c73798faf40b8014e",
+  "name": "resource/item/SITEM_SPAWN_000003.swf",
+  "category": "vector-anim",
+  "sheet": "item/SITEM_SPAWN_000003",
+  "images": 15,
+  "anims": 1
+ },
+ "resource/item/SITEM_SPAWN_000004.swf": {
+  "md5": "40553be9e7d7b6bba451671ca2fe79a7",
+  "name": "resource/item/SITEM_SPAWN_000004.swf",
+  "category": "vector-anim",
+  "sheet": "item/SITEM_SPAWN_000004",
+  "images": 10,
+  "anims": 1
+ },
+ "resource/item/SITEM_SPAWN_000005.swf": {
+  "md5": "048c429c6a8a2a7819e4fcde7fc4631f",
+  "name": "resource/item/SITEM_SPAWN_000005.swf",
+  "category": "vector-anim",
+  "sheet": "item/SITEM_SPAWN_000005",
+  "images": 22,
+  "anims": 1
  },
  "resource/item/SITEM_SPAWN_000006.swf": {
   "md5": "2db76271de1f2b7dec11de541a69c0d4",

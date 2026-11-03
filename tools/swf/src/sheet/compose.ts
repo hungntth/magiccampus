@@ -3,10 +3,10 @@
 // Characters that cannot be drawn (text, buttons, morph shapes, ...) are counted as `skipped`.
 
 import { CX_IDENTITY, concatCx, type ColorTransform } from '../swf/cxform.js';
-import { buttonUpState, firstFrame, type DisplayObject } from '../swf/display.js';
+import { buttonUpState, displayAt, firstFrame, frameCountOf, type DisplayObject } from '../swf/display.js';
 import { decodeBitmap, newImage, type Image } from '../swf/images.js';
 import { IDENTITY, mul, type Matrix } from '../swf/matrix.js';
-import { cstring, tagsOf, u16, type SwfFile } from '../swf/reader.js';
+import { cstring, tagsOf, u16, type SwfFile, type Tag as SwfTag } from '../swf/reader.js';
 import { BITMAP_TAGS, SHAPE_TAGS, Tag } from '../swf/tags.js';
 import { parseVectorShape, type VectorShape } from '../swf/vector.js';
 import { drawShape, shapeCoverage, type Mask } from '../render/draw.js';
@@ -32,14 +32,18 @@ interface Item {
 }
 
 const MAX_DEPTH = 12;
+/** Pseudo character id of the main timeline for frame-indexed rendering (see composeStage). */
+const STAGE_ID = -1;
 
 export class SymbolLibrary {
   readonly symbols = new Map<number, string>();
   private readonly bitmaps = new Map<number, Image>();
   private readonly shapes = new Map<number, VectorShape>();
   private readonly sprites = new Map<number, DisplayObject[]>();
+  private readonly spriteTags = new Map<number, SwfTag[]>();
 
   constructor(f: SwfFile) {
+    this.spriteTags.set(STAGE_ID, f.tags);
     let jpegTables: Uint8Array = new Uint8Array();
     for (const t of f.tags) {
       if (t.code === Tag.JPEGTables) jpegTables = t.data;
@@ -60,7 +64,9 @@ export class SymbolLibrary {
           // malformed shape: counted as skipped where it is placed
         }
       } else if (t.code === Tag.DefineSprite && t.data.length >= 4) {
-        this.sprites.set(u16(t.data, 0), firstFrame(tagsOf(t.data.subarray(4))));
+        const tags = tagsOf(t.data.subarray(4));
+        this.spriteTags.set(u16(t.data, 0), tags);
+        this.sprites.set(u16(t.data, 0), firstFrame(tags));
       } else if ((t.code === Tag.DefineButton || t.code === Tag.DefineButton2) && t.data.length >= 2) {
         this.sprites.set(u16(t.data, 0), buttonUpState(t.data, t.code === Tag.DefineButton2));
       } else if (t.code === Tag.SymbolClass && t.data.length >= 2) {
@@ -75,7 +81,49 @@ export class SymbolLibrary {
     }
   }
 
-  compose(id: number): Composed | null {
+  /** Frame count of a sprite (or of the main timeline for id -1); 1 for non-sprites. */
+  framesOf(id: number): number {
+    const tags = this.spriteTags.get(id);
+    return tags ? frameCountOf(tags) : 1;
+  }
+
+  /** Longest nested sprite timeline reachable from the main timeline (loop length of the whole animation). */
+  stageLoopLength(): number {
+    let max = 1;
+    const seen = new Set<number>();
+    const visit = (list: DisplayObject[]): void => {
+      for (const o of list) {
+        if (seen.has(o.charId)) continue;
+        seen.add(o.charId);
+        if (this.sprites.has(o.charId)) {
+          max = Math.max(max, this.framesOf(o.charId));
+          visit(this.sprites.get(o.charId)!);
+        }
+      }
+    };
+    visit(this.sprites.get(STAGE_ID) ?? firstFrame(this.spriteTags.get(STAGE_ID) ?? []));
+    return max;
+  }
+
+  /** Instance-named child (e.g. "localizer") of the main timeline at frame 0, with its matrix. */
+  stageChild(name: string): DisplayObject | undefined {
+    return displayAt(this.spriteTags.get(STAGE_ID) ?? [], 0).find((o) => o.name === name);
+  }
+
+  /** Renders the main timeline at global frame `frame`: every nested sprite shows frame `frame % its length`. */
+  composeStage(frame: number): Composed | null {
+    return this.compose(STAGE_ID, frame);
+  }
+
+  private displayList(charId: number, frame: number | undefined): DisplayObject[] | undefined {
+    if (frame === undefined) return this.sprites.get(charId);
+    const tags = this.spriteTags.get(charId);
+    if (!tags) return this.sprites.get(charId);
+    return displayAt(tags, frame % frameCountOf(tags));
+  }
+
+  /** Renders a character; with `frame` set, nested sprites are rendered at that (looped) frame instead of frame 0. */
+  compose(id: number, frame?: number): Composed | null {
     const items: Item[] = [];
     let skipped = 0;
 
@@ -88,7 +136,7 @@ export class SymbolLibrary {
         sink.push({ shape: sh, m, cx, masks });
         return;
       }
-      const sp = this.sprites.get(charId);
+      const sp = this.displayList(charId, frame);
       if (!sp) {
         skipped++;
         return;

@@ -1,0 +1,41 @@
+// Bag (inventory) wire types: getInitSlot reply, onAddCharactorSlot / onDelCharactorSlot / onAddItem payloads.
+// Legacy item DTO subset (item.go:183-260) plus H5 extensions (name, iconCode, info, sellPrice).
+
+export const ItemKind = { ITEM: 1, EQUIP: 2 } as const; // legacy item_type
+export const SlotType = { BAG: 0 } as const; // other slot types (equipped, bank, ...) are not ported
+export const BAG_SID_BASE = 2101;
+export const BAG_PAGE_SLOTS = 30;
+/** Instance table ids of the legacy DTO `type` field (template tables are 29 / 19). */
+export const ITEM_INSTANCE_TYPE = 28;
+export const EQUIP_INSTANCE_TYPE = 18;
+
+/** Bag slot as sent by getInitSlot / onAddCharactorSlot. */
+export interface BagItem {
+  id: number; // instance id (counters 'items')
+  sid: number; // BAG_SID_BASE + slotIndex
+  slotType: number;
+  slotIndex: number;
+  tid: number; // template id
+  type: number; // 28 item / 18 equipment
+  itemType: number; // ItemKind
+  stackNum: number;
+  binded: boolean;
+  color: number; // palette index 0..8 (same NAME_COLORS as the shop)
+  durability: number; // 0 for items
+  maxDurability: number;
+  name: string; // H5 extension: resolved template name
+  iconCode: string; // H5 extension: template icon_code
+  info: string; // H5 extension: tooltip text
+  sellPrice: number; // H5 extension: floor(price / 4) per unit, 0 = cannot be sold
+}
+
+/** getInitSlot reply, keyed by instance id (as a string). */
+export type GetInitSlotReply = Record<string, BagItem>;
+
+/** onAddItem "got item" notice (legacy keys): i template id, q count, t item kind, n name. */
+export interface AddItemNotice {
+  i: number;
+  q: number;
+  t: number;
+  n: string;
+}

@@ -14,12 +14,12 @@ export class MainHud {
   private readonly miniMap: MiniMapCanvas;
   private readonly systemBar: SystemBar;
 
-  constructor(parent: HTMLElement, client: GameClient, typing: () => boolean) {
+  constructor(parent: HTMLElement, client: GameClient, typing: () => boolean, onBag: () => void) {
     this.portrait = new PortraitCanvas(parent);
     new PetCanvas(parent);
     this.miniMap = new MiniMapCanvas(parent, client);
     new UserBar(parent);
-    this.systemBar = new SystemBar(parent, typing);
+    this.systemBar = new SystemBar(parent, typing, onBag);
   }
 
   destroy(): void {

@@ -4,7 +4,9 @@
 import { QuestState, type ChaQuest } from '@mc/shared';
 
 // QUESTGUIDE_S prefixes by quest type.
-const TYPE_PREFIX: Record<number, string> = { 1: '[Tân Thủ]', 2: '[Chính]', 4: '[Phụ]', 10: '[Trưởng Thành]' };
+export const TYPE_PREFIX: Record<number, string> = {
+  1: '[Tân Thủ]', 2: '[Chính]', 3: '[Gia Tộc]', 4: '[Phụ]', 9: '[Treo Thưởng]', 10: '[Trưởng Thành]',
+};
 
 export class QuestTracker {
   private readonly root: HTMLElement;

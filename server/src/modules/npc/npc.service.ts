@@ -25,7 +25,8 @@ export class NpcService {
     return {
       npcId: id,
       npcName: String(npc.name ?? ''),
-      npcType: NPC_FUNC_TYPES.has(type) ? type : 0,
+      // Legacy npc_interaction.go: any NPC with a shop shows the Shop function button.
+      npcType: Number(npc.shop_id ?? 0) > 0 ? NpcType.SHOP : NPC_FUNC_TYPES.has(type) ? type : 0,
       npcQuest: { npcId: id, state: quests.state, list: quests.list },
       loopInfo: { d: null, flag: false },
       onServiceText: String(npc.on_service_text ?? ''),

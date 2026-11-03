@@ -1,8 +1,20 @@
-// Quest detail panel (DOM, in #ui): NPC portrait/name (or "Hệ thống"), story text, requirements, NPCs,
-// rewards and the "Nhận" / "Xong" / "Bỏ" buttons (legacy QuestPanel.as / QuestCanvas.as).
+// "NPC nhiệm vụ" window (legacy QuestPanel.as + QuestCanvas.as), plain HTML/CSS in #stage: left column = NPC portrait,
+// name, NPC speech and Nhận / Xong / Bỏ; right = "Mô tả nvụ" description (type prefix, name, info, requirements,
+// start/finish NPC with map) and the Tiền / Exp / Quà rewards. Drag by the title bar, Esc or × closes.
 
-import { QuestState, QuestType, type QuestView } from '@mc/shared';
+import { MoneyType, QuestState, QuestType, type QuestView } from '@mc/shared';
 import { iconUrl } from '../assets';
+import { stageEl } from './stage';
+import { closeOnEscape, makeDraggable } from './panelBehavior';
+import { TYPE_PREFIX } from './questTracker';
+import './questPanel.css';
+
+// GamePredef.MSG_ITEM_COLOR (quest/item name by color index) and MSG_EVENTTEXT_COLOR[0]/[5] (NPC / map links).
+const ITEM_COLOR = ['#FFFFFF', '#00FF00', '#0066FF', '#FF33FF', '#FA5B05', '#FF0000', '#33CCAA', '#33CCAA', '#000000'];
+const NPC_COLOR = '#FFCC00';
+const MAP_COLOR = '#33FF66';
+const PREFIX_COLOR = '#1E90FF';
+const GIFT_SLOTS = 6;
 
 export interface QuestPanelOpts {
   npcId: number | null; // NPC the panel was opened at; null = from the tracker
@@ -16,6 +28,7 @@ export interface QuestPanelOpts {
 export class QuestPanel {
   private root: HTMLElement | null = null;
   private qid: number | null = null;
+  private offs: (() => void)[] = [];
 
   get questId(): number | null {
     return this.qid;
@@ -23,69 +36,114 @@ export class QuestPanel {
 
   show(view: QuestView, opts: QuestPanelOpts): void {
     this.close();
-    const root = el('div', 'quest-panel');
-    root.appendChild(el('h3', '', 'Nhiệm vụ'));
+    const root = el('div', 'qp');
+    const header = el('div', 'qp-header');
+    header.appendChild(el('div', 'qp-title', 'NPC nhiệm vụ'));
+    const x = el('button', 'qp-close', '×');
+    x.title = 'Đóng';
+    x.onclick = () => this.close();
+    root.append(header, x);
 
-    const head = el('div', 'npc-head');
+    const body = el('div', 'qp-body');
+    body.appendChild(this.leftColumn(view, opts));
+    body.append(el('div', 'qp-label qp-desc-label', 'Mô tả nvụ'), description(view));
+    const money = view.data.moneyNum;
+    const gold = view.data.moneyType === MoneyType.GOLD || view.data.moneyType === MoneyType.GOLD_BIND;
+    body.append(el('div', 'qp-label', 'Tiền'), reward(gold ? 'qp-coin gold' : 'qp-coin', money > 0 ? money : 0));
+    body.append(el('div', 'qp-label', 'Exp'), reward('qp-exp', view.data.awardExp > 0 ? view.data.awardExp : 0));
+    const gifts = el('div', 'qp-gifts');
+    for (let i = 0; i < GIFT_SLOTS; i++) gifts.appendChild(el('div', 'qp-slot'));
+    body.append(el('div', 'qp-label', 'Quà'), gifts);
+    root.appendChild(body);
+
+    stageEl().appendChild(root);
+    this.root = root;
+    this.qid = view.qid;
+    this.offs.push(makeDraggable(root, header), closeOnEscape(() => this.close()));
+  }
+
+  close(): void {
+    for (const off of this.offs) off();
+    this.offs = [];
+    this.root?.remove();
+    this.root = null;
+    this.qid = null;
+  }
+
+  private leftColumn(view: QuestView, opts: QuestPanelOpts): HTMLElement {
+    const left = el('div', 'qp-left');
+    const head = el('div', 'qp-npc');
+    const portrait = el('div', 'qp-portrait');
     if (opts.npcId !== null && opts.iconCode && opts.iconCode !== '0') {
       const img = document.createElement('img');
       img.src = iconUrl(opts.iconCode);
       img.alt = '';
       img.onerror = () => img.remove();
-      head.appendChild(img);
+      portrait.appendChild(img);
     }
-    head.appendChild(el('div', 'npc-name', opts.npcId !== null ? opts.npcName : 'Hệ thống'));
-    root.appendChild(head);
+    const name = el('div', 'qp-npc-name', opts.npcId !== null ? opts.npcName : 'Hệ thống');
+    name.title = name.textContent ?? '';
+    head.append(portrait, name);
+    // NPC speech: the accept text until the quest can be turned in, then the completion text.
+    const speech = view.state === QuestState.CAN_FINISH ? view.data.completeText || view.data.startText : view.data.startText;
+    left.append(head, el('div', 'qp-speech', speech || '…'));
 
-    const body = el('div', 'quest-body');
-    body.appendChild(el('div', 'quest-title', view.data.name));
-    if (view.data.startText) body.appendChild(el('div', 'quest-text', view.data.startText));
-    if (view.data.info) body.appendChild(el('div', 'quest-info', view.data.info));
-    if (view.require.length > 0) {
-      body.appendChild(el('div', 'quest-label', 'Yêu cầu nhiệm vụ:'));
-      const met = view.state === QuestState.CAN_FINISH;
-      for (const r of view.require) {
-        body.appendChild(el('div', 'quest-line', `${r.name} (${met ? r.num : 0}/${r.num})`));
-      }
-    }
-    if (view.sName) body.appendChild(el('div', 'quest-line', `NPC nhận nhiệm vụ: ${view.sName}`));
-    if (view.fName) body.appendChild(el('div', 'quest-line', `NPC trả nhiệm vụ: ${view.fName}`));
-    const rewards: string[] = [];
-    if (view.data.awardExp > 0) rewards.push(`Exp ${view.data.awardExp}`);
-    if (view.data.moneyNum > 0) rewards.push(`Tiền ${view.data.moneyNum}`);
-    if (rewards.length > 0) {
-      body.appendChild(el('div', 'quest-label', 'Phần thưởng:'));
-      body.appendChild(el('div', 'quest-line', rewards.join(' · ')));
-    }
-    root.appendChild(body);
-
-    const actions = el('div', 'npc-actions');
+    const actions = el('div', 'qp-actions');
     if (view.state === QuestState.CAN_TAKE) {
       actions.appendChild(button('Nhận', opts.onTake));
     } else if (view.state === QuestState.TAKEN || view.state === QuestState.CAN_FINISH) {
-      const atFinish = view.data.finishNpc <= 0 || opts.npcId === view.data.finishNpc;
-      if (atFinish) {
+      if (view.data.finishNpc <= 0 || opts.npcId === view.data.finishNpc) {
         const done = button('Xong', opts.onFinish);
         done.disabled = view.state !== QuestState.CAN_FINISH;
         actions.appendChild(done);
       }
-      const give = button('Bỏ', opts.onCancel, 'secondary');
+      const give = button('Bỏ', opts.onCancel);
       give.disabled = view.data.type === QuestType.NEWHAND;
       actions.appendChild(give);
     }
-    actions.appendChild(button('Đóng', () => this.close(), 'secondary'));
-    root.appendChild(actions);
-
-    document.getElementById('ui')!.appendChild(root);
-    this.root = root;
-    this.qid = view.qid;
+    left.appendChild(actions);
+    return left;
   }
+}
 
-  close(): void {
-    this.root?.remove();
-    this.root = null;
-    this.qid = null;
+/** QuestCanvas info box: "[Phụ][Name]", info, "Yêu cầu nhiệm vụ:" lines, then the start / finish NPC with their maps. */
+function description(view: QuestView): HTMLElement {
+  const box = el('div', 'qp-desc');
+  const title = el('div', 'qp-qname');
+  const prefix = TYPE_PREFIX[view.data.type];
+  if (prefix) title.appendChild(colored(prefix, PREFIX_COLOR));
+  title.appendChild(colored(`[${view.data.name}]`, ITEM_COLOR[view.data.color] ?? ITEM_COLOR[0]));
+  box.appendChild(title);
+  if (view.data.info) box.appendChild(el('div', 'qp-line', view.data.info));
+  box.appendChild(el('div', 'qp-line', 'Yêu cầu nhiệm vụ:'));
+  const met = view.state === QuestState.CAN_FINISH;
+  for (const r of view.require) {
+    const line = el('div', 'qp-line qp-indent');
+    line.append(colored(r.name, ITEM_COLOR[0]), ` (${met ? r.num : 0}/${r.num})`);
+    box.appendChild(line);
   }
+  if (view.sName) box.appendChild(npcLine('NPC nhận nhiệm vụ: ', view.sName, view.sMap));
+  if (view.fName) box.appendChild(npcLine('NPC trả nhiệm vụ: ', view.fName, view.pos?.name ?? ''));
+  return box;
+}
+
+function npcLine(label: string, npc: string, map: string): HTMLElement {
+  const line = el('div', 'qp-line');
+  line.append(label, colored(`[${npc}]`, NPC_COLOR));
+  if (map) line.appendChild(colored(`[${map}]`, MAP_COLOR));
+  return line;
+}
+
+function reward(iconCls: string, value: number): HTMLElement {
+  const row = el('div', 'qp-reward');
+  row.append(el('span', iconCls), el('span', 'qp-value', value.toLocaleString('vi-VN')));
+  return row;
+}
+
+function colored(text: string, color: string): HTMLSpanElement {
+  const s = el('span', '', text) as HTMLSpanElement;
+  s.style.color = color;
+  return s;
 }
 
 function el(tag: string, className: string, text?: string): HTMLElement {
@@ -95,10 +153,10 @@ function el(tag: string, className: string, text?: string): HTMLElement {
   return e;
 }
 
-function button(label: string, onClick: () => void, className = ''): HTMLButtonElement {
+function button(label: string, onClick: () => void): HTMLButtonElement {
   const b = document.createElement('button');
+  b.className = 'qp-btn';
   b.textContent = label;
-  if (className) b.className = className;
   b.onclick = onClick;
   return b;
 }

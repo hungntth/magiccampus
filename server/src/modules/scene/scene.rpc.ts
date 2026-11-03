@@ -1,8 +1,8 @@
-// Scene RPCs: sceneLogin, createChars, createNpcs, udcp/udcr (movement), sceneChange.
-// Pushes: onScenePlayerEntered, onScenePlayerLeft, onCR (movement), onSceneLogin (teleport).
+// Scene RPCs: sceneLogin, createChars, createNpcs, createSceneItems, udcp/udcr (movement), sceneChange (gate teleport),
+// gmGoMap (dev /go). Pushes: onScenePlayerEntered, onScenePlayerLeft, onCR (movement), onSceneEnter (after sceneChange).
 
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import type { MoveUpdate, SceneCharacter, SceneLoginResponse, SceneNpc } from '@mc/shared';
+import type { MoveUpdate, SceneCharacter, SceneEnterPush, SceneItem, SceneLoginResponse, SceneNpc } from '@mc/shared';
 import { Rpc } from '../../gateway/rpc.decorator';
 import { RpcException } from '../../gateway/errors';
 import type { Session } from '../../gateway/session';
@@ -11,6 +11,9 @@ import { GameGateway } from '../../gateway/game.gateway';
 import { CharacterService } from '../character/character.service';
 import { GameDataService } from '../gamedata/gamedata.service';
 import { QuestService } from '../quest/quest.service';
+import { portalDataOf } from './portal-data';
+import { resolveGate } from './portal.rules';
+import { SceneTransportService } from './scene-transport.service';
 
 const MOVE_MIN_INTERVAL_MS = 50;
 
@@ -22,6 +25,7 @@ export class SceneRpc implements OnModuleInit {
     private readonly characters: CharacterService,
     private readonly gameData: GameDataService,
     private readonly quests: QuestService,
+    private readonly transport: SceneTransportService,
   ) {}
 
   onModuleInit(): void {
@@ -43,7 +47,7 @@ export class SceneRpc implements OnModuleInit {
       doc.posY = Number(mapRow.safe_y ?? 0);
       await doc.save();
     }
-    return this.enterScene(session, doc.mapId, doc.posX, doc.posY, doc.dir);
+    return this.transport.enterScene(session, doc.mapId, doc.posX, doc.posY, doc.dir);
   }
 
   @Rpc('createChars', { requireCharacter: true })
@@ -85,16 +89,43 @@ export class SceneRpc implements OnModuleInit {
     return null;
   }
 
+  /** Legacy sceneChange(gateInstanceId): walks through a transport gate (login.go / teleport.go). Reply null, push onSceneEnter. */
   @Rpc('sceneChange', { requireCharacter: true })
-  async sceneChange(session: Session, args: unknown[]): Promise<SceneLoginResponse> {
+  async sceneChange(session: Session, args: unknown[]): Promise<null> {
+    const gateId = Number(args[0]);
+    if (!Number.isInteger(gateId)) throw RpcException.invalidArgs('gateId');
+    const dest = resolveGate(gateId, portalDataOf(this.gameData));
+    if (!dest || !this.gameData.getMap(dest.mapId)) throw RpcException.invalidArgs('gateId');
+    const resp: SceneEnterPush = await this.transport.moveToMap(session, dest.mapId, dest.x, dest.y);
+    session.callback('onSceneEnter', resp);
+    return null;
+  }
+
+  /** H5 dev command /go <mapId>: the old map-id sceneChange, arrival at the safe point (or x, y). */
+  @Rpc('gmGoMap', { requireCharacter: true })
+  async gmGoMap(session: Session, args: unknown[]): Promise<SceneLoginResponse> {
     const mapId = Number(args[0]);
     const mapRow = this.gameData.getMap(mapId);
     if (!mapRow) throw RpcException.notFound(`map ${mapId} not found`);
     const x = args[1] !== undefined ? Number(args[1]) : Number(mapRow.safe_x ?? 0);
     const y = args[2] !== undefined ? Number(args[2]) : Number(mapRow.safe_y ?? 0);
-    if (session.mapId) this.scenes.broadcast(session.mapId, 'onScenePlayerLeft', [session.characterId], session);
-    await this.characters.updatePosition(session.characterId!, mapId, x, y, 0);
-    return this.enterScene(session, mapId, x, y, 0);
+    return this.transport.moveToMap(session, mapId, x, y);
+  }
+
+  /** Scene items (gates, decorations) on the caller's map; the client draws the type-3 transport gates. */
+  @Rpc('createSceneItems', { requireCharacter: true })
+  createSceneItems(session: Session): SceneItem[] {
+    return this.gameData.sceneItemsOnMap(session.mapId).map((r) => ({
+      id: r.id,
+      tid: r.tid,
+      type: r.type,
+      name: r.name,
+      posX: r.posX,
+      posY: r.posY,
+      posDir: r.posDir,
+      layer: r.layer,
+      resCode: r.resCode,
+    }));
   }
 
   @Rpc('getMapList', { requireAuth: true, quiet: true })
@@ -103,19 +134,6 @@ export class SceneRpc implements OnModuleInit {
       .listMaps()
       .map((m) => ({ id: Number(m.id), name: String(m.name ?? ''), type: Number(m.type ?? 1) }))
       .sort((a, b) => a.id - b.id);
-  }
-
-  private async enterScene(session: Session, mapId: number, x: number, y: number, dir: number): Promise<SceneLoginResponse> {
-    const mapRow = this.gameData.getMap(mapId)!;
-    this.scenes.join(session, mapId);
-    const doc = await this.characters.getById(session.characterId!);
-    doc.mapId = mapId;
-    doc.posX = x;
-    doc.posY = y;
-    doc.dir = dir;
-    const self = this.characters.toSceneCharacter(doc);
-    this.scenes.broadcast(mapId, 'onScenePlayerEntered', [self], session);
-    return { mapId, map: this.gameData.toMapInfo(mapRow), self };
   }
 
   private async move(session: Session, x: number, y: number, dir: number, route: number[][]): Promise<void> {

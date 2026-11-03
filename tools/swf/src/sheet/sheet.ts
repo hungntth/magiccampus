@@ -180,7 +180,7 @@ interface PackRect {
 }
 
 // Shelf packer: tallest first, rows up to maxW wide, 1px padding.
-function pack(ids: number[], bitmaps: Map<number, Image>, maxW: number): { atlas: Image; rects: PackRect[] } {
+export function pack(ids: number[], bitmaps: Map<number, Image>, maxW: number): { atlas: Image; rects: PackRect[] } {
   const items = ids.map((id, idx) => {
     const b = bitmaps.get(id)!;
     return { idx, w: b.width, h: b.height };

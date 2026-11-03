@@ -205,6 +205,7 @@ export class QuestService {
     const start = this.gameData.getNpc(tpl.startNpc);
     const finish = this.gameData.getNpc(tpl.finishNpc);
     const finishMap = finish ? this.gameData.getMap(Number(finish.pos_map_id)) : undefined;
+    const startMap = start ? this.gameData.getMap(Number(start.pos_map_id)) : undefined;
     return {
       qid: tpl.id,
       state,
@@ -215,6 +216,8 @@ export class QuestService {
       },
       require,
       sName: String(start?.name ?? ''),
+      sMid: Number(start?.pos_map_id ?? 0),
+      sMap: String(startMap?.name ?? ''),
       fName: String(finish?.name ?? ''),
       pos: finish
         ? {

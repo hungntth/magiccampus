@@ -5,10 +5,14 @@ import { GameClient, defaultWsUrl } from './net/client';
 import { showCharSelect, showLogin, toast } from './ui/screens';
 import { GameScene } from './game/GameScene';
 import { loadSkins } from './ui/hud/skin';
+import { initStage } from './ui/stage';
 
 async function main(): Promise<void> {
   const app = new Application();
-  await app.init({ resizeTo: window, background: '#0b0e14', antialias: true });
+  initStage();
+  // Sharp sprites on HiDPI phones where the stage is scaled down; capped to keep fill cost sane.
+  const resolution = Math.min(window.devicePixelRatio || 1, 2);
+  await app.init({ resizeTo: window, background: '#0b0e14', antialias: true, resolution, autoDensity: true });
   document.getElementById('game')!.appendChild(app.canvas);
   await loadSkins();
 

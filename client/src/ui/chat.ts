@@ -1,10 +1,9 @@
-// Chat (legacy ChatCanvas left1/bottom38 + the chat row of SystemBarCanvas): channel tabs, log filtered by tab,
-// channel picker "Hiện tại↑", input, "Gửi" and emoji button. `/go <mapId>` goes to the caller through onCommand.
+// Chat (legacy ChatCanvas left1/bottom38 + the chat row of SystemBarCanvas), styled in plain CSS: channel tabs, log
+// filtered by tab, channel picker "Hiện tại↑", input, "Gửi" and emoji button. `/go <mapId>` goes to onCommand.
 
 import { ChatChannel, type ChatMessage } from '@mc/shared';
-import { div, notReady, place, skinButton, skinImage, std } from './hud/skin';
+import { div, notReady } from './hud/skin';
 
-const AREA = 'MainStage_ChatArea';
 const MAX_LINES = 100;
 const MIN_H = 140;
 const MAX_H = 500;
@@ -48,9 +47,18 @@ export class ChatBox {
   ) {
     this.root = div('hud-chat', parent);
     this.log = div('hud-chat-log', this.root);
+    const tools = div('hud-chat-tools', this.root);
+    chatButton(tools, '✕', 'Xóa ghi chép chat', () => this.clear());
+    chatButton(tools, '+', 'Mở rộng khung chat', () => this.resize(H_STEP));
+    chatButton(tools, '−', 'Thu nhỏ khung chat', () => this.resize(-H_STEP));
+    const lock = chatButton(tools, '🔓', 'Nút khóa khung chat', () => {
+      this.locked = !this.locked;
+      lock.classList.toggle('active', this.locked);
+      lock.textContent = this.locked ? '🔒' : '🔓';
+    });
     const tabs = div('hud-chat-tabs', this.root);
     const tabEls = TABS.map((t, i) => {
-      const b = place(div('hud-chat-tab', tabs, t.label), i * 35, 0, 33, 18);
+      const b = div('hud-chat-tab', tabs, t.label);
       b.onclick = () => {
         this.tab = i;
         tabEls.forEach((x, k) => x.classList.toggle('active', k === i));
@@ -59,18 +67,9 @@ export class ChatBox {
       return b;
     });
     tabEls[0].classList.add('active');
-    const tools = div('hud-chat-tools', tabs);
-    skinButton(std(`${AREA}/Clear`), tools, 0, 0, 'Xóa ghi chép chat', () => this.clear());
-    skinButton(std(`${AREA}/Enlarge`), tools, 22, 0, 'Mở rộng khung chat', () => this.resize(H_STEP));
-    skinButton(std(`${AREA}/Diminish`), tools, 44, 0, 'Thu nhỏ khung chat', () => this.resize(-H_STEP));
-    const lock = skinButton(std(`${AREA}/Lock`), tools, 66, 0, 'Nút khóa khung chat', () => {
-      this.locked = !this.locked;
-      lock.classList.toggle('active', this.locked);
-    });
 
     const bar = div('hud-chat-bar', parent);
-    place(skinImage(`${AREA}/ChatBar`, bar, 0, 0, 'hud-chat-bar-bg'), 0, 0, 440, 38);
-    this.channelBtn = place(div('hud-chat-channel', bar), 8, 8, 45, 21);
+    this.channelBtn = div('hud-chat-channel', bar);
     const menu = div('hud-chat-menu', bar);
     menu.hidden = true;
     SEND_CHANNELS.forEach((c, i) => {
@@ -85,7 +84,6 @@ export class ChatBox {
     this.channelBtn.onclick = () => (menu.hidden = !menu.hidden);
     this.updateChannelBtn();
     const form = document.createElement('form');
-    place(form, 55, 8, 296, 21);
     this.input = document.createElement('input');
     this.input.maxLength = 100;
     this.input.placeholder = 'Enter để chat, /go <mapId> để đổi map';
@@ -95,10 +93,8 @@ export class ChatBox {
       e.preventDefault();
       this.submit();
     };
-    const send = skinButton(std(`${AREA}/ChatButton`), bar, 359, 8, '', () => this.submit());
-    send.textContent = 'Gửi';
-    send.classList.add('hud-chat-send');
-    skinButton(std(`${AREA}/EmotionButton`), bar, 408, 8, 'Biểu cảm', notReady);
+    chatButton(bar, 'Gửi', '', () => this.submit()).classList.add('hud-chat-send');
+    chatButton(bar, '☺', 'Biểu cảm', notReady).classList.add('hud-chat-emote');
     this.resize(0);
 
     window.addEventListener('keydown', (e) => {
@@ -171,4 +167,14 @@ export class ChatBox {
     this.height = Math.max(MIN_H, Math.min(MAX_H, this.height + delta));
     this.root.style.height = `${this.height}px`;
   }
+}
+
+function chatButton(parent: HTMLElement, label: string, tip: string, onClick: () => void): HTMLDivElement {
+  const b = div('hud-chat-btn', parent, label);
+  if (tip) b.title = tip;
+  b.onclick = (ev) => {
+    ev.stopPropagation();
+    onClick();
+  };
+  return b;
 }

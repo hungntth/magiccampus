@@ -45,6 +45,7 @@ handY, totalWidth, totalHeight`. The Flash client positions every resource at `(
 | `swfbatch`  | Runs the conversion for every convertible SWF → `client/public/sheets/<family>/<name>.{png,json}` + `manifest.json` (worker threads, `-workers N`). |
 | `swfhit`    | Extracts walkability masks → `client/public/sheets/scene/SCENE_FOLDER_xxxxxx/hit.{bin,json,png}`. |
 | `swfui`     | Renders named UI skin symbols (vector + bitmap) of one SWF to one PNG each + `index.json`. |
+| `swfanim`   | Renders a vector SWF with nested animated sprites frame by frame into one sheet (`vector-anim`). |
 
 `resmap.json` (md5 → logical path) is produced by `pnpm --filter @mc/server exec tsx tools/resmap.ts`:
 it decodes every 13-digit resource code found in the `data_tbl_*` collections, tries the known path
@@ -102,10 +103,29 @@ linear/radial/focal gradients (pad/reflect/repeat), bitmap fills (clipped/repeat
 (approximated with round joins/caps), sprites and button up states, PlaceObject colour transforms and
 clip-depth masks. Not rendered (reported as "unsupported parts"): text, morph shapes, filters, blend modes.
 
+## Vector animations (`swfanim`)
+
+```powershell
+pnpm --filter @mc/swf-tools swfanim -cache E:/mcgame/frontend/s/res -out client/public/sheets/item `
+  -name SITEM_SPAWN_000001 -manifest client/public/sheets/manifest.json `
+  -key resource/item/SITEM_SPAWN_000001.swf 08de7c8d97ff775d5d6bf347ee5e2079
+```
+
+For vector SWFs whose main timeline is one frame but whose nested sprites animate (transport gates
+`SITEM_SPAWN_000001..5` = resCodes 2020040000001..5). `SymbolLibrary.composeStage(frame)` renders the main
+timeline with every nested sprite on frame `frame % its length` (`displayAt` in `src/swf/display.ts`); the
+frame count is the longest nested loop (capped at 120) unless `-frames N`. Output is the standard sheet
+format: one image per distinct frame (identical neighbours merge into `d` > 1), anim `default`, every image
+placed with the matrix `[1,0,0,1,-left,-top]` so the SWF stage origin (0,0) is the sheet origin; draw it at the
+item position. `meta.localizerY` is the y of the child instance named `localizer` (ground line for depth
+sorting). SWFs with a `GameResInst` class (vector-drawn NPCs such as `creature/NPC_FUNC_000094`, the Vân Đài
+transport NPC) also get its anchor metrics (`midX`, `footY`, …) in `meta`, so `Entity` anchors them like bitmap sheets. With `-manifest` + `-key` the entry is upserted (category `vector-anim`, file line endings kept).
+Existing `swf2sheet` / `swfbatch` / `swfui` output is unchanged (`swfui` still writes 226 `MainStage_*` symbols).
+
 ## Not covered yet
 
-- Vector SWFs (274) and the vector parts of mixed files for animated sheets (`swf2sheet` stays
-  bitmap-only; `swfui`'s renderer could be reused for them).
+- Vector SWFs (274) other than the gate sprites above, and the vector parts of mixed files for animated
+  sheets (`swf2sheet` stays bitmap-only; `swfanim` covers nested-sprite loops of one-frame vector SWFs).
 - Text fields inside UI skins (rare: 3 symbols), filters (glow/shadow), blend modes.
 - Sounds (`resource/sound`), fonts.
 - Atlas PNGs are written with fast compression (754 MB total). Run `oxipng`/`pngquant` before shipping.

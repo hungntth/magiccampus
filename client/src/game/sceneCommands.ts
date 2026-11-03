@@ -1,4 +1,4 @@
-// Chat slash commands for the world scene: /go <mapId> (sceneChange), /maps (getMapList).
+// Chat slash commands for the world scene: /go <mapId> (gmGoMap, dev teleport), /maps (getMapList).
 
 import type { SceneLoginResponse } from '@mc/shared';
 import type { GameClient } from '../net/client';
@@ -18,7 +18,7 @@ export async function runSceneCommand(
         chat.system('Dùng: /go <mapId>');
         return;
       }
-      await applyScene(await client.call<SceneLoginResponse>('sceneChange', mapId));
+      await applyScene(await client.call<SceneLoginResponse>('gmGoMap', mapId));
       return;
     }
     if (cmd === 'maps') {

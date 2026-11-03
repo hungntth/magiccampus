@@ -11,6 +11,11 @@ Legacy (Go/Flash) knowledge: `D:\mcgame\docs\PROJECT_KNOWLEDGE_BASE.md`.
 ## Feature memory
 
 - [SWF tools](memory/swf-tools.md) — Go → TypeScript port of `tools/swf`: parity results, known output differences, gotchas.
+- [NPC shop (view only)](memory/shop.md) — onOpenShop push, slot/price mapping, paged Shop window; buy/sell now in inventory.md.
+- [Bag + shop buy/sell](memory/inventory.md) — character_items, getInitSlot, buyAmountItemClient, sellItem, Túi đồ panel.
 - [NPC dialog](memory/npc-dialog.md) — clickNpc RPC, npcFuncInit push, speech bubble vs Đối thoại dialog, client walk-to flow.
 - [Quests](memory/quest.md) — newbie/main quest chain: take/finish/cancel/initQuestManager, NPC markers, tracker, exp/level-up, quest_pre import.
 - [Main HUD](memory/main-hud.md) — legacy MainLayer HUD from extracted Flex skins: portraits, minimap strip + checkNetDelay, chat tabs, menu/shortcut bars.
+- [Chat](memory/chat.md) — say/onChat, CSS chat box, PopupText speech bubble over speakers and NPCs.
+- [Map portals](memory/portal.md) — transport gates: createSceneItems, legacy sceneChange(gateId) + onSceneEnter, destination/landing rules, swfanim gate art.
+- [Movement](memory/movement.md) — click-to-move A* over the hit mask (legacy SingleAstarRoute + key points), walkTo helper.

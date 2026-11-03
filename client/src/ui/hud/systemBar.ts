@@ -1,5 +1,5 @@
 // Bottom-right menu buttons of SystemBarCanvas (sysBtnBar right0/bottom-8, 40x45 icons) and their keyboard
-// shortcuts from the SYSTEMBARCANVAS_S tooltips. The panels behind them are not ported yet.
+// shortcuts from the SYSTEMBARCANVAS_S tooltips. Only the bag (B) opens a panel so far; the rest toast "not ready".
 
 import { div, notReady, skinButton, type SkinStates } from './skin';
 
@@ -36,12 +36,13 @@ export class SystemBar {
   private readonly onKey: (e: KeyboardEvent) => void;
 
   /** `typing()` tells whether a text field has focus, so letters go to it instead of the shortcuts. */
-  constructor(parent: HTMLElement, private readonly typing: () => boolean) {
+  constructor(parent: HTMLElement, private readonly typing: () => boolean, onBag: () => void) {
     const bar = div('hud-sysbar', parent);
     const actions = new Map<string, () => void>();
     for (const b of BUTTONS) {
-      skinButton(b.skin, bar, b.x, b.y, b.tip, notReady);
-      if (b.key) actions.set(b.key, notReady);
+      const act = b.key === 'b' ? onBag : notReady;
+      skinButton(b.skin, bar, b.x, b.y, b.tip, act);
+      if (b.key) actions.set(b.key, act);
     }
     this.onKey = (e) => {
       if (this.typing() || e.ctrlKey || e.altKey || e.metaKey) return;

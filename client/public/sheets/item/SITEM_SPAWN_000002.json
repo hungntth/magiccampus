@@ -1,1 +1,1 @@
-{"fps":24,"width":348.95,"height":171.4,"ox":0,"oy":0,"images":[{"h":160,"w":236,"x":0,"y":0}],"anims":{"default":[{"d":1,"objs":[{"i":0,"m":[1,0,0,1,64.5,4.15]}]}]},"order":["default"]}
+{"fps":24,"width":348.95,"height":171.4,"ox":0,"oy":0,"images":[{"h":172,"w":350,"x":0,"y":0}],"anims":{"default":[{"d":1,"objs":[{"i":0,"m":[1,0,0,1,-1,0]}]}]},"order":["default"],"meta":{"localizerY":159.05}}

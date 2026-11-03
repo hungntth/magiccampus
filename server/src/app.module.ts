@@ -11,6 +11,7 @@ import { ChatModule } from './modules/chat/chat.module';
 import { AssetsModule } from './modules/assets/assets.module';
 import { NpcModule } from './modules/npc/npc.module';
 import { QuestModule } from './modules/quest/quest.module';
+import { InventoryModule } from './modules/inventory/inventory.module';
 import { SystemModule } from './modules/system/system.module';
 
 @Module({
@@ -26,6 +27,7 @@ import { SystemModule } from './modules/system/system.module';
     AssetsModule,
     NpcModule,
     QuestModule,
+    InventoryModule,
     SystemModule,
   ],
 })

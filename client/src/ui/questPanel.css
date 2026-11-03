@@ -1,0 +1,230 @@
+/* "NPC nhiệm vụ" window (legacy QuestPanel): teal frame, title bar, two columns. Plain CSS, no skin images. */
+
+.qp {
+  --qp-cyan: #59d2e3;
+  --qp-cyan-dark: #1f7f93;
+  --qp-box: rgba(6, 30, 46, 0.78);
+  position: absolute;
+  left: 50%;
+  top: 12%;
+  transform: translateX(-50%);
+  width: 470px;
+  max-width: calc(100% - 16px);
+  padding-bottom: 10px;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, rgba(20, 70, 92, 0.96) 0%, rgba(12, 46, 66, 0.96) 100%);
+  border: 2px solid var(--qp-cyan);
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px #0b3442, inset 0 0 0 1px rgba(160, 240, 250, 0.35), 0 6px 18px rgba(0, 0, 0, 0.55);
+  font: 12px Tahoma, Verdana, Arial, sans-serif;
+  color: #fff;
+  pointer-events: auto;
+  user-select: none;
+}
+
+.qp-header {
+  height: 30px;
+  margin: -1px -1px 0;
+  border-radius: 6px 6px 0 0;
+  background: linear-gradient(180deg, #5fd6e6 0%, #2a9fb4 45%, #17748a 100%);
+  border-bottom: 1px solid #0d4d5c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qp-title {
+  font-size: 15px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  color: #fff;
+  text-shadow: 0 0 3px #0a3d4a, 0 1px 1px #0a3d4a;
+}
+
+.qp-close {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  z-index: 1;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid #e9fbff;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #4fa0b6, #17586b);
+  color: #fff;
+  font: bold 15px/18px Arial, sans-serif;
+  cursor: pointer;
+}
+
+.qp-close:hover {
+  background: radial-gradient(circle at 35% 30%, #e86a5a, #a62a1c);
+}
+
+.qp-body {
+  display: grid;
+  grid-template-columns: 140px 58px 1fr;
+  grid-template-rows: 232px auto auto auto;
+  column-gap: 8px;
+  row-gap: 6px;
+  padding: 10px 10px 0;
+}
+
+.qp-left {
+  grid-row: 1 / span 4;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.qp-npc {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 50px;
+}
+
+.qp-portrait {
+  flex: 0 0 48px;
+  height: 48px;
+  border: 1px solid var(--qp-cyan-dark);
+  border-radius: 4px;
+  background: var(--qp-box);
+  overflow: hidden;
+}
+
+.qp-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.qp-npc-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qp-speech,
+.qp-desc {
+  border: 2px solid var(--qp-cyan-dark);
+  border-radius: 8px;
+  background: var(--qp-box);
+  box-shadow: inset 0 0 0 1px rgba(89, 210, 227, 0.35);
+  padding: 6px 7px;
+  line-height: 17px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  user-select: text;
+}
+
+.qp-speech {
+  flex: 1;
+  min-height: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.qp-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  height: 24px;
+}
+
+.qp-btn {
+  min-width: 52px;
+  height: 22px;
+  padding: 0 10px;
+  border: 1px solid #a9f1fa;
+  border-radius: 11px;
+  background: linear-gradient(180deg, #3fc0d2 0%, #19879c 55%, #0f6375 100%);
+  color: #ffec7a;
+  font: bold 12px Tahoma, Verdana, sans-serif;
+  text-shadow: 0 1px 1px #063542;
+  cursor: pointer;
+}
+
+.qp-btn:hover:not(:disabled) {
+  filter: brightness(1.15);
+}
+
+.qp-btn:disabled {
+  filter: grayscale(0.9) brightness(0.8);
+  cursor: default;
+}
+
+.qp-label {
+  align-self: center;
+  white-space: nowrap;
+}
+
+.qp-desc-label {
+  align-self: start;
+  padding-top: 4px;
+}
+
+.qp-desc {
+  min-width: 0;
+}
+
+.qp-qname {
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.qp-line {
+  word-break: break-word;
+}
+
+.qp-indent {
+  padding-left: 12px;
+}
+
+.qp-reward {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.qp-coin,
+.qp-exp {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+
+/* Silver coin (bạc); gold variant for gold rewards. */
+.qp-coin {
+  background: radial-gradient(circle at 35% 30%, #ffffff, #b7d3e6 45%, #6f8fa8 100%);
+  box-shadow: 0 0 0 1px #3f5a70;
+}
+
+.qp-coin.gold {
+  background: radial-gradient(circle at 35% 30%, #fff6c2, #f2c23b 45%, #a8740f 100%);
+  box-shadow: 0 0 0 1px #6b4a08;
+}
+
+.qp-exp {
+  border-radius: 3px;
+  background: linear-gradient(135deg, #ffffff 0%, #d6f4ff 50%, #8ad0ea 100%);
+  box-shadow: 0 0 0 1px #2f6f86;
+}
+
+.qp-gifts {
+  display: flex;
+  gap: 4px;
+}
+
+.qp-slot {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #2c6f82;
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(10, 40, 58, 0.9), rgba(4, 22, 34, 0.9));
+  box-shadow: inset 0 0 0 1px rgba(89, 210, 227, 0.18);
+}

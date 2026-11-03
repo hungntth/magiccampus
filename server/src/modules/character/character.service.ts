@@ -4,7 +4,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import type { CharListEntry, PlayerData, SceneCharacter } from '@mc/shared';
+import type { CharListEntry, MoneyKey, PlayerData, SceneCharacter } from '@mc/shared';
 import { Character, type CharacterDocument } from './character.schema';
 import { Counter } from './counter.schema';
 import { RpcException } from '../../gateway/errors';
@@ -83,6 +83,32 @@ export class CharacterService {
     await this.characters.updateOne({ _id: id }, { $set: { mapId, posX: x, posY: y, dir, lastActive: new Date() } });
   }
 
+  /** Payment preference of the character: selected money / gold currency keys (defaults moneyBind / goldBind). */
+  async paymentPrefs(id: number): Promise<{ money: MoneyKey; gold: MoneyKey }> {
+    const doc = await this.characters.findById(id, { selectedMoneyType: 1, selectedGoldType: 1 });
+    return {
+      money: doc?.selectedMoneyType === 2 ? 'money' : 'moneyBind',
+      gold: doc?.selectedGoldType === 4 ? 'gold' : 'goldBind',
+    };
+  }
+
+  /** Atomic conditional charge: returns the new total, or null when the balance is below `cost`. */
+  async spendMoney(id: number, key: MoneyKey, cost: number): Promise<number | null> {
+    const doc = await this.characters.findOneAndUpdate(
+      { _id: id, [key]: { $gte: cost } },
+      { $inc: { [key]: -cost } },
+      { new: true, projection: { [key]: 1 } },
+    );
+    return doc ? (doc[key] ?? 0) : null;
+  }
+
+  /** Credits `amount` (also used to refund) and returns the new total. */
+  async addMoney(id: number, key: MoneyKey, amount: number): Promise<number> {
+    const doc = await this.characters.findByIdAndUpdate(id, { $inc: { [key]: amount } }, { new: true, projection: { [key]: 1 } });
+    if (!doc) throw RpcException.notFound('character not found');
+    return doc[key] ?? 0;
+  }
+
   iconCode(classId: number, gender: number): string {
     const cls = this.gameData.getClass(classId);
     if (!cls) return '0';
@@ -123,6 +149,7 @@ export class CharacterService {
       money: doc.money,
       moneyBind: doc.moneyBind ?? 0,
       gold: doc.gold,
+      goldBind: doc.goldBind ?? 0,
       iconCode: this.iconCode(doc.classId, doc.gender),
       attrPoints: doc.attrPoints,
       questLog: quests.questLog,

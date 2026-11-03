@@ -23,6 +23,17 @@ Implemented 2026-11-03. Research: `docs/research/2026-11-03_03_MAIN_HUD_PORTRAIT
 - The chat log area is click-through (pointer-events none) so map clicks behind it still walk; tabs/buttons are clickable.
 - Chat tabs filter by kind (Toàn Bộ all, Thế Giới, Hiện tại, Hệ thống; others empty); send channels Hiện tại/Thế giới.
 
+## Responsive stage (2026-11-03)
+- Legacy: 900x570 Flex stage (`GamePredef.APP_WIDTH/APP_HEIGHT`) embedded at 100%, drawn 1:1, widgets anchored by
+  constraints; no scaleMode/resize code. H5 keeps that: `ui/stage.ts` sizes `#stage` (inside the safe-area
+  `#stage-frame`) to the viewport in stage pixels with scale = min(1, w/900, h/570), `transform: scale()`.
+  >= 900x570 is exactly the original 1:1; smaller windows/phones scale everything uniformly so anchors never overlap.
+- In-game DOM (HUD, chat, quest tracker/panel, NPC dialog) mounts in `#stage`; login/char select and toasts stay in
+  `#ui` (unscaled, H5-only screens). GameScene's `root` container gets the same scale; camera uses screen/scale.
+- While an input is focused the scale is frozen (soft keyboard only re-anchors the bottom edge); re-fit on focusout.
+- Hover skins are under `@media (hover: hover)`; portrait + coarse pointer shows "Xoay ngang thiết bị để chơi".
+- Pixi renders at min(devicePixelRatio, 2) with autoDensity.
+
 ## Server
 - `modules/system/system.rpc.ts`: `checkNetDelay()` → `NetDelayReply` (epoch ms), requireAuth, **not quiet yet**.
   Client pings on scene start and every 10 s; delay = round(rtt/2), states Rất tốt/Tốt/Bình Thường/Yếu/Rất yếu

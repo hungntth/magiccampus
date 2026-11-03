@@ -19,11 +19,12 @@ interface ParsedInsert {
 // (from D:/mcgame/supabase/migrations/20260328184527_baseline_mcgame_schema.sql).
 const KNOWN_COLUMNS: Record<string, string[]> = {
   data_tbl_quest_pre: ['id', 'item_id', 'kind', 'num', 'qid', 'type'],
-  // Legacy baseline schema order (migrations/20260328184527_baseline_mcgame_schema.sql).
+  // Legacy baseline schema order (migrations/20260328184527_baseline_mcgame_schema.sql), then the two columns appended by
+  // migrations/20260505185430_add_quest_start_grant_columns.sql (accept-time item grant, e.g. quest 160 -> item 335).
   data_tbl_quest: [
     'id', 'a_script_text', 'at', 'award_exp_re', 'color', 'complete_text', 'finish_npc', 'gender', 'info', 'is_rebirth',
     'lm', 'max_level', 'min_level', 'money_num', 'money_type', 'name', 'pre_quest_type', 'qtest', 'req_class', 'rn',
-    'rt', 'script_give_up', 'start_npc', 'start_text', 'sub_type', 'type',
+    'rt', 'script_give_up', 'start_npc', 'start_text', 'sub_type', 'type', 'start_grant_item', 'start_grant_qty',
   ],
 };
 
@@ -143,6 +144,11 @@ function skipCast(sql: string, i: number): number {
 }
 
 function toDocs(ins: ParsedInsert): Document[] {
+  // A KNOWN_COLUMNS list behind the seed (columns added by a later migration) would silently drop trailing values.
+  const widest = Math.max(0, ...ins.rows.map((r) => r.length));
+  if (widest > ins.columns.length) {
+    console.error(`ERROR ${ins.table}: rows have ${widest} values but only ${ins.columns.length} columns; extra values dropped`);
+  }
   return ins.rows.map((row) => {
     const doc: Document = {};
     ins.columns.forEach((col, idx) => {

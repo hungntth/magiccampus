@@ -1,0 +1,220 @@
+/* "Túi đồ" window; same visual language as .shop-panel (navy panel, gold frame, banner title). */
+.bag-panel {
+  --bag-gold: #e8c46a;
+  position: absolute;
+  left: calc(50% - 139px);
+  top: 14%;
+  width: 278px;
+  padding: 32px 12px 10px;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #1d4a72 0%, #123553 40%, #0e2a45 100%);
+  border: 2px solid var(--bag-gold);
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px #3a2a08, inset 0 0 0 1px #6fa3cf, 0 6px 18px rgba(0, 0, 0, 0.55);
+  font-family: Tahoma, Verdana, Arial, sans-serif;
+  font-size: 12px;
+  color: #fff;
+  pointer-events: auto;
+}
+
+/* The shop window shifts left (.shop-panel.with-bag, 460 px wide) and the bag sits at its right edge. */
+.bag-panel.beside-shop {
+  left: calc(50% + 94px);
+}
+
+.bag-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 30px;
+}
+
+.bag-title {
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 100px;
+  padding: 3px 18px 4px;
+  background: linear-gradient(180deg, #3e7fb5 0%, #1c4c7a 100%);
+  border: 2px solid var(--bag-gold);
+  border-top: 0;
+  border-radius: 0 0 12px 12px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffe9a8;
+  text-shadow: 0 1px 0 #3a2a08, 0 0 3px #000;
+}
+
+.bag-close {
+  z-index: 1;
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid #ffd0d0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ff7a7a, #c41818 70%);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.bag-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 34px);
+  grid-auto-rows: 34px;
+  gap: 3px;
+  justify-content: center;
+  padding: 6px;
+  background: #0d2d4a;
+  border: 1px solid #4f86b3;
+  border-radius: 8px;
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+.bag-cell {
+  position: relative;
+  box-sizing: border-box;
+  background: #050f1a;
+  border: 2px solid #25506f;
+  border-radius: 4px;
+  user-select: none;
+}
+
+.bag-cell.filled:hover {
+  box-shadow: 0 0 0 1px #fff2c4;
+}
+
+.bag-cell img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.bag-count {
+  position: absolute;
+  right: 1px;
+  bottom: 0;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 12px;
+  text-shadow: 0 0 2px #000, 0 1px 1px #000;
+}
+
+.bag-lock {
+  position: absolute;
+  left: 0;
+  top: -1px;
+  font-size: 9px;
+  line-height: 10px;
+}
+
+.bag-wallet {
+  margin-top: 8px;
+  padding: 4px 8px;
+  background: #0d2d4a;
+  border: 1px solid #4f86b3;
+  border-radius: 6px;
+}
+
+.bag-money {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 18px;
+}
+
+.bag-money-label {
+  flex: 1;
+  color: #bcd6ec;
+}
+
+.bag-money-val {
+  min-width: 70px;
+  text-align: right;
+  color: #ffe9a8;
+}
+
+.bag-coin {
+  width: 12px;
+  height: 12px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 1px solid #6b5a1a;
+}
+
+.bag-coin.silver { background: radial-gradient(circle at 35% 30%, #fff, #b8c4cf 60%, #7d8a96); }
+.bag-coin.gold { background: radial-gradient(circle at 35% 30%, #fff3b0, #f2b928 60%, #b57a08); }
+
+/* Amount dialog (legacy NumPanel), centred above the shop / bag windows. */
+.amount-dialog {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  transform: translateX(-50%);
+  z-index: 5;
+  width: 190px;
+  padding: 10px 12px;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #1d4a72 0%, #0e2a45 100%);
+  border: 2px solid #e8c46a;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+  font-family: Tahoma, Verdana, Arial, sans-serif;
+  font-size: 12px;
+  color: #fff;
+  text-align: center;
+  pointer-events: auto;
+}
+
+.amount-title {
+  margin-bottom: 6px;
+  color: #ffe9a8;
+  font-weight: 700;
+}
+
+.amount-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 3px 6px;
+  text-align: center;
+  font: inherit;
+  color: #fff;
+  background: #081a2c;
+  border: 1px solid #4f86b3;
+  border-radius: 4px;
+}
+
+.amount-total {
+  margin: 6px 0;
+  min-height: 16px;
+  color: #bcd6ec;
+}
+
+.amount-row {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.amount-btn {
+  padding: 2px 12px 3px;
+  font: inherit;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  text-shadow: 0 1px 1px #6b3300;
+  border: 1px solid #fff2c4;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #ffc65a 0%, #f08a1c 55%, #d96a0a 100%);
+}

@@ -78,6 +78,16 @@ export class Character {
   @Prop({ default: 0 })
   gold: number;
 
+  @Prop({ default: 0 })
+  goldBind: number;
+
+  // Payment preference (legacy ChangeMoneyType): 1 moneyBind / 2 money, 3 goldBind / 4 gold. No UI yet.
+  @Prop({ default: 1 })
+  selectedMoneyType: number;
+
+  @Prop({ default: 3 })
+  selectedGoldType: number;
+
   @Prop({ default: false })
   deleted: boolean;
 

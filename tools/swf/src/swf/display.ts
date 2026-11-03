@@ -13,13 +13,28 @@ export interface DisplayObject {
   cx: ColorTransform;
   /** Non-zero for a mask layer: it clips the objects at depths (depth, clipDepth]. */
   clipDepth: number;
+  /** Instance name from PlaceObject2/3 (e.g. "localizer"), when given. */
+  name?: string;
+}
+
+/** Number of frames (ShowFrame tags) of a timeline, at least 1. */
+export function frameCountOf(tags: SwfTag[]): number {
+  let n = 0;
+  for (const t of tags) if (t.code === Tag.ShowFrame) n++;
+  return Math.max(1, n);
 }
 
 /** Objects on stage at the first ShowFrame (or at the end when there is none), back to front. */
 export function firstFrame(tags: SwfTag[]): DisplayObject[] {
+  return displayAt(tags, 0);
+}
+
+/** Objects on stage after the (frame+1)-th ShowFrame (or at the end when the timeline is shorter), back to front. */
+export function displayAt(tags: SwfTag[], frame: number): DisplayObject[] {
   const display = new Map<number, DisplayObject>();
+  let shown = 0;
   for (const t of tags) {
-    if (t.code === Tag.ShowFrame) break;
+    if (t.code === Tag.ShowFrame && shown++ >= frame) break;
     if (t.code === Tag.PlaceObject && t.data.length >= 4) {
       const r = new BitReader(t.data.subarray(4));
       const matrix = readMatrix(r);
@@ -60,7 +75,12 @@ function placeObject2(t: SwfTag, display: Map<number, DisplayObject>): void {
   const matrix = flags & 0x04 ? readMatrix(r) : null;
   const cx = flags & 0x08 ? readColorTransform(r, true) : null;
   if (flags & 0x10) r.pos += 2; // ratio
-  if (flags & 0x20) r.pos += cstring(r.b.subarray(r.pos))[1]; // name
+  let name: string | undefined;
+  if (flags & 0x20) {
+    const [nm, adv] = cstring(r.b.subarray(r.pos));
+    name = nm;
+    r.pos += adv;
+  }
   const clipDepth = flags & 0x40 ? u16(r.b, r.pos) : null;
 
   const prev = display.get(depth);
@@ -70,6 +90,7 @@ function placeObject2(t: SwfTag, display: Map<number, DisplayObject>): void {
     if (matrix) prev.matrix = matrix;
     if (cx) prev.cx = cx;
     if (clipDepth !== null) prev.clipDepth = clipDepth;
+    if (name !== undefined) prev.name = name;
     return;
   }
   if (charId === 0) return;
@@ -79,6 +100,7 @@ function placeObject2(t: SwfTag, display: Map<number, DisplayObject>): void {
     matrix: matrix ?? { ...IDENTITY },
     cx: cx ?? { ...CX_IDENTITY },
     clipDepth: clipDepth ?? 0,
+    name,
   });
 }
 

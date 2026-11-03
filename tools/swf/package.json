@@ -10,6 +10,7 @@
     "swfbatch": "tsx src/cli/swfbatch.ts",
     "swfhit": "tsx src/cli/swfhit.ts",
     "swfui": "tsx src/cli/swfui.ts",
+    "swfanim": "tsx src/cli/swfanim.ts",
     "lint": "tsc -p tsconfig.json --noEmit",
     "test": "node --test --import tsx ./src/**/*.test.ts"
   },

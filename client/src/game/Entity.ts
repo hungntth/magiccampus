@@ -6,24 +6,26 @@ import { Assets, Container, Graphics, Sprite, Text, TextStyle, Texture } from 'p
 import { decodeResCode } from '@mc/shared';
 import { iconUrl } from '../assets';
 import { Behavior, SheetAnim, dirFromDelta, loadSheet } from './SheetAnim';
+import { CHAR_SELECTED_GLOW } from './GlowFilter';
+import { EntityLabels, type TitleLabel } from './EntityLabels';
 
 const MOVE_SPEED = 220;
+// Speech bubble = legacy PopupText: 100px wrap, 80-char cap (CHAT_POPUP_MAXCHAR), hides after 5 s.
 const BUBBLE_MS = 5000;
-const BUBBLE_WRAP = 220;
+const BUBBLE_WRAP = 100;
+const BUBBLE_MAX_CHARS = 80;
+const BUBBLE_EDGE = 0xff9900;
+const BUBBLE_FILL = 0xffff65;
 
-const nameStyle = new TextStyle({
-  fontFamily: 'system-ui, sans-serif',
-  fontSize: 13,
-  fill: '#ffffff',
-  stroke: { color: '#000000', width: 3 },
-});
-
+// Flash TextField default format (Times New Roman 12, black).
 const bubbleStyle = new TextStyle({
-  fontFamily: 'system-ui, sans-serif',
-  fontSize: 13,
-  fill: '#ffffff',
+  fontFamily: '"Times New Roman", serif',
+  fontSize: 12,
+  fill: '#000000',
+  align: 'center',
   wordWrap: true,
   wordWrapWidth: BUBBLE_WRAP,
+  breakWords: true,
 });
 
 const markerStyle = (fill: string): TextStyle =>
@@ -38,6 +40,9 @@ const QUEST_MARKERS: Record<number, { text: string; style: TextStyle }> = {
 
 export type EntityKind = 'self' | 'player' | 'npc';
 
+// Name colors: players CreatureView 0xFFFF00, NPCs NPCView 13434828 (0xCCFFCC).
+const NAME_COLOR: Record<EntityKind, string> = { self: '#ffff00', player: '#ffff00', npc: '#ccffcc' };
+
 export function sheetNameFromResCode(resCode: string): string | null {
   if (!resCode || resCode === '0') return null;
   const d = decodeResCode(resCode);
@@ -51,12 +56,15 @@ export class Entity extends Container {
   private anim: SheetAnim | null = null;
   private fallback: Container;
   private marker: Graphics;
-  private nameText: Text;
+  private readonly labels: EntityLabels;
+  /** Top of the sprite relative to the feet; bubbles and quest markers sit above it. */
+  private headY = -44;
   dir = 0;
   private behavior: number = Behavior.STAND;
   private bubble: Container | null = null;
   private bubbleTimer: ReturnType<typeof setTimeout> | null = null;
   private questMarker: Text | null = null;
+  private hovered = false;
 
   constructor(
     readonly entityId: number,
@@ -75,6 +83,7 @@ export class Entity extends Container {
     const color = kind === 'self' ? 0xe0a944 : kind === 'npc' ? 0x4ba3e3 : 0x8fd18f;
 
     const shadow = new Graphics().ellipse(0, 0, 18, 8).fill({ color: 0x000000, alpha: 0.35 });
+    shadow.eventMode = 'none';
     this.addChild(shadow);
 
     this.fallback = new Container();
@@ -82,41 +91,53 @@ export class Entity extends Container {
     this.fallback.addChild(this.marker);
     this.addChild(this.fallback);
 
-    this.nameText = new Text({ text: displayName, style: nameStyle });
-    this.nameText.anchor.set(0.5, 1);
-    this.nameText.position.set(0, -44);
-    this.addChild(this.nameText);
+    this.labels = new EntityLabels(displayName, NAME_COLOR[kind]);
+    this.addChild(this.labels);
 
     if (kind === 'npc') {
       this.eventMode = 'static';
       this.cursor = 'pointer';
+      // Legacy CreatureView mouseOver/mouseOut: white glow on the sprite only (not the name label).
+      this.on('pointerover', () => this.setHover(true));
+      this.on('pointerout', () => this.setHover(false));
     }
 
     void this.loadVisual(resCode, iconCode);
   }
 
-  /** Speech bubble above the name label (legacy NPC greeting); empty text shows nothing. */
+  /**
+   * Speech bubble above the name label (legacy CreatureView.onSay → PopupText), used for local chat, NPC
+   * greetings and quest texts alike; empty text shows nothing.
+   */
   say(text: string): void {
     this.clearBubble();
     if (!text.trim() || this.destroyed) return;
-    const label = new Text({ text, style: bubbleStyle });
-    label.anchor.set(0.5, 1);
-    const pad = 8;
+    const shown = text.length > BUBBLE_MAX_CHARS ? `${text.slice(0, BUBBLE_MAX_CHARS)}...` : text;
+    const label = new Text({ text: shown, style: bubbleStyle });
+    // PopupText geometry: text box (tw×th, 2px gutter) centred on x=0, a 2px orange rim around a yellow
+    // fill, and an orange tail hanging under the left edge.
+    const tw = label.width + 4;
+    const th = label.height + 4;
+    const tx = -tw / 2;
+    label.position.set(tx + 2, 2);
     const bg = new Graphics()
-      .roundRect(-label.width / 2 - pad, -label.height - pad, label.width + pad * 2, label.height + pad * 2, 8)
-      .fill({ color: 0x1b1f2a, alpha: 0.9 })
-      .stroke({ color: 0x4a5163, width: 1 });
+      .roundRect(tx - 5, -5, tw + 10, th + 10, 2)
+      .fill(BUBBLE_EDGE)
+      .roundRect(tx - 3, -3, tw + 6, th + 6, 2)
+      .fill(BUBBLE_FILL)
+      .poly([tx + 3, th + 5, tx + 8, th + 12, tx + 10, th + 5])
+      .fill(BUBBLE_EDGE);
     const bubble = new Container();
     bubble.addChild(bg, label);
     bubble.eventMode = 'none';
     const above = this.questMarker ? this.questMarker.height : 0;
-    bubble.position.set(0, this.nameText.y - this.nameText.height - above - 6 - pad);
+    bubble.position.set(0, this.headY - above - 2 - (th + 12));
     this.addChild(bubble);
     this.bubble = bubble;
     this.bubbleTimer = setTimeout(() => this.clearBubble(), BUBBLE_MS);
   }
 
-  /** Quest marker above the name (QuestState 102/103/104); any other value hides it. */
+  /** Quest marker above the head (QuestState 102/103/104); any other value hides it. */
   setQuestState(state: number): void {
     this.questMarker?.destroy();
     this.questMarker = null;
@@ -130,7 +151,15 @@ export class Entity extends Container {
   }
 
   private layoutMarker(): void {
-    this.questMarker?.position.set(0, this.nameText.y - this.nameText.height - 2);
+    this.questMarker?.position.set(0, this.headY - 2);
+  }
+
+  /**
+   * Permanent title (line above the name) and active/temporary title (line below it); null hides a line.
+   * Not fed by the server yet (no title data ported); legacy fields are `t` and `actT` (data_tbl_title ids).
+   */
+  setTitles(title: TitleLabel | null, actTitle: TitleLabel | null): void {
+    this.labels.setTitles(title, actTitle);
   }
 
   private clearBubble(): void {
@@ -138,6 +167,13 @@ export class Entity extends Container {
     this.bubbleTimer = null;
     this.bubble?.destroy({ children: true });
     this.bubble = null;
+  }
+
+  private setHover(on: boolean): void {
+    this.hovered = on;
+    const filters = on ? [CHAR_SELECTED_GLOW] : [];
+    if (this.anim) this.anim.filters = filters;
+    this.fallback.filters = filters;
   }
 
   override destroy(options?: Parameters<Container['destroy']>[0]): void {
@@ -159,10 +195,11 @@ export class Entity extends Container {
       const footY = meta?.footY ?? height - 8;
       anim.position.set(-midX, -footY);
       this.anim = anim;
+      if (this.hovered) anim.filters = [CHAR_SELECTED_GLOW];
       this.addChildAt(anim, 1);
       this.fallback.visible = false;
       const top = meta?.bodyY ?? meta?.headY ?? 0;
-      this.nameText.position.set(0, top - footY - 4);
+      this.headY = top - footY - 4;
       this.layoutMarker();
       this.applyAnim(true);
       return;
