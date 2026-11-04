@@ -88,3 +88,6 @@ Plan: `docs/plans/2026-11-03_05_BAG_SHOP_BUY_SELL.md`. Implemented 2026-11-03. L
 Repair buttons, payment radios / ChangeMoneyType, extra pages, quest/pet/temp bags, bank, stock limits, quest "item in bag"
 requirements, equipment random properties. If `addMoney` fails after a
 sale delete the item is lost (no transaction); acceptable for now. Quiet the RPCs only after the user confirms.
+
+## M5 (2026-11-04)
+Bank, bag pages, repair, payment radios and the mall are in `economy.md`; crafting and upgrades in `forge.md`.

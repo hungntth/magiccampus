@@ -15,7 +15,7 @@ import { distributedOf, profileOf } from '../character/character-profile';
 import { assembleStats, mergeBonuses, toCharProperty } from '../character/character-stats';
 import { Character } from '../character/character.schema';
 import { GameDataService, type Row } from '../gamedata/gamedata.service';
-import { equipBonuses } from '../inventory/equip-stats';
+import { equipBonusesOf, gemLinesOf, gemTemplateIds } from '../inventory/equip-stats';
 import { CharacterItem } from '../inventory/character-item.schema';
 
 export interface CharStats {
@@ -42,7 +42,11 @@ export class CharacterStatsService {
     if (!doc) throw RpcException.notFound('character not found');
     const equipped = await this.items.find({ characterId, slotType: SlotType.EQUIP }).lean();
     const tpls = await this.gameData.templatesByIds(19, [...new Set(equipped.map((e) => e.templateId))]);
-    const gear = equipBonuses(equipped.map((e) => tpls.get(e.templateId)).filter((t): t is Row => t !== undefined));
+    const gems = await this.gameData.templatesByIds(29, [...new Set(equipped.flatMap((e) => gemTemplateIds(e.properties)))]);
+    const gear = equipBonusesOf(equipped.flatMap((e) => {
+      const tpl = tpls.get(e.templateId);
+      return tpl ? [{ tpl, props: e.properties, star: e.star, gems: gemLinesOf(e.properties, gems) }] : [];
+    }));
     const now = Date.now();
     const active = (await this.buffs.find({ characterId }).lean()).filter((b) => isActive(b, now));
     const buffTpls = active.map((b) => this.gameData.getBuff(b.buffId)).filter((t): t is Row => t !== undefined);

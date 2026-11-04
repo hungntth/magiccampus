@@ -56,9 +56,10 @@ export class PetEquipService {
     const worn = await this.items.find({ characterId, slotType: SlotType.PET_EQUIP, slotIndex: { $gte: lo, $lt: lo + PET_EQUIP_SLOTS } }).lean();
     if (worn.length === 0) return [];
     const used = new Set((await this.items.find({ characterId, slotType: SlotType.BAG }, { slotIndex: 1 }).lean()).map((r) => r.slotIndex));
+    const capacity = await this.inventory.capacity(characterId);
     const moves: Move[] = [];
     for (const w of worn) {
-      const free = firstFreeSlot(used, this.inventory.capacity());
+      const free = firstFreeSlot(used, capacity);
       if (free < 0) throw RpcException.forbidden('Túi đồ không đủ chỗ để nhận trang bị của pet');
       used.add(free);
       moves.push({ id: w._id, from: [SlotType.PET_EQUIP, w.slotIndex], to: [SlotType.BAG, free] });
@@ -69,7 +70,8 @@ export class PetEquipService {
 
   private async doEquipOn(characterId: number, petId: number, itemId: number): Promise<Push[]> {
     const { row, tpl } = await loadOwnedPet(this.pets, this.gameData, characterId, petId);
-    const item = await this.items.findOne({ _id: itemId, characterId, slotType: SlotType.BAG }).lean();
+    // Gear may come from the bag or the pet-item page; the displaced piece takes the slot the new one frees.
+    const item = await this.items.findOne({ _id: itemId, characterId, slotType: { $in: [SlotType.BAG, SlotType.PET_BAG] } }).lean();
     if (!item || item.itemType !== ItemKind.EQUIP) throw RpcException.notFound('Không tìm thấy trang bị');
     const etpl = await this.gameData.template(19, item.templateId);
     const idx = petEquipIndex(etpl);
@@ -84,12 +86,12 @@ export class PetEquipService {
       // The displaced item takes the bag slot the new one frees; the new one waits in a temporary (negative) index.
       const tmp: [number, number] = [SlotType.PET_EQUIP, -item._id];
       moves.push(
-        { id: item._id, from: [SlotType.BAG, item.slotIndex], to: tmp },
-        { id: occupant._id, from: [SlotType.PET_EQUIP, target], to: [SlotType.BAG, item.slotIndex] },
+        { id: item._id, from: [item.slotType, item.slotIndex], to: tmp },
+        { id: occupant._id, from: [SlotType.PET_EQUIP, target], to: [item.slotType, item.slotIndex] },
         { id: item._id, from: tmp, to: [SlotType.PET_EQUIP, target] },
       );
     } else {
-      moves.push({ id: item._id, from: [SlotType.BAG, item.slotIndex], to: [SlotType.PET_EQUIP, target] });
+      moves.push({ id: item._id, from: [item.slotType, item.slotIndex], to: [SlotType.PET_EQUIP, target] });
     }
     const oldId = occupant?._id ?? 0;
     const equ = this.equOf(row);
@@ -112,7 +114,7 @@ export class PetEquipService {
     const item = idx < 0 ? null : await this.items.findOne({ _id: itemId, characterId, slotType: SlotType.PET_EQUIP, slotIndex: slot }, { _id: 1 }).lean();
     if (!item) throw RpcException.notFound('Trang bị không ở trên pet');
     const used = (await this.items.find({ characterId, slotType: SlotType.BAG }, { slotIndex: 1 }).lean()).map((r) => r.slotIndex);
-    const free = firstFreeSlot(used, this.inventory.capacity());
+    const free = firstFreeSlot(used, await this.inventory.capacity(characterId));
     if (free < 0) throw RpcException.forbidden('Túi đồ đã đầy');
     const equ = this.equOf(row);
     equ[idx] = 0;

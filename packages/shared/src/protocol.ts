@@ -75,6 +75,10 @@ export interface PlayerData extends PetLoginInfo {
   moneyBind: number;
   gold: number;
   goldBind: number;
+  bagSlotNum: number; // opened general bag pages (1..7)
+  bankSlotNum: number; // opened bank pages (1..5)
+  selectedMoneyType: number; // payment preference: 1 moneyBind / 2 money (changeMoneyType)
+  selectedGoldType: number; // payment preference: 3 goldBind / 4 gold (changeMoneyType)
   iconCode: string;
   attrPoints: number;
   questLog: string; // "|id|id|" finished quests, "|" when none
@@ -338,7 +342,8 @@ export type PlayerUpdate = Partial<
   Pick<
     PlayerData,
     | 'level' | 'exp' | 'money' | 'moneyBind' | 'gold' | 'goldBind' | 'attrPoints' | 'currentHp' | 'currentMp' | 'maxHp'
-    | 'maxMp' | 'attStrength' | 'attAgility' | 'attStamina' | 'attIntelligence' | 'attEnergy' | 'property' | 'petMaxNum'
+    | 'maxMp' | 'attStrength' | 'attAgility' | 'attStamina' | 'attIntelligence' | 'attEnergy' | 'property' | 'petMaxNum' | 'bagSlotNum'
+    | 'bankSlotNum' | 'selectedMoneyType' | 'selectedGoldType' | 'name'
   >
 >;
 

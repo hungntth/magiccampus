@@ -1,0 +1,85 @@
+/* "Lò rèn" forge window: reuses the .shop-panel frame; tab row = .mall-tab buttons (mall.css). */
+.forge-panel { width: 520px; }
+
+.forge-tabs { margin-bottom: 6px; }
+.forge-body { display: flex; flex-direction: column; gap: 6px; min-height: 300px; }
+
+.forge-filter { display: flex; align-items: center; gap: 8px; color: #cfe6ff; }
+.forge-search {
+  flex: 1 1 auto;
+  padding: 2px 6px;
+  background: #0b2238;
+  border: 1px solid #4f86b3;
+  border-radius: 3px;
+  color: #fff;
+  font: inherit;
+}
+.forge-check { white-space: nowrap; cursor: pointer; }
+.forge-num { background: #0b2238; border: 1px solid #4f86b3; color: #fff; font: inherit; }
+
+.forge-list {
+  height: 130px;
+  overflow-y: auto;
+  background: #0b2238;
+  border: 1px solid #4f86b3;
+  border-radius: 3px;
+}
+.forge-row { padding: 2px 8px; cursor: pointer; color: #cfe6ff; white-space: nowrap; }
+.forge-row:hover { background: #14385a; }
+.forge-row.selected { background: #d6892b; color: #fff; font-weight: 700; }
+
+.forge-hint { padding: 8px; color: #9fb8d0; }
+.forge-detail { display: flex; flex-direction: column; gap: 6px; padding: 4px 0; }
+.forge-title { font-weight: 700; color: #ffe9a8; }
+
+.forge-slots { display: flex; gap: 14px; }
+.forge-slot-box { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 70px; }
+.forge-slot-name { font-size: 11px; color: #cfe6ff; text-align: center; }
+
+.forge-cell {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  box-sizing: border-box;
+  background: #0b2238;
+  border: 2px solid #4f86b3;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.forge-cell img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.forge-cell.selected { box-shadow: 0 0 0 2px #e8c46a; }
+.forge-cell.empty { opacity: 0.55; border-style: dashed; }
+.forge-count {
+  position: absolute;
+  right: 1px;
+  bottom: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 0 2px #000, 0 0 2px #000;
+}
+.forge-count.lacking { color: #ff6b6b; }
+
+.forge-grid { display: flex; flex-wrap: wrap; gap: 4px; min-height: 90px; max-height: 150px; overflow-y: auto; align-content: flex-start; }
+.forge-rates { display: flex; flex-wrap: wrap; gap: 4px 12px; color: #cfe6ff; min-height: 18px; }
+.forge-rate { font-weight: 700; }
+.forge-rate.fail { color: #ff9a9a; }
+.forge-buttons { display: flex; gap: 8px; }
+.forge-go { align-self: flex-start; }
+.forge-go:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* phase D upgrade tabs */
+.forge-picker { min-height: 46px; max-height: 96px; }
+.forge-subtabs { margin-bottom: 2px; }
+.forge-holes .forge-cell { cursor: pointer; display: flex; align-items: center; justify-content: center; color: #cfe6ff; font-weight: 700; }
+.forge-gems { min-height: 44px; max-height: 80px; }
+.forge-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  background: #0b2238;
+  border: 1px solid #e8c46a;
+  border-radius: 3px;
+  color: #ffe9a8;
+}

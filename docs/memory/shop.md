@@ -31,3 +31,6 @@ rich item tooltips, `[postfix]` suffix. Quiet the RPCs only after the user confi
   the title: only it shows the move cursor and starts a drag; stage-scale aware, kept on screen) and
   `closeOnEscape(close)` (also when the chat input has focus, which is blurred). ShopPanel registers both in `show()`
   and disposes them in `close()`. Reuse them for other windows.
+
+## M5 (2026-11-04)
+Bank, bag pages, repair, payment radios and the mall are in `economy.md`; crafting and upgrades in `forge.md`.

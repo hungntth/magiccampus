@@ -57,6 +57,8 @@ export class Entity extends Container {
   private fallback: Container;
   private marker: Graphics;
   private readonly labels: EntityLabels;
+  /** Name shown in the label (changes with the rename card). */
+  displayName: string;
   /** Top of the sprite relative to the feet; bubbles and quest markers sit above it. */
   private headY = -44;
   dir = 0;
@@ -92,6 +94,7 @@ export class Entity extends Container {
     this.fallback.addChild(this.marker);
     this.addChild(this.fallback);
 
+    this.displayName = displayName;
     this.labels = new EntityLabels(displayName, NAME_COLOR[kind]);
     this.addChild(this.labels);
 
@@ -168,6 +171,11 @@ export class Entity extends Container {
   private layoutMarker(): void {
     this.questMarker?.position.set(0, this.headY - 2);
     this.leaderFlag?.position.set(0, this.headY - 2);
+  }
+
+  setName(name: string): void {
+    this.displayName = name;
+    this.labels.setName(name);
   }
 
   /**

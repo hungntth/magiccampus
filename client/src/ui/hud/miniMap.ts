@@ -23,7 +23,7 @@ export class MiniMapCanvas {
   private lastPos = '';
   private pkClosed = false;
 
-  constructor(parent: HTMLElement, private readonly client: GameClient) {
+  constructor(parent: HTMLElement, private readonly client: GameClient, onShop: () => void, onForge: (tab?: string) => void) {
     const root = div('hud-minimap', parent);
 
     const titleStrip = skinImage('MainStage_LocationBar/LocationIndicator', root, 59, 0);
@@ -53,7 +53,7 @@ export class MiniMapCanvas {
 
     const shopTray = skinImage(`${TRAY}/Tray2`, root, 158, 53);
     skinButton({ up: `${TRAY}/shopup`, over: `${TRAY}/ShopOver`, down: `${TRAY}/ShopDown` }, shopTray, 4, 10, 'Shop',
-      notReady);
+      onShop);
 
     const hideTray: SkinStates = { up: `${TRAY}/shrinkageup`, over: `${TRAY}/shrinkageover`, down: `${TRAY}/shrinkagedown` };
     const showTray: SkinStates = { up: `${TRAY}/putup`, over: `${TRAY}/putover`, down: `${TRAY}/putdown` };
@@ -65,7 +65,7 @@ export class MiniMapCanvas {
     const fun = place(div('hud-fun', root), 135, 135, 85, 262);
     FUNCTIONS.forEach((label, i) => {
       const b = place(div('hud-red-btn', fun, label), 6, 6 + i * 28, 73, 24);
-      b.onclick = notReady;
+      b.onclick = label === 'Chế tạo' ? () => onForge() : label === 'Luyện' ? () => onForge('star') : notReady;
     });
     const hideFun: SkinStates = std(`${TRAY}/RightButtonsHide`);
     const showFun: SkinStates = std(`${TRAY}/RightButtonsShow`);

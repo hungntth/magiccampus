@@ -26,6 +26,16 @@ test('planSwap does not reuse slots freed by the receiver\'s own outgoing rows',
   assert.equal(one.moves[0].toSlot, 2);
 });
 
+test('planSwap uses the capacity of each receiver (opened bag pages)', () => {
+  const full = (cid: number, out: number[], capacity?: number) => ({
+    cid, bag: Array.from({ length: 30 }, (_, i) => ({ id: cid * 1000 + i, slotIndex: i })), out, capacity,
+  });
+  assert.deepEqual(planSwap(full(1, [1000]), full(2, [], 30), 30), { ok: false, reason: 'full', cid: 2 });
+  const plan = planSwap(full(1, [1000]), full(2, [], 60), 30);
+  assert.ok(plan.ok);
+  assert.equal(plan.moves[0].toSlot, 30);
+});
+
 test('planSwap refuses when an offered row is missing and handles empty offers', () => {
   assert.deepEqual(planSwap({ cid: 1, bag: [], out: [5] }, { cid: 2, bag: [], out: [] }, 30), { ok: false, reason: 'missing', cid: 1 });
   const none = planSwap({ cid: 1, bag: [], out: [] }, { cid: 2, bag: [], out: [] }, 30);

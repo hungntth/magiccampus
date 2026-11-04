@@ -6,6 +6,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
 import type { MapInfo, SceneNpc } from '@mc/shared';
+import { buildRecipePlans, type RecipePlan } from './forge-data';
 import { isNpcVisible } from './npc-visibility';
 import { buildSceneItemTables, type SceneItemRow, type SceneItemTables } from './sceneitem-data';
 import {
@@ -27,6 +28,11 @@ const TEMPLATE_FIELDS = {
   type: 1, use_type: 1, req_level: 1, req_class: 1, i1: 1, i2: 1, position: 1, kind: 1, bind_type: 1,
   main_prop1: 1, main_prop2: 1, main_prop_num1: 1, main_prop_num2: 1, prop1: 1, prop2: 1, prop_num1: 1, prop_num2: 1,
   bind_prop_num: 1, req_class_id: 1, skill_id: 1,
+  // forge: crafting requirements, material level, gem chain
+  makable: 1, require_item1: 1, require_item2: 1, require_item3: 1, require_num1: 1, require_num2: 1, require_num3: 1,
+  level: 1, item_level: 1, next_jewel_tid: 1, prop_type: 1, propl_num: 1, hole_num: 1,
+  // forge upgrades: tier upgrade target, soul (active prop) template values
+  next_equ_tid: 1, active_prop_type: 1, active_prop_num: 1,
 };
 
 @Injectable()
@@ -46,6 +52,8 @@ export class GameDataService implements OnModuleInit {
   private skills = new Map<number, SkillTemplate>();
   private skillsByName = new Map<string, SkillTemplate[]>(); // pet skill books resolve skills by exact name
   private pets: PetTables = buildPetTables([], []);
+  private recipePlans = new Map<number, RecipePlan[]>();
+  private makable: Row[] | null = null;
 
   constructor(@InjectConnection() private readonly conn: Connection) {}
 
@@ -96,6 +104,8 @@ export class GameDataService implements OnModuleInit {
     this.pets = buildPetTables(creatures, await this.rows('data_tbl_creature_skill'));
     this.skills = buildSkillTable(await this.rows('data_tbl_skill'));
     this.skillsByName = skillsByName(this.skills);
+    this.recipePlans = buildRecipePlans(await this.rows('data_tbl_recipe_plan'));
+    this.makable = null;
     this.logger.log(
       `Loaded ${this.maps.size} maps, ${this.classes.size} classes, ${npcs.length} npcs, ` +
         `${quests.length} quests (${requires.length} require, ${pres.length} pre, ${awards.length} award), ` +
@@ -236,6 +246,20 @@ export class GameDataService implements OnModuleInit {
   /** Loot rows of a creature (data_tbl_creature_loot), cached at startup. */
   creatureLoot(creatureId: number): LootRow[] {
     return this.combat.loot.get(creatureId) ?? [];
+  }
+
+  /** Craft success plan rows of a recipe (equipment template id), cached at startup. */
+  recipePlan(recipeId: number): readonly RecipePlan[] {
+    return this.recipePlans.get(recipeId) ?? [];
+  }
+
+  /** Equipment templates with makable == 1 (the craft recipes), loaded once and cached. */
+  async makableEquipment(): Promise<Row[]> {
+    if (!this.makable) {
+      this.makable = await this.conn.db!.collection<Row>('data_tbl_equipt_template')
+        .find({ makable: 1, require_item1: { $gt: 0 } }, { projection: { ...TEMPLATE_FIELDS } }).sort({ req_level: 1, id: 1 }).toArray();
+    }
+    return this.makable;
   }
 
   /** Item (type 29) or equipment (type 19) template by id, queried on demand; undefined if unknown. */

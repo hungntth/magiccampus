@@ -1,7 +1,8 @@
 // Shared item slot rendering for the bag and the character panel: quality border, icon, stack count, lock mark,
 // tooltip and the drag payload exchanged between the two windows (native HTML5 drag and drop).
 
-import type { BagItem } from '@mc/shared';
+import { ELEMENT_NAMES, EQUIP_PROP_LABELS, PREFIX_NAMES } from '@mc/shared';
+import type { BagItem, EquipLines } from '@mc/shared';
 import { iconUrl } from '../assets';
 
 // GamePredef.as:757 name palette, indices 0..8 (same as the shop).
@@ -31,8 +32,32 @@ export function endDrag(): void {
   current = null;
 }
 
+/** Rolled stat lines of a crafted piece (instance values only; plain template lines are not repeated). */
+const propLabel = (prop: number): string => EQUIP_PROP_LABELS[prop] ?? `#${prop}`;
+
+function rolledLines(l: EquipLines): string[] {
+  const out: string[] = [];
+  for (const n of [1, 2] as const) {
+    const prop = l[`mainProp${n}`];
+    if (prop) out.push(`${propLabel(prop)}: +${l[`mainPropNum${n}`] ?? 0}${l[`bindMainPropNum${n}`] ? ` (+${l[`bindMainPropNum${n}`]})` : ''}`);
+  }
+  for (const n of [1, 2] as const) {
+    const prop = l[`prop${n}`];
+    if (prop) out.push(`${propLabel(prop)}: +${l[`propNum${n}`] ?? 0}`);
+  }
+  return out;
+}
+
 export function itemTooltip(item: BagItem, playerLevel: number, equipped: boolean): string {
-  const lines = [item.name];
+  const prefix = item.prefix ? PREFIX_NAMES[item.prefix] : '';
+  const lines = [prefix ? `${prefix} ${item.name}` : item.name];
+  if (item.quality) lines.push(`Phẩm chất: ${item.quality}`);
+  if (item.element) lines.push(`Hệ: ${ELEMENT_NAMES[item.element] ?? item.element}`);
+  if (item.star) lines.push(`Sao: ${item.star}`);
+  if (item.lines) lines.push(...rolledLines(item.lines));
+  if (item.holeNum) lines.push(`Lỗ khảm: ${item.holeNum} (${item.gems?.filter((g) => g > 0).length ?? 0} đã khảm)`);
+  if (item.activeProp) lines.push(`Linh hồn: ${propLabel(item.activeProp)} +${item.activePropNum ?? 0}`);
+  if (item.makerName) lines.push(`${item.makerName} chế tạo`);
   if (item.reqLevel > 0) lines.push(`Cấp độ cần: ${item.reqLevel}${playerLevel < item.reqLevel ? ' (chưa đủ)' : ''}`);
   if (item.info) lines.push(item.info);
   if (item.maxDurability > 0) lines.push(`Độ bền: ${item.durability}/${item.maxDurability}`);

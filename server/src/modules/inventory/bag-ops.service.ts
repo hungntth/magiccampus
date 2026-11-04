@@ -1,48 +1,60 @@
-// Bag operations (legacy Service.MoveItem / MoveItemPartial / DropItem / SortBag) on slotType 0 rows. The decisions
-// come from the pure planners in bag-rules.ts; this file applies them with conditional single-row writes (no
-// transactions): swaps and sorts go through a temporary slotIndex so the unique (character, slotType, slotIndex)
-// index never collides, merges delete the source before crediting the target and restore it on failure.
+// Bag operations (legacy Service.MoveItem / MoveItemPartial / DropItem / SortBag) over the bag, bank, quest page and
+// pet-item page. The decisions come from the pure planners in bag-rules.ts, run over rows keyed by sid (slotIndex = sid) so
+// one planner serves every page; this file gates them (opened pages, bank open, per-page item rules) and applies them
+// with conditional single-row writes (no transactions): merges delete the source before crediting the target and restore
+// it on failure, swaps and sorts go through temporary slot indexes (slot-writes.ts).
 
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { BAG_PAGE_SLOTS, BAG_SID_BASE, ItemKind, SlotType, type ItemSortEntry } from '@mc/shared';
+import { ItemKind, SlotType, sidOf as sidAt, slotOf, type ItemSortEntry, type SlotRef } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
 import { Counter } from '../character/counter.schema';
-import { GameDataService } from '../gamedata/gamedata.service';
+import { isMovable } from './bag-pages';
 import { maxStack, planMove, planSort, planSplit, sidOf, type BagSlotRow } from './bag-rules';
 import { CharacterItem } from './character-item.schema';
 import { withCharLock } from './char-lock';
 import { InventoryService } from './inventory.service';
+import { PageGate, type TemplateMaps } from './page-gate.service';
 import { push, type Push } from './pushes';
+import { busy, setLocation, swapLocations } from './slot-writes';
 
 const SORT_OFFSET = 10000;
-const TEMP_INDEX = -1;
-const busy = (): RpcException => RpcException.forbidden('Túi đồ vừa thay đổi, hãy thử lại');
+const DROPPABLE: readonly number[] = [SlotType.BAG, SlotType.QUEST_BAG, SlotType.PET_BAG];
+
+/** sid -> slot of a movable page (bag / bank / quest / pet-item); anything else (equip slots, pet gear) is rejected. */
+export function movableSlot(sid: number): SlotRef {
+  const ref = slotOf(sid);
+  if (!ref || !isMovable(ref)) throw RpcException.invalidArgs('sid');
+  return ref;
+}
 
 @Injectable()
 export class BagOpsService {
   constructor(
     @InjectModel(CharacterItem.name) private readonly items: Model<CharacterItem>,
     @InjectModel(Counter.name) private readonly counters: Model<Counter>,
-    private readonly gameData: GameDataService,
     private readonly inventory: InventoryService,
+    private readonly gate: PageGate,
   ) {}
 
-  /** moveItem(fromSid, toSid): both must be bag sids. */
-  moveItem(characterId: number, fromSid: number, toSid: number): Promise<Push[]> {
-    const from = slotOf(fromSid);
-    const to = slotOf(toSid);
+  /** moveItem(fromSid, toSid): bag, bank, quest and pet-item sids (bank only while the bank is open). */
+  moveItem(characterId: number, fromSid: number, toSid: number, bankOpen: boolean): Promise<Push[]> {
+    const from = movableSlot(fromSid);
+    const to = movableSlot(toSid);
     return withCharLock(characterId, async () => {
-      const plan = planMove(await this.rows(characterId), from, to);
+      this.gate.assertUsable([from, to], await this.gate.context(characterId), bankOpen);
+      const { rows, docs, tpls } = await this.load(characterId, [from, to]);
+      const plan = planMove(rows, fromSid, toSid);
       switch (plan.kind) {
         case 'error':
           throw RpcException.invalidArgs(plan.reason);
         case 'move':
-          await this.setIndex(characterId, plan.id, plan.from, plan.to);
+          this.gate.assertAccepts(to, this.gate.factsOf(docs.get(plan.id)!, tpls));
+          await setLocation(this.items, characterId, plan.id, from, to);
           return [push('onMoveItem', fromSid, toSid, plan.id)];
         case 'merge': {
-          const src = await this.items.findOneAndDelete({ _id: plan.srcId, characterId, slotType: SlotType.BAG, slotIndex: from }).lean();
+          const src = await this.items.findOneAndDelete({ _id: plan.srcId, characterId, slotType: from.slotType, slotIndex: from.slotIndex }).lean();
           if (!src) throw busy();
           const ok = await this.items.updateOne({ _id: plan.destId, characterId }, { $inc: { stackCount: src.stackCount } });
           if (ok.modifiedCount !== 1) {
@@ -53,24 +65,28 @@ export class BagOpsService {
           return [push('onAddCharactorSlot', dest), push('onStackItemInto', fromSid, toSid, plan.srcId, plan.destId, plan.merged)];
         }
         case 'swap':
-          await this.swap(characterId, plan.aId, plan.bId, from, to);
+          this.gate.assertAccepts(to, this.gate.factsOf(docs.get(plan.aId)!, tpls));
+          this.gate.assertAccepts(from, this.gate.factsOf(docs.get(plan.bId)!, tpls));
+          await swapLocations(this.items, characterId, plan.aId, plan.bId, from, to);
           return [push('onSwapItem', fromSid, toSid)];
       }
     });
   }
 
   /** moveItemNum(fromSid, toSid, n): split `n` off a stack into an empty slot or a matching stack. */
-  moveItemNum(characterId: number, fromSid: number, toSid: number, n: number): Promise<Push[]> {
-    const from = slotOf(fromSid);
-    const to = slotOf(toSid);
+  moveItemNum(characterId: number, fromSid: number, toSid: number, n: number, bankOpen: boolean): Promise<Push[]> {
+    const from = movableSlot(fromSid);
+    const to = movableSlot(toSid);
     return withCharLock(characterId, async () => {
-      const bag = await this.rows(characterId);
-      const plan = planSplit(bag, from, to, n);
+      this.gate.assertUsable([from, to], await this.gate.context(characterId), bankOpen);
+      const { rows, docs, tpls } = await this.load(characterId, [from, to]);
+      const plan = planSplit(rows, fromSid, toSid, n);
       if (plan.kind === 'error') throw RpcException.invalidArgs(plan.reason);
-      const src = bag.find((r) => r.id === plan.srcId)!;
+      const src = rows.find((r) => r.id === plan.srcId)!;
+      if (plan.kind === 'new') this.gate.assertAccepts(to, this.gate.factsOf(docs.get(src.id)!, tpls));
       // Spend first: take `n` from the source, then credit the destination; refund when the credit fails.
       const took = await this.items.updateOne(
-        { _id: src.id, characterId, slotType: SlotType.BAG, stackCount: src.stackCount },
+        { _id: src.id, characterId, slotType: from.slotType, stackCount: src.stackCount },
         { $inc: { stackCount: -plan.count } },
       );
       if (took.modifiedCount !== 1) throw busy();
@@ -80,13 +96,13 @@ export class BagOpsService {
         if (plan.kind === 'new') {
           destId = await this.nextId();
           await this.items.create({
-            _id: destId, characterId, templateId: src.templateId, itemType: src.itemType, slotType: SlotType.BAG,
-            slotIndex: to, stackCount: plan.count, isBound: src.isBound, colorCode: src.colorCode, // H5: colour is inherited
+            _id: destId, characterId, templateId: src.templateId, itemType: src.itemType, slotType: to.slotType,
+            slotIndex: to.slotIndex, stackCount: plan.count, isBound: src.isBound, colorCode: src.colorCode, // H5: colour is inherited
           });
         } else {
           destId = plan.destId;
           const ok = await this.items.updateOne(
-            { _id: destId, characterId, stackCount: { $lte: bag.find((r) => r.id === destId)!.maxStack - plan.count } },
+            { _id: destId, characterId, stackCount: { $lte: rows.find((r) => r.id === destId)!.maxStack - plan.count } },
             { $inc: { stackCount: plan.count } },
           );
           if (ok.modifiedCount !== 1) throw busy();
@@ -100,22 +116,24 @@ export class BagOpsService {
     });
   }
 
-  /** dropItem(itemId): deletes a bag item (equipped items must be unequipped first). */
+  /** dropItem(itemId): deletes a bag / quest-page / pet-page item (equipped items must be unequipped first). */
   dropItem(characterId: number, itemId: number): Promise<Push[]> {
     return withCharLock(characterId, async () => {
       const item = await this.items.findOne({ _id: itemId, characterId }).lean();
       if (!item) throw RpcException.notFound('Không tìm thấy vật phẩm');
-      if (item.slotType !== SlotType.BAG) throw RpcException.forbidden('Hãy tháo trang bị trước khi vứt');
-      const del = await this.items.deleteOne({ _id: itemId, characterId, slotType: SlotType.BAG });
+      if (!DROPPABLE.includes(item.slotType)) throw RpcException.forbidden('Hãy cất vật phẩm vào túi trước khi vứt');
+      const del = await this.items.deleteOne({ _id: itemId, characterId, slotType: item.slotType });
       if (del.deletedCount !== 1) throw busy();
-      return [push('onDelCharactorSlot', itemId, sidOf(item.slotIndex))];
+      return [push('onDelCharactorSlot', itemId, sidAt(item.slotType, item.slotIndex))];
     });
   }
 
-  /** bagSort(): merge, order and repack the whole bag; pushes merged-away rows, then one onItemSort. */
+  /** bagSort(): merge, order and repack the whole general bag (all opened pages); pushes merged-away rows, then one onItemSort. */
   bagSort(characterId: number): Promise<Push[]> {
     return withCharLock(characterId, async () => {
-      const plan = planSort(await this.rows(characterId));
+      const docs = await this.items.find({ characterId, slotType: SlotType.BAG }).lean();
+      const tpls = await this.gate.templates(docs);
+      const plan = planSort(docs.map((d) => this.toRow(d, tpls, d.slotIndex)));
       for (const k of plan.kept.filter((x) => x.countChanged)) {
         await this.items.updateOne({ _id: k.id, characterId, slotType: SlotType.BAG }, { $set: { stackCount: k.stackCount } });
       }
@@ -136,46 +154,26 @@ export class BagOpsService {
     });
   }
 
-  private async rows(characterId: number): Promise<BagSlotRow[]> {
-    const docs = await this.items.find({ characterId, slotType: SlotType.BAG }).lean();
-    const tpls = await this.gameData.templatesByIds(29, [...new Set(docs.filter((d) => d.itemType === ItemKind.ITEM).map((d) => d.templateId))]);
-    return docs.map((d) => ({
-      id: d._id, slotIndex: d.slotIndex, templateId: d.templateId, itemType: d.itemType, isBound: d.isBound,
+  /** Rows of the slot types of `refs`, as planner rows keyed by sid, plus the documents and templates for the gates. */
+  private async load(characterId: number, refs: readonly SlotRef[]) {
+    const types = [...new Set(refs.map((r) => r.slotType))];
+    const list = await this.items.find({ characterId, slotType: { $in: types } }).lean();
+    const tpls = await this.gate.templates(list);
+    const docs = new Map(list.map((d) => [d._id, d]));
+    const rows = list.map((d) => this.toRow(d, tpls, sidAt(d.slotType, d.slotIndex)));
+    return { rows, docs, tpls };
+  }
+
+  private toRow(d: CharacterItem, tpls: TemplateMaps, key: number): BagSlotRow {
+    return {
+      id: d._id, slotIndex: key, templateId: d.templateId, itemType: d.itemType, isBound: d.isBound,
       colorCode: d.colorCode, stackCount: d.stackCount,
-      maxStack: d.itemType === ItemKind.ITEM ? maxStack(tpls.get(d.templateId)) : 1,
-    }));
-  }
-
-  private async setIndex(characterId: number, id: number, from: number, to: number): Promise<void> {
-    try {
-      const r = await this.items.updateOne({ _id: id, characterId, slotType: SlotType.BAG, slotIndex: from }, { $set: { slotIndex: to } });
-      if (r.modifiedCount === 1) return;
-    } catch (e) {
-      if ((e as { code?: number }).code !== 11000) throw e;
-    }
-    throw busy();
-  }
-
-  /** a -> temp, b -> a's slot, a -> b's slot. */
-  private async swap(characterId: number, aId: number, bId: number, from: number, to: number): Promise<void> {
-    await this.setIndex(characterId, aId, from, TEMP_INDEX);
-    try {
-      await this.setIndex(characterId, bId, to, from);
-    } catch (e) {
-      await this.setIndex(characterId, aId, TEMP_INDEX, from).catch(() => undefined);
-      throw e;
-    }
-    await this.setIndex(characterId, aId, TEMP_INDEX, to);
+      maxStack: d.itemType === ItemKind.ITEM ? maxStack(tpls.items.get(d.templateId)) : 1,
+    };
   }
 
   private async nextId(): Promise<number> {
     const doc = await this.counters.findByIdAndUpdate('items', { $inc: { seq: 1 } }, { new: true, upsert: true });
     return doc.seq;
   }
-}
-
-/** Bag sid (2101..2130) -> slot index; anything else (equip slots, other pages) is rejected. */
-function slotOf(sid: number): number {
-  if (!Number.isInteger(sid) || sid < BAG_SID_BASE || sid >= BAG_SID_BASE + BAG_PAGE_SLOTS) throw RpcException.invalidArgs('sid');
-  return sid - BAG_SID_BASE;
 }

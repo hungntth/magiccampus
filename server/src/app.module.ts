@@ -21,6 +21,8 @@ import { SocialModule } from './modules/social/social.module';
 import { PartyModule } from './modules/party/party.module';
 import { TradeModule } from './modules/trade/trade.module';
 import { PetModule } from './modules/pet/pet.module';
+import { ForgeModule } from './modules/forge/forge.module';
+import { TransportModule } from './modules/transport/transport.module';
 
 @Module({
   imports: [
@@ -43,6 +45,8 @@ import { PetModule } from './modules/pet/pet.module';
     BuffModule,
     CombatModule,
     PetModule,
+    ForgeModule,
+    TransportModule,
     SystemModule,
   ],
 })

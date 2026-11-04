@@ -6,7 +6,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { BAG_PAGE_SLOTS, BAG_SID_BASE, ItemKind, SlotType, type BagItem } from '@mc/shared';
+import { ItemKind, SlotType, slotOf, type BagItem } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
 import { Character } from '../character/character.schema';
 import { GameDataService } from '../gamedata/gamedata.service';
@@ -85,10 +85,11 @@ export class EquipmentService {
       target = await this.firstFree(characterId);
       if (target < 0) throw RpcException.forbidden('Túi đồ đã đầy');
     } else {
-      if (!Number.isInteger(toSid) || toSid < BAG_SID_BASE || toSid >= BAG_SID_BASE + BAG_PAGE_SLOTS) {
-        throw RpcException.invalidArgs('toSid');
-      }
-      target = toSid - BAG_SID_BASE;
+      const ref = slotOf(toSid);
+      if (!ref || ref.slotType !== SlotType.BAG) throw RpcException.invalidArgs('toSid');
+      const cap = await this.inventory.capacity(characterId);
+      if (ref.slotIndex >= cap) throw RpcException.forbidden('Trang túi chưa mở.');
+      target = ref.slotIndex;
       if (await this.items.exists({ characterId, slotType: SlotType.BAG, slotIndex: target })) {
         throw RpcException.forbidden('Ô túi đồ đã có vật phẩm');
       }
@@ -101,7 +102,7 @@ export class EquipmentService {
 
   private async firstFree(characterId: number): Promise<number> {
     const rows = await this.items.find({ characterId, slotType: SlotType.BAG }, { slotIndex: 1 }).lean();
-    return firstFreeSlot(rows.map((r) => r.slotIndex), this.inventory.capacity());
+    return firstFreeSlot(rows.map((r) => r.slotIndex), await this.inventory.capacity(characterId));
   }
 
   /** Conditional single-row move; a miss or a unique-index collision means the world changed, so fail. */

@@ -19,6 +19,8 @@ export class BagActions {
   petTarget: () => number | null = () => null;
   /** Set by PetController: pet skill books and pet equipment double-clicks (needs the pet window open). */
   petGear: Pick<PetGearActions, 'use'> | null = null;
+  /** Set by BagController: teleport scrolls and the rename card open their own dialogs (true = handled). */
+  funcHook: ((item: BagItem) => boolean) | null = null;
 
   constructor(
     private readonly client: GameClient,
@@ -30,6 +32,7 @@ export class BagActions {
   use(item: BagItem): void {
     if (this.petGear?.use(item)) return;
     if (this.player().level < item.reqLevel) return void toast('Cấp độ bạn chưa đủ!');
+    if (this.funcHook?.(item)) return;
     if (item.itemType === ItemKind.EQUIP && (item.position < 1 || item.position > EQUIP_SLOT_COUNT)) {
       return void toast('Vật phẩm này bạn không dùng được!');
     }
@@ -59,6 +62,29 @@ export class BagActions {
   move(from: BagItem, toSid: number): void {
     if (from.sid === toSid || !this.allow('move', RPC_DELAY.move)) return;
     this.send('moveItem', from.sid, toSid);
+  }
+
+  /** Drop on a page tab (or double-click between bag and bank): first free slot of that page. pageType 1 bag, 2 bank. */
+  moveToPage(from: BagItem, pageType: number, tab: number): void {
+    if (!this.allow('move', RPC_DELAY.move)) return;
+    this.send('moveItemToPage', from.sid, pageType, tab);
+  }
+
+  /** Repair tool click on one item: mode 1 (bag tool) or 2 (shop tool); the cost arrives as onUPP, no cost is shown. */
+  repair(item: BagItem, mode: 1 | 2): void {
+    if (!this.allow('repair', RPC_DELAY.repair)) return;
+    this.send('repair', item.id, mode);
+  }
+
+  repairAll(mode: 1 | 2): void {
+    askConfirm('Sửa chữa toàn bộ trang bị?', () => {
+      if (this.allow('repair', RPC_DELAY.repair)) this.send('repairAll', mode);
+    });
+  }
+
+  /** The bank window was closed: the server stops accepting moves to and from bank slots. */
+  closeBank(): void {
+    this.send('closeBank');
   }
 
   /** Shift-drop of a stack onto an empty slot: asks how many to take, then moveItemNum. */

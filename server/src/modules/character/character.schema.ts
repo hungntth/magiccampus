@@ -109,6 +109,13 @@ export class Character {
   @Prop({ default: 3 })
   selectedGoldType: number;
 
+  // Opened general bag pages (1..7, +1 per item 325) and bank pages (1..5, +1 per item 324); defaults applied on read.
+  @Prop({ default: 1 })
+  bagSlotNum: number;
+
+  @Prop({ default: 1 })
+  bankSlotNum: number;
+
   @Prop({ default: false })
   deleted: boolean;
 

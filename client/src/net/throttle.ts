@@ -6,6 +6,7 @@ export const RPC_DELAY = {
   equip: 1100,
   move: 1100,
   drop: 1100,
+  repair: 1100,
   bagSort: 3000,
 } as const;
 

@@ -1,18 +1,19 @@
 // NPC "Shop" window (DOM, in #stage): paged 3-column slot grid with icon, coloured name and price lines, pager,
 // Ctrl-sell hint and the Mua / Sửa / Sửa hết / Sửa hết (pet) buttons. Mua (or double-click) asks for an amount and
-// calls `onBuy`; the repair buttons are placeholders.
+// calls `onBuy`; Sửa / Sửa hết call the repair hooks (Sửa hết (pet) is a placeholder).
 
-import type { OpenShop, ShopPrice, ShopSlotView } from '@mc/shared';
+import type { OpenShop, ShopSlotView } from '@mc/shared';
 import { ShopCurrency } from '@mc/shared';
-import { iconUrl } from '../assets';
+import type { PaymentControl } from '../game/payment';
 import { askAmount } from './amountDialog';
-import { NAME_COLORS } from './bagPanel';
+import { paymentRadios, type PaymentRadios } from './paymentRadios';
 import { toast } from './screens';
 import { stageEl } from './stage';
 import { closeOnEscape, makeDraggable } from './panelBehavior';
+import { coinOf, el, shopCell } from './shopCell';
 import './shop.css';
+import './mall.css';
 
-const ST_LABELS: Record<number, string> = { 1: 'Hot', 2: 'Sale', 3: 'Limit', 4: 'New' };
 const HINT = 'Giữ Ctrl rồi nhấp đôi vào vật phẩm để bán trực tiếp';
 const HINT_TIP = 'Giữ Ctrl rồi nhấp đôi vào vật phẩm trong túi đồ là có thể bán trực tiếp không cần xác nhận.';
 const ACTIONS: [string, string][] = [
@@ -21,24 +22,6 @@ const ACTIONS: [string, string][] = [
   ['Sửa hết', 'Sửa chữa toàn bộ (người)'],
   ['Sửa hết (pet)', 'Sửa chữa toàn bộ(pet)'],
 ];
-
-interface CoinInfo {
-  cls: string;
-  text: string;
-  title: string;
-}
-
-function coinOf(p: ShopPrice): CoinInfo {
-  switch (p.currency) {
-    case ShopCurrency.MONEY: return { cls: 'silver', text: '', title: 'Bạc' };
-    case ShopCurrency.MONEY_ALL: return { cls: 'silver', text: '', title: 'Bạc/Bạc khóa' };
-    case ShopCurrency.GOLD: return { cls: 'gold', text: '', title: 'Vàng' };
-    case ShopCurrency.GOLD_ALL: return { cls: 'gold', text: '', title: 'Vàng/Kim phiếu' };
-    case ShopCurrency.EX_POINT: return { cls: 'badge', text: 'Đ', title: 'Điểm' };
-    case ShopCurrency.HONOR: return { cls: 'badge', text: 'V', title: 'Vinh dự' };
-    default: return { cls: 'badge', text: `#${p.pType ?? 0}`, title: 'Tiền đặc biệt' };
-  }
-}
 
 export class ShopPanel {
   private root: HTMLElement | null = null;
@@ -51,8 +34,14 @@ export class ShopPanel {
   private selected: number | null = null;
   private offs: (() => void)[] = [];
   private closeAmount: (() => void) | null = null;
+  /** Set by BagController: arms the repair tool on the bag (Sửa) / repairs all worn gear after a confirm (Sửa hết). */
+  onRepairTool: (() => void) | null = null;
+  onRepairAll: (() => void) | null = null;
   /** Set by BagController: performs the buyAmountItemClient call. */
   onBuy: ((slotId: number, amount: number) => void) | null = null;
+  /** Set by BagController: payment preference (radios Ngân phiếu / Bạc / Kim phiếu / Vàng). */
+  payment: PaymentControl | null = null;
+  private radios: PaymentRadios | null = null;
 
   get npcId(): number | null {
     return this.data && this.data.npcId >= 0 ? this.data.npcId : null;
@@ -92,6 +81,11 @@ export class ShopPanel {
     pager.append(this.prev, this.pageBox, this.next);
     root.appendChild(pager);
 
+    if (this.payment) {
+      this.radios = paymentRadios(this.payment, 'both');
+      root.appendChild(this.radios.element);
+    }
+
     const foot = el('div', 'shop-foot');
     const hint = el('div', 'shop-hint', HINT);
     hint.title = HINT_TIP;
@@ -99,7 +93,7 @@ export class ShopPanel {
     for (const [label, tip] of ACTIONS) {
       const b = el('button', 'shop-btn', label);
       b.title = tip;
-      b.onclick = label === 'Mua' ? () => this.buySelected() : () => toast('Tính năng đang phát triển');
+      b.onclick = () => this.onAction(label);
       foot.appendChild(b);
     }
     root.appendChild(foot);
@@ -113,12 +107,21 @@ export class ShopPanel {
   close(): void {
     this.closeAmount?.();
     this.closeAmount = null;
+    this.radios?.destroy();
+    this.radios = null;
     for (const off of this.offs) off();
     this.offs = [];
     this.root?.remove();
     this.root = null;
     this.grid = this.pageBox = this.prev = this.next = null;
     this.data = null;
+  }
+
+  private onAction(label: string): void {
+    if (label === 'Mua') this.buySelected();
+    else if (label === 'Sửa') this.onRepairTool?.();
+    else if (label === 'Sửa hết') this.onRepairAll?.();
+    else toast('Tính năng đang phát triển'); // Sửa hết (pet): pet repair RPCs are not registered in the legacy server
   }
 
   private buySelected(): void {
@@ -175,48 +178,10 @@ export class ShopPanel {
   }
 
   private cell(slot: ShopSlotView): HTMLElement {
-    const c = el('div', 'shop-cell');
-    if (slot.slotId === this.selected) c.classList.add('selected');
-    c.title = slot.info ? `${slot.name}\n${slot.info}` : slot.name;
-    const icon = el('div', 'shop-icon');
-    if (slot.iconCode && slot.iconCode !== '0') {
-      const img = document.createElement('img');
-      img.src = iconUrl(slot.iconCode);
-      img.alt = '';
-      img.onerror = () => img.remove();
-      icon.appendChild(img);
-    }
-    const badge = ST_LABELS[slot.st];
-    if (badge) icon.appendChild(el('span', `shop-st st${slot.st}`, badge));
-    c.appendChild(icon);
-
-    const text = el('div', 'shop-text');
-    const name = el('div', 'shop-name', slot.name);
-    name.style.color = NAME_COLORS[slot.color] ?? NAME_COLORS[0];
-    text.appendChild(name);
-    for (const p of slot.prices) {
-      const line = el('div', 'shop-price');
-      const coin = coinOf(p);
-      const mark = el('span', `shop-coin ${coin.cls}`, coin.text);
-      mark.title = coin.title;
-      line.append(mark, el('span', 'shop-cost', p.cost.toLocaleString('vi-VN')));
-      text.appendChild(line);
-    }
-    c.appendChild(text);
-
-    c.onclick = () => {
+    return shopCell(slot, slot.slotId === this.selected, (c) => {
       this.selected = slot.slotId;
       this.grid?.querySelectorAll('.shop-cell.selected').forEach((n) => n.classList.remove('selected'));
       c.classList.add('selected');
-    };
-    c.ondblclick = () => this.buy(slot);
-    return c;
+    }, () => this.buy(slot));
   }
-}
-
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text?: string): HTMLElementTagNameMap[K] {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text !== undefined) e.textContent = text;
-  return e;
 }

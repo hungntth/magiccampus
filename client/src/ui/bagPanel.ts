@@ -1,13 +1,17 @@
 // "Túi đồ" window (DOM, in #stage), laid out like the legacy Flex BagPanel and drawn in CSS; only the tool and currency
-// icons are original art (/ui/Panels_BagPanel): page tabs 1–5 < > N.vụ Pet, 6 x 5 item grid, pet tabs + 6 x 3 pet grid,
+// icons are original art (/ui/Panels_BagPanel): page tabs 1–7 N.vụ Pet, 6 x 5 item grid, pet tabs + 6 x 3 pet grid,
 // six tool icons and the four currency fields. Pure view: BagController owns the data and hands it over through the getters.
-// Interactions: double-click = use / equip, Ctrl + double-click = sell, drag = move / merge / swap (Shift = split),
-// drop an equipped item here = unequip into that slot; tool modes Sử dụng / Vứt bỏ / Tách rời act on the next click.
-// Only page 1 of the item bag exists (BAG_PAGE_SLOTS); pages 2–5, < >, N.vụ, Pet, the pet bag, Sửa chữa and Khóa are
-// rendered disabled. The payment checkboxes show the server defaults (Ngân phiếu / Kim phiếu) and are read-only.
+// Pages: 1..7 general bag pages (opened ones only, PlayerData.bagSlotNum), 8 = quest page (type 508 only), 9 = pet-item page.
+// Interactions: double-click = use / equip (or deposit while the bank is open), Ctrl + double-click = sell, drag = move /
+// merge / swap (Shift = split), drop on a tab = moveItemToPage, drop an equipped item here = unequip into that slot;
+// tool modes Sử dụng / Vứt bỏ / Tách rời / Sửa chữa act on the next click. Khóa and the pet grid are rendered disabled.
 
-import { BAG_PAGE_SLOTS, BAG_SID_BASE, SlotType, type BagItem, type MoneyKey, type PlayerData } from '@mc/shared';
+import {
+  BAG_PAGE_SLOTS, BagTab, MAX_BAG_PAGES, PageType, SlotType, openBagPages, sidOf, type BagItem, type PlayerData,
+} from '@mc/shared';
 import type { BagActions } from '../game/bagActions';
+import { BagWallet } from './bagWallet';
+import { TabStrip, type TabDef } from './bagTabs';
 import { endDrag, dragging, fillItemCell, itemTooltip } from './itemCell';
 import { closeOnEscape, makeDraggable } from './panelBehavior';
 import { toast } from './screens';
@@ -20,20 +24,15 @@ const SKIN = '/ui/Panels_BagPanel';
 const PET_SLOTS = 18;
 const PET_TABS = 10;
 const UNSUPPORTED = 'Chức năng chưa mở';
+const PAGE_ITEM_TYPES: readonly number[] = [SlotType.BAG, SlotType.QUEST_BAG, SlotType.PET_BAG];
 
-// Legacy BAGPANEL_U labels and BAGPANEL_S payment hints (Language.as). Row-major 2 x 2, as in the original.
-const WALLET: { key: MoneyKey; icon: string; tip: string; checked: boolean }[] = [
-  { key: 'moneyBind', icon: 'SilverBinded', checked: true,
-    tip: 'Ngân phiếu. Chọn chi trả bằng ngân phiếu: Vật phẩm sau khi mua bằng ngân phiếu sẽ bị khóa.' },
-  { key: 'goldBind', icon: 'GoldBinded', checked: true,
-    tip: 'Kim phiếu. Chọn chi trả bằng kim phiếu: Vật phẩm sau khi mua bằng kim phiếu sẽ bị khóa.' },
-  { key: 'money', icon: '11533', checked: false,
-    tip: 'Bạc. Chọn chi trả bằng bạc: Vật phẩm sau khi mua bằng bạc sẽ không bị khóa.' },
-  { key: 'gold', icon: '1663', checked: false,
-    tip: 'Vàng. Chọn chi trả bằng vàng: Vật phẩm sau khi mua bằng vàng sẽ không bị khóa.' },
+const BAG_TAB_DEFS: TabDef[] = [
+  ...Array.from({ length: MAX_BAG_PAGES }, (_, i) => ({ label: String(i + 1), page: i + 1 })),
+  { label: 'N.vụ', page: BagTab.QUEST },
+  { label: 'Pet', page: BagTab.PET },
 ];
 
-type ToolMode = 'use' | 'drop' | 'split';
+type ToolMode = 'use' | 'drop' | 'split' | 'repair';
 
 // Tool icons left to right, as in the original panel; `mode` tools act on the next item click.
 const TOOLS: { skin: string; tip: string; mode?: ToolMode; sort?: true }[] = [
@@ -42,7 +41,8 @@ const TOOLS: { skin: string; tip: string; mode?: ToolMode; sort?: true }[] = [
     tip: 'Vứt bỏ: Nhấp vào biểu tượng rồi nhấp vào vật phẩm trong túi đồ để vứt bỏ' },
   { skin: 'button_Resolution', mode: 'split',
     tip: 'Tách rời: Nhấp vào biểu tượng rồi nhấp vào vật phẩm trong túi đồ để tách rời' },
-  { skin: 'button_repair', tip: 'Sửa chữa (chưa mở)' },
+  { skin: 'button_repair', mode: 'repair',
+    tip: 'Sửa chữa: Nhấp vào biểu tượng rồi nhấp vào trang bị trong túi đồ để sửa chữa (10 bạc cho mỗi điểm độ bền)' },
   { skin: 'button_Lock', tip: 'Khóa (chưa mở)' },
   { skin: 'button_sorting', sort: true,
     tip: 'Sắp xếp: Sau khi nhấn vào biểu tượng, hệ thống sẽ sắp xếp túi đồ của bạn theo thứ tự' },
@@ -54,26 +54,38 @@ export interface BagPanelHost {
   actions: BagActions;
   /** Ctrl + double-click on a slot. */
   onSell(item: BagItem): void;
-  /** Double-click hook (trade panel open): return true to skip use / equip / sell. */
+  /** Double-click hook (trade panel / bank open): return true to skip use / equip / sell. */
   interceptUse?(item: BagItem): boolean;
+  /** A payment checkbox of the wallet was clicked (changeMoneyType 1..4). */
+  onPickPayment(type: number): void;
   onClose(): void;
 }
 
 export class BagPanel {
   private root: HTMLElement | null = null;
   private grid: HTMLElement | null = null;
+  private tabs: TabStrip | null = null;
+  private readonly wallet: BagWallet;
   private mode: ToolMode | null = null;
+  private repairMode: 1 | 2 = 1;
+  private page = 1;
   private readonly toolButtons = new Map<ToolMode, HTMLElement>();
-  private readonly wallet = new Map<MoneyKey, HTMLElement>();
   private offs: (() => void)[] = [];
 
-  constructor(private readonly host: BagPanelHost) {}
+  constructor(private readonly host: BagPanelHost) {
+    this.wallet = new BagWallet((type) => host.onPickPayment(type));
+  }
 
   get isOpen(): boolean {
     return this.root !== null;
   }
 
-  /** Opens the window; `besideShop` puts it to the right of the (shifted) shop window. */
+  /** The general page (1..7) that item moves from other windows should target. */
+  get generalPage(): number {
+    return this.page <= MAX_BAG_PAGES ? this.page : 1;
+  }
+
+  /** Opens the window; `besideShop` puts it to the right of the (shifted) shop / bank window. */
   show(besideShop: boolean): void {
     if (this.root) {
       this.root.classList.toggle('beside-shop', besideShop);
@@ -92,7 +104,13 @@ export class BagPanel {
     x.onclick = () => this.host.onClose();
     root.appendChild(x);
 
-    root.appendChild(this.tabRow('bag-tabs', ['1', '2', '3', '4', '5', '<', '>', 'N.vụ', 'Pet']));
+    this.tabs = new TabStrip({
+      tabs: BAG_TAB_DEFS,
+      lockedTip: 'Trang túi chưa mở (dùng Sách Mở Rộng Túi Đồ)',
+      onSelect: (page) => this.selectPage(page),
+      onDropItem: (page) => this.onDropOnTab(page),
+    }, 'bag-tabs');
+    root.appendChild(this.tabs.element);
     const box = el('div', 'bag-box bag-items');
     this.grid = el('div', 'bag-grid');
     const scroll = el('div', 'bag-scroll');
@@ -100,7 +118,7 @@ export class BagPanel {
     box.append(this.grid, scroll);
     root.appendChild(box);
 
-    root.appendChild(this.tabRow('bag-pet-tabs', Array.from({ length: PET_TABS }, () => 'P...')));
+    root.appendChild(this.disabledTabs());
     const petBox = el('div', 'bag-box bag-pets');
     const petGrid = el('div', 'bag-grid');
     for (let i = 0; i < PET_SLOTS; i++) petGrid.appendChild(el('div', 'bag-cell'));
@@ -108,7 +126,7 @@ export class BagPanel {
     root.appendChild(petBox);
 
     root.appendChild(this.toolbar());
-    root.appendChild(this.walletBox());
+    root.appendChild(this.wallet.element);
     stageEl().appendChild(root);
     this.root = root;
     this.offs.push(makeDraggable(root, header), closeOnEscape(() => this.host.onClose()));
@@ -121,38 +139,62 @@ export class BagPanel {
     this.root?.remove();
     this.root = null;
     this.grid = null;
+    this.tabs = null;
     this.mode = null;
     this.toolButtons.clear();
-    this.wallet.clear();
   }
 
-  /** Re-renders slots and wallet from the host data (no-op when closed). */
+  /** Re-renders tabs, slots and wallet from the host data (no-op when closed). */
   render(): void {
     if (!this.root || !this.grid) return;
-    const bySlot = this.bagBySlot();
-    const cells: HTMLElement[] = [];
-    for (let i = 0; i < BAG_PAGE_SLOTS; i++) cells.push(this.cell(i, bySlot.get(i)));
-    this.grid.replaceChildren(...cells);
     const p = this.host.player();
-    for (const w of WALLET) this.wallet.get(w.key)!.textContent = String(p[w.key] ?? 0);
+    const open = openBagPages(p.bagSlotNum ?? 1);
+    this.tabs?.refresh(this.page, (page) => page > MAX_BAG_PAGES || page <= open);
+    const bySid = this.itemsBySid();
+    this.grid.replaceChildren(...this.pageSids().map((sid) => this.cell(sid, bySid.get(sid))));
+    this.wallet.render(p);
   }
 
-  private bagBySlot(): Map<number, BagItem> {
-    const bySlot = new Map<number, BagItem>();
-    for (const it of this.host.items()) if (it.slotType === SlotType.BAG) bySlot.set(it.slotIndex, it);
-    return bySlot;
+  /** Repair tool armed from the shop window ("Sửa", mode 2) or the toolbar (mode 1). */
+  armRepair(mode: 1 | 2): void {
+    this.repairMode = mode;
+    this.setMode('repair');
   }
 
-  /** Skinned tab strip; only the first tab exists (selected), the others are disabled. */
-  private tabRow(cls: string, labels: string[]): HTMLElement {
-    const row = el('div', `bag-tab-row ${cls}`);
-    labels.forEach((label, i) => {
-      const tab = el('button', i === 0 ? 'bag-tab selected' : 'bag-tab', label);
+  /** The 30 sids of the selected page. */
+  private pageSids(): number[] {
+    const type = this.page === BagTab.QUEST ? SlotType.QUEST_BAG : this.page === BagTab.PET ? SlotType.PET_BAG : SlotType.BAG;
+    const lo = type === SlotType.BAG ? (this.page - 1) * BAG_PAGE_SLOTS : 0;
+    return Array.from({ length: BAG_PAGE_SLOTS }, (_, i) => sidOf(type, lo + i));
+  }
+
+  private itemsBySid(): Map<number, BagItem> {
+    const bySid = new Map<number, BagItem>();
+    for (const it of this.host.items()) if (PAGE_ITEM_TYPES.includes(it.slotType)) bySid.set(it.sid, it);
+    return bySid;
+  }
+
+  private selectPage(page: number): void {
+    this.page = page;
+    this.render();
+  }
+
+  private onDropOnTab(page: number): void {
+    const d = dragging();
+    endDrag();
+    const src = d && d.from !== 'equip' ? [...this.host.items()].find((i) => i.id === d.id) : undefined;
+    if (src) this.host.actions.moveToPage(src, PageType.BAG, page);
+  }
+
+  /** Static pet-item tab strip (the pet grid below is not ported). */
+  private disabledTabs(): HTMLElement {
+    const row = el('div', 'bag-tab-row bag-pet-tabs');
+    for (let i = 0; i < PET_TABS; i++) {
+      const tab = el('button', i === 0 ? 'bag-tab selected' : 'bag-tab', 'P...');
       tab.disabled = i > 0;
       tab.title = i === 0 ? '' : UNSUPPORTED;
-      if (label.length > 1 && label !== 'P...') tab.classList.add('wide');
       row.appendChild(tab);
-    });
+    }
     return row;
   }
 
@@ -168,7 +210,10 @@ export class BagPanel {
       else if (t.mode) {
         const mode = t.mode;
         this.toolButtons.set(mode, b);
-        b.onclick = () => this.setMode(this.mode === mode ? null : mode);
+        b.onclick = () => {
+          this.repairMode = 1;
+          this.setMode(this.mode === mode ? null : mode);
+        };
       } else b.disabled = true;
       bar.appendChild(b);
     }
@@ -182,26 +227,8 @@ export class BagPanel {
     this.grid?.classList.toggle('drop-mode', mode === 'drop');
   }
 
-  private walletBox(): HTMLElement {
-    const box = el('div', 'bag-wallet');
-    this.wallet.clear();
-    for (const w of WALLET) {
-      const field = el('div', 'bag-money');
-      field.title = w.tip;
-      const icon = el('span', 'bag-money-icon');
-      icon.style.backgroundImage = `url(${SKIN}/${w.icon}.png)`;
-      const value = el('span', 'bag-money-val');
-      const check = el('span', w.checked ? 'bag-check checked' : 'bag-check');
-      field.append(icon, value, check);
-      this.wallet.set(w.key, value);
-      box.appendChild(field);
-    }
-    return box;
-  }
-
-  private cell(index: number, item: BagItem | undefined): HTMLElement {
+  private cell(sid: number, item: BagItem | undefined): HTMLElement {
     const c = el('div', 'bag-cell');
-    const sid = BAG_SID_BASE + index;
     c.ondragover = (e) => {
       if (dragging()) e.preventDefault();
     };
@@ -226,13 +253,13 @@ export class BagPanel {
     this.setMode(null);
     if (mode === 'use') this.host.actions.use(item);
     else if (mode === 'drop') this.host.actions.drop(item);
+    else if (mode === 'repair') this.host.actions.repair(item, this.repairMode);
     else if (item.stackNum < 2) toast('Vật phẩm này không thể tách rời');
     else {
-      const used = this.bagBySlot();
-      let free = -1;
-      for (let i = 0; i < BAG_PAGE_SLOTS && free < 0; i++) if (!used.has(i)) free = i;
-      if (free < 0) toast('Túi đồ đã đầy!');
-      else this.host.actions.split(item, BAG_SID_BASE + free);
+      const used = this.itemsBySid();
+      const free = this.pageSids().find((sid) => !used.has(sid));
+      if (free === undefined) toast('Trang đã đầy!');
+      else this.host.actions.split(item, free);
     }
   }
 

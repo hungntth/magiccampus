@@ -187,6 +187,11 @@ export class PartyService implements OnModuleInit {
     return this.parties.canWalk(session.characterId!);
   }
 
+  /** True when the session leads a party (a personal-only member or no party: false). */
+  isLeader(session: Session): boolean {
+    return this.parties.partyOf(session.characterId!)?.leaderId === session.characterId;
+  }
+
   denyMove(session: Session): void {
     this.note(session, NOTE.FOLLOW);
   }

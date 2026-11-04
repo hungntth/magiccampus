@@ -303,6 +303,8 @@
 }
 
 .bag-check.checked::before { content: '✓'; }
+.bag-check.pickable { cursor: pointer; }
+.bag-check.pickable:hover { border-color: #fff; }
 
 /* Amount dialog (legacy NumPanel), centred above the shop / bag windows. */
 .amount-dialog {
@@ -374,4 +376,17 @@
 .confirm-text {
   min-height: 28px;
   color: #fff;
+}
+
+/* Bank window (bankPanel.ts): same skin as the bag, placed to its left (the bag moves beside it, .bag-panel.beside-shop). */
+.bank-panel {
+  left: calc(50% - 182px);
+  padding-bottom: 8px;
+}
+
+.bank-hint {
+  margin: 6px 4px 0;
+  font-size: 11px;
+  line-height: 14px;
+  color: #cfeaf0;
 }

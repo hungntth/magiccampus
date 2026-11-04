@@ -4,7 +4,7 @@
 // World and DOM HUD share the virtual Flash stage scale (ui/stage.ts).
 
 import { Application, Container, FederatedPointerEvent, Ticker } from 'pixi.js';
-import { NpcType } from '@mc/shared';
+import { NpcType, type PlayerUpdate } from '@mc/shared';
 import type {
   MoveUpdate, NpcFuncInit, OpenShop, PlayerData, SceneCharacter, SceneEnterPush, SceneItem, SceneLoginResponse, SceneNpc,
 } from '@mc/shared';
@@ -17,6 +17,8 @@ import { dirFromDelta } from './SheetAnim';
 import { findRoute, type RoutePoint } from './route';
 import { QuestController } from './QuestController';
 import { BagController } from './BagController';
+import { ForgeController } from './ForgeController';
+import { MallController } from './MallController';
 import { CharacterController } from './CharacterController';
 import { PetController } from './PetController';
 import { PetLayer } from './PetLayer';
@@ -69,6 +71,8 @@ export class GameScene {
   private readonly hud: MainHud;
   private readonly quest: QuestController;
   private readonly bag: BagController;
+  private readonly mall: MallController;
+  private readonly forge: ForgeController;
   private readonly trade: TradeController;
   private readonly character: CharacterController;
   private readonly pet: PetController;
@@ -91,7 +95,7 @@ export class GameScene {
       party: () => this.party,
       trade: () => this.trade,
       friends: () => ({ isBlack: (id) => this.friends.isBlack(id), add: (name) => this.friends.addByName(name) }),
-      onCommand: (cmd, args) => void runSceneCommand(cmd, args, client, this.chat, (res) => this.applyScene(res)),
+      onCommand: (cmd, args) => void runSceneCommand(cmd, args, client, this.chat, (res) => this.applyScene(res), () => void this.bag.funcs.openTransport()),
     });
     this.chat = this.social.chat;
     this.friends = new FriendController({
@@ -109,6 +113,8 @@ export class GameScene {
       onBag: () => this.bag.toggle(),
       onCharacter: () => this.character.toggle(),
       onFriend: () => this.friends.toggle(),
+      onShop: () => void this.mall.toggle(),
+      onForge: (tab) => this.forge.open(tab),
       onPet: () => this.pet.toggle(),
       onLevelUp: () => this.character.levelUp(),
       onRecover: (kind) => this.bag.actions.recover(kind),
@@ -123,6 +129,8 @@ export class GameScene {
       bagCount: (id) => this.bag.countOf(id),
     }, ui);
     this.bag = new BagController({ client, chat: this.chat, player, shop: this.panels.shop });
+    this.mall = new MallController(client, this.bag);
+    this.forge = new ForgeController(client, this.bag, () => player);
     this.trade = new TradeController({ client, player, bag: this.bag });
     this.character = new CharacterController({ client, player, bag: this.bag });
     this.pet = new PetController({ client, player, chat: this.chat, bag: this.bag, setBattlePet: (p) => this.hud.setBattlePet(p) });
@@ -160,6 +168,8 @@ export class GameScene {
     for (const off of this.offs) off();
     const { social, party, friends, trade, quest, bag, character, pet, petLayer, battle, hud } = this;
     for (const c of [social, party, friends, trade, quest, bag, character, pet, petLayer, battle, hud]) c.destroy();
+    this.mall.destroy();
+    this.forge.destroy();
     this.panels.closeAll();
     this.pendingNpc = null;
     this.app.ticker.stop();
@@ -172,6 +182,8 @@ export class GameScene {
       this.client.on('onSceneEnter', (data) => void this.applyScene(data as SceneEnterPush).catch((e) => toast((e as Error).message, true))),
       this.client.on('onScenePlayerEntered', (data) => this.addPlayer(data as SceneCharacter)),
       this.client.on('onScenePlayerLeft', (id) => this.removePlayer(Number(id))),
+      this.client.on('onScenePlayerRenamed', (id, name) => this.players.get(Number(id))?.setName(String(name))),
+      this.client.on('onUPP', (d) => typeof (d as PlayerUpdate).name === 'string' && this.self?.setName((d as PlayerUpdate).name!)),
       this.client.on('onCR', (data) => this.onRemoteMove(data as MoveUpdate)),
       this.client.on('npcFuncInit', (data) => this.panels.onNpcFuncInit(data as NpcFuncInit)),
       this.client.on('onOpenShop', (data) => this.panels.onOpenShop(data as OpenShop)),

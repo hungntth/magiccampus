@@ -1,7 +1,8 @@
-// NPC RPCs: clickNpc, npcFuncClick. Pushes (to the caller only; both RPCs return null): npcFuncInit, onOpenShop,
-// onSceneEnter (transport NPCs that teleport on click); quest-battle NPCs (type 10/19/20) start a battle instead.
+// NPC RPCs: clickNpc, npcFuncClick(npcId[, md5]). Pushes (to the caller only; both RPCs return null): npcFuncInit, onOpenShop,
+// initViewBankPanel (bank NPC, type 7), onSceneEnter (transport NPCs that teleport on click); quest-battle NPCs (type 10/19/20) start a battle instead.
 
 import { Injectable } from '@nestjs/common';
+import { NpcType } from '@mc/shared';
 import { Rpc } from '../../gateway/rpc.decorator';
 import { RpcException } from '../../gateway/errors';
 import type { Session } from '../../gateway/session';
@@ -50,8 +51,16 @@ export class NpcRpc {
   @Rpc('npcFuncClick', { requireCharacter: true, forbidInBattle: true })
   async npcFuncClick(session: Session, args: unknown[]): Promise<null> {
     const npc = this.npcOnMap(session, args);
-    if (this.shopIdOf(npc) <= 0) throw RpcException.notFound('shop');
-    await this.openShop(session, npc);
+    if (this.shopIdOf(npc) > 0) {
+      await this.openShop(session, npc);
+    } else if (Number(npc.type) === NpcType.BANK) {
+      // Legacy npc_click.go:65-86: the password argument is ignored (H5 has no secondary password); the bank-open flag
+      // gates moves to and from bank sids until closeBank, a map change or a disconnect.
+      session.bankOpen = true;
+      session.callback('initViewBankPanel');
+    } else {
+      throw RpcException.notFound('shop');
+    }
     return null;
   }
 

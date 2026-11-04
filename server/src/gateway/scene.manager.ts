@@ -19,6 +19,7 @@ export class SceneManager {
     }
     room.add(session);
     session.mapId = mapId;
+    session.bankOpen = false;
   }
 
   leave(session: Session): void {
@@ -27,6 +28,7 @@ export class SceneManager {
     room?.delete(session);
     if (room && room.size === 0) this.rooms.delete(session.mapId);
     session.mapId = 0;
+    session.bankOpen = false;
   }
 
   members(mapId: number): Session[] {

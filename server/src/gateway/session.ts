@@ -15,6 +15,8 @@ export class Session {
   lastMoveAt = 0;
   /** Active battle (combat module); set from battle start until battlePlayEnd. */
   battleId: string | null = null;
+  /** Bank panel is open (set by npcFuncClick on a type-7 NPC, cleared by closeBank and on map change). */
+  bankOpen = false;
   /** Epoch ms before which cbom cannot start a random encounter. */
   encounterUntil = 0;
 

@@ -1,8 +1,11 @@
 // Bag (inventory) wire types: getInitSlot reply, onAddCharactorSlot / onDelCharactorSlot / onAddItem payloads.
+import type { EquipInstanceView } from './forge.js';
+
 // Legacy item DTO subset (item.go:183-260) plus H5 extensions (name, iconCode, info, sellPrice).
 
 export const ItemKind = { ITEM: 1, EQUIP: 2 } as const; // legacy item_type
-export const SlotType = { BAG: 0, EQUIP: 1, PET_EQUIP: 6 } as const; // PET_EQUIP: slotIndex = petId * 8 + (pos - 50); bank etc. not ported
+// BANK / QUEST_BAG / PET_BAG: sid map in economy.ts. PET_EQUIP: slotIndex = petId * 8 + (pos - 50). Slot type 3 (temp bag) is not ported.
+export const SlotType = { BAG: 0, EQUIP: 1, BANK: 2, QUEST_BAG: 4, PET_BAG: 5, PET_EQUIP: 6 } as const;
 export const EQUIP_SLOT_COUNT = 22; // equipped sid = template position (1..22), slotIndex = position - 1
 export const BAG_SID_BASE = 2101;
 export const BAG_PAGE_SLOTS = 30;
@@ -11,7 +14,7 @@ export const ITEM_INSTANCE_TYPE = 28;
 export const EQUIP_INSTANCE_TYPE = 18;
 
 /** Bag slot as sent by getInitSlot / onAddCharactorSlot. */
-export interface BagItem {
+export interface BagItem extends EquipInstanceView {
   id: number; // instance id (counters 'items')
   sid: number; // BAG_SID_BASE + slotIndex
   slotType: number;
@@ -25,6 +28,7 @@ export interface BagItem {
   durability: number; // 0 for items
   maxDurability: number;
   position: number; // equipment template position (equip sid 1..22), 0 for items
+  tplKind?: number; // H5 extension: item template `kind` (5 gem, 6 material), absent for equipment
   tplType?: number; // H5 extension: item template `type` (507 = pet life item), 0 for equipment
   reqLevel: number; // template req_level (tooltip colouring)
   name: string; // H5 extension: resolved template name

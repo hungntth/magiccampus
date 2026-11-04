@@ -47,10 +47,11 @@ export class TradeSwapService {
         if (!r || r.characterId !== p.cid || r.isBound) return { ok: false, info: TRADE_NOTE.CHANGED };
       }
     }
+    const [capA, capB] = [await this.inventory.capacity(a.cid), await this.inventory.capacity(b.cid)];
     const plan = planSwap(
-      { cid: a.cid, bag: bagOf(a.cid), out: a.offer.items },
-      { cid: b.cid, bag: bagOf(b.cid), out: b.offer.items },
-      this.inventory.capacity(),
+      { cid: a.cid, bag: bagOf(a.cid), out: a.offer.items, capacity: capA },
+      { cid: b.cid, bag: bagOf(b.cid), out: b.offer.items, capacity: capB },
+      Math.min(capA, capB),
     );
     if (!plan.ok) return { ok: false, info: plan.reason === 'full' ? TRADE_NOTE.BAG_FULL : TRADE_NOTE.CHANGED };
 

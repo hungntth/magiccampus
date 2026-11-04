@@ -1,0 +1,42 @@
+/* Mall window tabs and the "Trả bằng" payment radios shared with the NPC shop. */
+.mall-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-bottom: 5px;
+}
+
+.mall-tab {
+  padding: 2px 8px;
+  background: #14385a;
+  border: 1px solid #4f86b3;
+  border-radius: 4px;
+  color: #cfe6ff;
+  font-size: 12px;
+}
+
+.mall-tab:hover { border-color: #7fb4dd; }
+.mall-tab.selected { background: #d6892b; border-color: #e8c46a; color: #fff; font-weight: 700; }
+
+.pay-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  flex: 1 1 auto;
+  font-size: 12px;
+  color: #cfe6ff;
+}
+
+.pay-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pay-radio input { margin: 0; cursor: pointer; }
+.pay-radio input:disabled { cursor: wait; }
+
+.shop-panel > .pay-row { margin: 4px 0 6px; }

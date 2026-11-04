@@ -10,6 +10,7 @@ export interface SwapSideInput {
   cid: number;
   bag: readonly SwapRow[]; // every row currently in the side's bag (slotType 0)
   out: readonly number[]; // item ids this side gives
+  capacity?: number; // bag slots this side can receive into (opened pages); defaults to the planSwap argument
 }
 
 export interface SwapMove {
@@ -34,7 +35,8 @@ export function planSwap(a: SwapSideInput, b: SwapSideInput, capacity: number): 
     if (giver.out.some((id) => !rows.has(id))) return { ok: false, reason: 'missing', cid: giver.cid };
     const taken = new Set(taker.bag.map((r) => r.slotIndex));
     const free: number[] = [];
-    for (let i = 0; i < capacity && free.length < giver.out.length; i++) if (!taken.has(i)) free.push(i);
+    const cap = taker.capacity ?? capacity;
+    for (let i = 0; i < cap && free.length < giver.out.length; i++) if (!taken.has(i)) free.push(i);
     if (free.length < giver.out.length) return { ok: false, reason: 'full', cid: taker.cid };
     giver.out.forEach((id, i) => {
       moves.push({ id, from: giver.cid, to: taker.cid, fromSlot: rows.get(id)!.slotIndex, toSlot: free[i] });

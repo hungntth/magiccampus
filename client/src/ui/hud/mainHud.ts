@@ -15,6 +15,10 @@ export interface HudActions {
   onBag(): void;
   onCharacter(): void;
   onFriend(): void;
+  /** HUD "Shop" button (mall). */
+  onShop(): void;
+  /** HUD red function column "Chế tạo" (forge window). */
+  onForge(tab?: string): void;
   /** W key / HUD pet button / pet icon. */
   onPet(): void;
   onLevelUp(): void;
@@ -33,7 +37,7 @@ export class MainHud {
     this.portrait = new PortraitCanvas(parent, actions);
     this.petCanvas = new PetCanvas(parent, actions.onPet);
     this.buffBar = new BuffBar(parent, client);
-    this.miniMap = new MiniMapCanvas(parent, client);
+    this.miniMap = new MiniMapCanvas(parent, client, actions.onShop, actions.onForge);
     new UserBar(parent);
     this.systemBar = new SystemBar(parent, typing, actions.onBag, actions.onCharacter, actions.onFriend, actions.onPet);
   }

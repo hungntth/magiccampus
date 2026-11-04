@@ -1,5 +1,5 @@
 // Wiring for the bag: CharacterItem schema, InventoryService (exported for shop buy/sell), getInitSlot, equipment,
-// item use and bag-operation RPCs.
+// item use, bag / page operation RPCs and repair.
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Character, CharacterSchema } from '../character/character.schema';
@@ -13,6 +13,10 @@ import { EquipmentRpc } from './equipment.rpc';
 import { EquipmentService } from './equipment.service';
 import { InventoryRpc } from './inventory.rpc';
 import { InventoryService } from './inventory.service';
+import { PageGate } from './page-gate.service';
+import { PageOpsService } from './page-ops.service';
+import { RepairRpc } from './repair.rpc';
+import { RepairService } from './repair.service';
 import { UseItemRpc } from './use-item.rpc';
 import { UseItemService } from './use-item.service';
 
@@ -28,6 +32,7 @@ import { UseItemService } from './use-item.service';
   ],
   providers: [
     InventoryService, InventoryRpc, EquipmentService, EquipmentRpc, UseItemService, UseItemRpc, BagOpsService, BagOpsRpc,
+    PageGate, PageOpsService, RepairService, RepairRpc,
   ],
   exports: [InventoryService, UseItemService],
 })

@@ -2,13 +2,13 @@
 // Buy order: validate -> capacity check -> charge (conditional $inc) -> add to bag (refund on failure).
 
 import { Injectable } from '@nestjs/common';
-import { ItemKind, type AddItemNotice, type BagItem, type MoneyKey, type OpenShop } from '@mc/shared';
+import { ItemKind, type AddItemNotice, type BagItem, type MoneyKey, type OpenShop, type ShopSlotView } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
 import { CharacterService } from '../character/character.service';
 import { GameDataService, type Row } from '../gamedata/gamedata.service';
 import { maxStack } from '../inventory/bag-rules';
 import { InventoryService } from '../inventory/inventory.service';
-import { boughtColor, resolvePrice } from './shop-buy';
+import { boughtColor, resolvePrice, type Price } from './shop-buy';
 import { SLOT_TYPE_EQUIP, isVisibleSlot, toShopSlotView } from './shop-mapping';
 
 const MAX_AMOUNT = 99999;
@@ -45,6 +45,11 @@ export class ShopService {
     if (!shop) return null;
     const shopType = Number(shop.type ?? 0);
     const slots = this.gameData.shopSlots(shopId).filter((s) => isVisibleSlot(Number(s.st ?? 0)));
+    return { shopId, npcId, shopType, slots: await this.viewSlots(slots, shopType) };
+  }
+
+  /** Wire views of shop slots (template names, icons, price lines), in input order. */
+  async viewSlots(slots: Row[], shopType: number): Promise<ShopSlotView[]> {
     const idsFor = (equip: boolean): number[] => [
       ...new Set(slots.filter((s) => (Number(s.type) === SLOT_TYPE_EQUIP) === equip).map((s) => Number(s.item_id))),
     ];
@@ -53,7 +58,7 @@ export class ShopService {
       this.gameData.templatesByIds(29, idsFor(false)),
     ]);
     const tplOf = (s: Row): Row | undefined => (Number(s.type) === SLOT_TYPE_EQUIP ? equips : items).get(Number(s.item_id));
-    return { shopId, npcId, shopType, slots: slots.map((s) => toShopSlotView(s, tplOf(s), shopType)) };
+    return slots.map((s) => toShopSlotView(s, tplOf(s), shopType));
   }
 
   /** Buys `amount` of a shop slot for the character standing on `mapId`; throws RpcException with the reason. */
@@ -72,6 +77,11 @@ export class ShopService {
     const prefs = await this.characters.paymentPrefs(characterId);
     const price = resolvePrice(slot, tpl, prefs.money, prefs.gold);
     if ('error' in price) throw RpcException.invalidArgs(price.error);
+    return this.settle(characterId, slot, tpl, equip, price, amount);
+  }
+
+  /** Shared buy pipeline of NPC and mall shops: capacity check -> conditional charge -> add to the bag (refund on failure). */
+  async settle(characterId: number, slot: Row, tpl: Row, equip: boolean, price: Price, amount: number): Promise<BuyResult> {
     const cost = price.unit * amount;
     const spec = {
       templateId: Number(slot.item_id),

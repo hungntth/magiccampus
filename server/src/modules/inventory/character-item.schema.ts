@@ -3,6 +3,7 @@
 
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
+import type { EquipProperties } from '@mc/shared';
 
 @Schema({ collection: 'character_items', timestamps: true })
 export class CharacterItem {
@@ -38,6 +39,13 @@ export class CharacterItem {
 
   @Prop({ default: 0 })
   maxDurability: number;
+
+  /** Equipment instance rolls (quality, prefix, element, maker, lines, holes, gems); empty = template values. */
+  @Prop({ type: Object, default: {} })
+  properties: EquipProperties;
+
+  @Prop({ default: 0 })
+  star: number;
 }
 
 export type CharacterItemDocument = HydratedDocument<CharacterItem>;

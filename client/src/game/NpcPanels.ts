@@ -47,7 +47,8 @@ export class NpcPanels {
       this.dialog.close();
       this.host.quest().openFromNpc(view, data.npcId, data.npcName);
     }, (npcType) => {
-      if (npcType !== NpcType.SHOP) return toast('Tính năng đang phát triển');
+      // Shop and bank NPCs answer npcFuncClick (the bank's password argument is ignored by the server).
+      if (npcType !== NpcType.SHOP && npcType !== NpcType.BANK) return toast('Tính năng đang phát triển');
       void this.host.client.call('npcFuncClick', data.npcId).catch((e) => toast((e as Error).message, true));
     });
   }

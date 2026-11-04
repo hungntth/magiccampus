@@ -1,19 +1,50 @@
 // Maps a CharacterItem document + its template row to the BagItem wire shape.
 
-import { EQUIP_INSTANCE_TYPE, ITEM_INSTANCE_TYPE, ItemKind, PET_EQUIP_SID_BASE, SlotType, type BagItem } from '@mc/shared';
+import {
+  EQUIP_INSTANCE_TYPE, ITEM_INSTANCE_TYPE, ItemKind, MAX_HOLES, sidOf, type BagItem, type EquipInstanceView, type EquipLines,
+} from '@mc/shared';
 import type { Row } from '../gamedata/gamedata.service';
-import { sellUnit, sidOf } from './bag-rules';
+import { sellUnit } from './bag-rules';
 import type { CharacterItem } from './character-item.schema';
 
 /** Template table type: 19 equipment, 29 item. */
 export const templateTable = (itemType: number): number => (itemType === ItemKind.EQUIP ? 19 : 29);
 
+const LINE_KEYS = [
+  'mainProp1', 'mainPropNum1', 'mainProp2', 'mainPropNum2', 'prop1', 'propNum1', 'prop2', 'propNum2',
+  'bindMainPropNum1', 'bindMainPropNum2',
+] as const;
+
+/** Wire view of an equipment instance's rolls (crafted quality, maker, holes, gems, star); empty for plain pieces. */
+export function instanceView(doc: Pick<CharacterItem, 'itemType' | 'properties' | 'star'>): EquipInstanceView {
+  if (doc.itemType !== ItemKind.EQUIP) return {};
+  const p = doc.properties ?? {};
+  const out: EquipInstanceView = {};
+  if (doc.star > 0) out.star = doc.star;
+  if (p.quality !== undefined) out.quality = p.quality;
+  if (p.prefix !== undefined) out.prefix = p.prefix;
+  if (p.element) out.element = p.element;
+  if (p.makerName) out.makerName = p.makerName;
+  if (p.activeProp) {
+    out.activeProp = p.activeProp;
+    out.activePropNum = p.activePropNum ?? 0;
+  }
+  const holes = Math.min(MAX_HOLES, Math.max(0, p.holeNum ?? 0));
+  if (holes > 0) {
+    out.holeNum = holes;
+    out.gems = Array.from({ length: holes }, (_, i) => Number(p[`t${i + 1}`] ?? 0));
+  }
+  const lines: EquipLines = {};
+  for (const k of LINE_KEYS) if (p[k] !== undefined) lines[k] = p[k];
+  if (Object.keys(lines).length > 0) out.lines = lines;
+  return out;
+}
+
 export function toBagItem(doc: CharacterItem, tpl: Row | undefined): BagItem {
   return {
     id: doc._id,
-    // equipped items: sid = template position = slotIndex + 1 (1..22)
-    sid: doc.slotType === SlotType.EQUIP ? doc.slotIndex + 1
-      : doc.slotType === SlotType.PET_EQUIP ? PET_EQUIP_SID_BASE + doc.slotIndex : sidOf(doc.slotIndex),
+    // equipped items: sid = template position = slotIndex + 1 (1..22); bank / pages per the shared sid map
+    sid: sidOf(doc.slotType, doc.slotIndex),
     slotType: doc.slotType,
     slotIndex: doc.slotIndex,
     tid: doc.templateId,
@@ -31,5 +62,7 @@ export function toBagItem(doc: CharacterItem, tpl: Row | undefined): BagItem {
     iconCode: tpl?.icon_code ? String(tpl.icon_code) : '0',
     info: String(tpl?.info || tpl?.description || ''),
     sellPrice: sellUnit(tpl),
+    ...(doc.itemType === ItemKind.EQUIP ? {} : { tplKind: Number(tpl?.kind ?? 0) || 0 }),
+    ...instanceView(doc),
   };
 }

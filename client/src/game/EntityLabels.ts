@@ -28,6 +28,10 @@ export class EntityLabels extends Container {
     this.layout();
   }
 
+  setName(text: string): void {
+    this.nameLine.text = text;
+  }
+
   /** Permanent title above the name and active/temporary title below it; null hides a line. */
   setTitles(title: TitleLabel | null, actTitle: TitleLabel | null): void {
     this.title?.destroy();

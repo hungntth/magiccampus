@@ -18,6 +18,7 @@ import {
   HP_POTION, healAmount, ITEM_TYPE_POTION, MP_POTION, planRecover, type HealAmount, type RecoverCandidate,
 } from './potion';
 import { push, type Push } from './pushes';
+import { planPageBook, type PageBookPlan } from './bag-pages';
 import { sidOf } from './bag-rules';
 
 export type RecoverKind = 'hp' | 'mp';
@@ -115,8 +116,10 @@ export class UseItemService {
     if (!item || item.itemType !== ItemKind.ITEM) throw RpcException.notFound('Không tìm thấy vật phẩm');
     const tpl = await this.gameData.template(29, item.templateId);
     if (!tpl) throw RpcException.notFound('Không tìm thấy vật phẩm');
-    const level = (await this.chars.findById(characterId, { level: 1 }).lean())?.level ?? 1;
-    if (level < Number(tpl.req_level ?? 0)) return [note('Cấp độ bạn chưa đủ!')];
+    const char = await this.chars.findById(characterId, { level: 1, bagSlotNum: 1, bankSlotNum: 1 }).lean();
+    if ((char?.level ?? 1) < Number(tpl.req_level ?? 0)) return [note('Cấp độ bạn chưa đủ!')];
+    const book = planPageBook(item.templateId, char?.bagSlotNum ?? 1, char?.bankSlotNum ?? 1);
+    if (book) return this.usePageBook(characterId, itemId, sidOf(item.slotIndex), book);
     const useType = Number(tpl.use_type ?? 0);
     if (useType === 4 || useType === 2) return [note('Vật phẩm này bạn không dùng được!')];
     const heal = healAmount(tpl);
@@ -131,6 +134,15 @@ export class UseItemService {
     if (left === null) throw RpcException.forbidden('Vật phẩm vừa thay đổi, hãy thử lại');
     const cur = await this.stats.healCapped(characterId, hp, mp, st.maxHp, st.maxMp);
     return [push('onUPP', cur), ...(await this.slotPushes(characterId, [{ id: itemId, sid: sidOf(item.slotIndex), left }]))];
+  }
+
+  /** Page books (324 bank / 325 bag): the book is consumed first, then the page count is raised ($max keeps it idempotent). */
+  private async usePageBook(characterId: number, itemId: number, sid: number, plan: PageBookPlan): Promise<Push[]> {
+    if (!plan.ok) return [note(plan.note)];
+    const left = await this.consume(characterId, itemId, 1);
+    if (left === null) throw RpcException.forbidden('Vật phẩm vừa thay đổi, hãy thử lại');
+    await this.chars.updateOne({ _id: characterId }, { $max: { [plan.field]: plan.next } });
+    return [push('onUPP', { [plan.field]: plan.next }), ...(await this.slotPushes(characterId, [{ id: itemId, sid, left }]))];
   }
 
   private async doRecover(

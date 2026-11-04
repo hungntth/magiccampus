@@ -5,7 +5,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
-  CharState, type CharListEntry, type MoneyKey, type PetLoginInfo, type PlayerData, type SceneCharacter,
+  CharState, DEFAULT_PAYMENT, applyMoneyType, openBagPages, openBankPages, paymentKeys, type CharListEntry, type MoneyKey, type PetLoginInfo, type PlayerData,
+  type SceneCharacter,
 } from '@mc/shared';
 import { Character, type CharacterDocument } from './character.schema';
 import { Counter } from './counter.schema';
@@ -95,6 +96,16 @@ export class CharacterService {
     await this.characters.updateOne({ _id: id }, { $set: { mapId, posX: x, posY: y, dir, lastActive: new Date() } });
   }
 
+  /** True when a character (deleted ones keep their names, as in create) already uses this exact name. */
+  async nameTaken(name: string): Promise<boolean> {
+    return (await this.characters.exists({ name })) !== null;
+  }
+
+  /** Rename card: sets the stored name (callers check uniqueness under their own lock). */
+  async rename(id: number, name: string): Promise<void> {
+    await this.characters.updateOne({ _id: id }, { $set: { name } });
+  }
+
   /** Same position for several characters (party members following their leader). */
   async updatePositions(ids: number[], mapId: number, x: number, y: number, dir: number): Promise<void> {
     if (ids.length === 0) return;
@@ -104,10 +115,19 @@ export class CharacterService {
   /** Payment preference of the character: selected money / gold currency keys (defaults moneyBind / goldBind). */
   async paymentPrefs(id: number): Promise<{ money: MoneyKey; gold: MoneyKey }> {
     const doc = await this.characters.findById(id, { selectedMoneyType: 1, selectedGoldType: 1 });
-    return {
-      money: doc?.selectedMoneyType === 2 ? 'money' : 'moneyBind',
-      gold: doc?.selectedGoldType === 4 ? 'gold' : 'goldBind',
-    };
+    return paymentKeys({
+      selectedMoneyType: doc?.selectedMoneyType ?? DEFAULT_PAYMENT.selectedMoneyType,
+      selectedGoldType: doc?.selectedGoldType ?? DEFAULT_PAYMENT.selectedGoldType,
+    });
+  }
+
+  /** changeMoneyType: persists the payment preference; false for an unknown type. */
+  async setPaymentType(id: number, type: number): Promise<boolean> {
+    const next = applyMoneyType(DEFAULT_PAYMENT, type);
+    if (!next) return false;
+    const field = type <= 2 ? 'selectedMoneyType' : 'selectedGoldType';
+    await this.characters.updateOne({ _id: id }, { $set: { [field]: type } });
+    return true;
   }
 
   /** Atomic conditional charge: returns the new total, or null when the balance is below `cost`. */
@@ -172,6 +192,10 @@ export class CharacterService {
       moneyBind: doc.moneyBind ?? 0,
       gold: doc.gold,
       goldBind: doc.goldBind ?? 0,
+      bagSlotNum: openBagPages(doc.bagSlotNum ?? 1),
+      bankSlotNum: openBankPages(doc.bankSlotNum ?? 1),
+      selectedMoneyType: doc.selectedMoneyType ?? DEFAULT_PAYMENT.selectedMoneyType,
+      selectedGoldType: doc.selectedGoldType ?? DEFAULT_PAYMENT.selectedGoldType,
       iconCode: this.iconCode(doc.classId, doc.gender),
       attrPoints: doc.attrPoints,
       questLog: quests.questLog,

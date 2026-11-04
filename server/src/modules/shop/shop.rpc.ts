@@ -7,6 +7,7 @@ import type { PlayerUpdate } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
 import { Rpc } from '../../gateway/rpc.decorator';
 import type { Session } from '../../gateway/session';
+import { pushBuy } from './buy-pushes';
 import { ShopService } from './shop.service';
 
 function intArg(v: unknown, field: string): number {
@@ -25,11 +26,7 @@ export class ShopRpc {
       const slotId = intArg(args[0], 'shopSlotId');
       const amount = intArg(args[1], 'amount');
       const r = await this.shop.buy(session.characterId!, session.mapId, slotId, amount);
-      const update: PlayerUpdate = { [r.key]: r.total };
-      session.callback('onBlueMsg', `Mua thành công x${r.amount}! Mất ${r.cost} ${r.currencyName}.`);
-      session.callback('onUPP', update);
-      session.callback('onAddItem', r.notice);
-      for (const item of r.changed) session.callback('onAddCharactorSlot', item);
+      pushBuy(session, r);
       return -1; // remaining stock: every NPC shop row is unlimited
     } catch (e) {
       throw this.fail(session, 'Mua thất bại', e);

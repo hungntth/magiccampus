@@ -2,4 +2,5 @@
 - [Decompile gaps](decompile_gaps.md) — CallBack stub, missing AbstractGameRes/ResManager/BagPanel, verified sheet behavior ids
 - [Combat client map](combat_client_map.md) — battle file cluster and non-obvious facts (star report, cbom throttle)
 - [Pet client map](pet_client_map.md) — PetManagerPanel cluster; cumulative exp, 2-cmd batching, follow-pet quirks
+- [Economy client map](economy_client_map.md) — bank/temp bags/repair/shops/forge; EquipFunc.as aborted, two distinct temp bags
 - [Multiplayer client map](multiplayer_client_map.md) — party/chat/IM/trade cluster; push bodies live in Group/ChatCanvas/IMPanel/TradePanel

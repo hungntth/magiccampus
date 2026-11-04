@@ -94,8 +94,9 @@ export class SocialController {
     entity.on('pointertap', (ev: FederatedPointerEvent) => {
       ev.stopPropagation();
       if (this.host.locked() || this.chat.focused) return;
-      const target: MenuTarget = { id: entity.entityId, name };
-      if (ev.ctrlKey) this.chat.prefill(`/w ${name} `);
+      const shown = entity.displayName || name; // renamed players keep their entity
+      const target: MenuTarget = { id: entity.entityId, name: shown };
+      if (ev.ctrlKey) this.chat.prefill(`/w ${shown} `);
       else this.menu.show(target, ev.clientX, ev.clientY);
     });
   }
