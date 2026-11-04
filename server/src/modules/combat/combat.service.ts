@@ -20,13 +20,15 @@ import { PetBattleService, type BattlePet } from '../pet/pet-battle.service';
 import type { Party } from '../party/party-rules';
 import { CharacterStatsService, type CharStats } from '../stats/character-stats.service';
 import { TradeService } from '../trade/trade.service';
-import { BattleManager, BATTLE_DEADLINE_MS } from './battle.manager';
+import { BattleManager, roundMs } from './battle.manager';
 import { BattleCommandService, parseCommands } from './battle-command.service';
 import { BattleEndService, pushCharState } from './battle-end.service';
 import { BattleSettleService } from './battle-settle.service';
 import type { Battle, BattleMember, Fighter, Rng } from './battle.types';
 import { ENCOUNTER_COOLDOWN_MS, rollEncounter } from './encounter';
 import { petFighter, playerFighter, spawnFighter, toParticipant } from './fighters';
+import { endStepFor } from './pvp-rules';
+import { PvpService } from './pvp.service';
 import { missingCommands, playerSlot, selectRoster, type RosterCandidate } from './roster';
 import { resolveRound, type RoundOutcome } from './round';
 
@@ -48,6 +50,7 @@ export class CombatService implements OnModuleInit {
     private readonly parties: PartyManager,
     private readonly trades: TradeService,
     private readonly petBattle: PetBattleService,
+    private readonly pvp: PvpService,
   ) {}
 
   onModuleInit(): void {
@@ -138,7 +141,7 @@ export class CombatService implements OnModuleInit {
     const leaderId = picks[0].s.characterId!;
     const battle: Battle = {
       id: `${now}_${leaderId}`, characterId: leaderId, members, commands: new Map(), mapId: picks[0].s.mapId, nid, fighters,
-      round: 1, ended: false, result: BattleResult.LOSE, busy: false, deadline: now + BATTLE_DEADLINE_MS,
+      round: 1, ended: false, result: BattleResult.LOSE, busy: false, deadline: now + roundMs(),
     };
     this.manager.add(battle);
     const cList: BattleStart['cList'] = {};
@@ -185,7 +188,7 @@ export class CombatService implements OnModuleInit {
     if (pc) battle.commands.set(member.slot, pc);
     if (pet && petPc) battle.commands.set(pet.slot, petPc);
     const ready: BattleCmdReady = member.slot;
-    if (battle.members.size > 1) this.pushAll(battle, 'onCmdReady', ready);
+    if (battle.members.size > 1 && !battle.pvp) this.pushAll(battle, 'onCmdReady', ready);
     await this.runIfReady(battle);
   }
 
@@ -211,7 +214,7 @@ export class CombatService implements OnModuleInit {
       battle.commands.clear();
       const out = resolveRound(battle.fighters, cmds, battle.round, this.rng);
       battle.round++;
-      battle.deadline = Date.now() + BATTLE_DEADLINE_MS; // H5: re-armed after every round, timeout rounds included
+      battle.deadline = Date.now() + roundMs(battle); // H5: re-armed after every round, timeout rounds included
       if (out.ended) await this.settleService.settle(battle, out.result);
       this.sendPlaylist(battle, out);
     } finally {
@@ -229,7 +232,7 @@ export class CombatService implements OnModuleInit {
         const f = battle.fighters.get(m.slot)!;
         s.callback('onUPP', { currentHp: f.hp, currentMp: f.mp });
         const last = out.groups.length - 1;
-        groups = [...out.groups.slice(0, last), [{ ...out.groups[last][0], report: m.result.report }]];
+        groups = [...out.groups.slice(0, last), [endStepFor(battle.pvp, f.side, out.groups[last][0], m.result.report)]];
       }
       s.callback('onBattlePlayList', groups);
     }
@@ -255,6 +258,7 @@ export class CombatService implements OnModuleInit {
     if (!battle || !member) return;
     session.battleId = null;
     if (battle.ended) return void this.manager.detach(battle, member.cid);
+    if (battle.pvp) return this.pvp.onLeave(battle, member); // the leaver loses
     const others = [...battle.members.values()].filter((m) => m.cid !== member.cid && !m.left);
     if (others.length === 0) {
       await this.settleService.settle(battle, BattleResult.FLED);

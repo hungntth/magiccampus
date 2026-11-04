@@ -32,6 +32,17 @@ export class CharacterService {
     private readonly skills: SkillService,
   ) {}
 
+  private readonly loginExtras: ((characterId: number) => Promise<Partial<PlayerData>>)[] = [];
+
+  /** Lets a module that imports CharacterModule (guild) add keys to the chooseCharactor payload without a cycle. */
+  addLoginExtra(fn: (characterId: number) => Promise<Partial<PlayerData>>): void {
+    this.loginExtras.push(fn);
+  }
+
+  async loginExtrasOf(characterId: number): Promise<Partial<PlayerData>> {
+    return Object.assign({}, ...(await Promise.all(this.loginExtras.map((fn) => fn(characterId)))));
+  }
+
   async listByAccount(accountId: string): Promise<CharacterDocument[]> {
     return this.characters.find({ accountId, deleted: false }).sort({ createdAt: 1 });
   }

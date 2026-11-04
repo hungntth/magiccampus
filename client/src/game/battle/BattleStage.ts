@@ -37,7 +37,7 @@ export class BattleStage extends Container {
     this.addChild(catcher, this.arena, this.layer);
     void this.loadArena();
     for (const p of Object.values(start.cList)) {
-      const unit = new BattleUnit(p, selfId);
+      const unit = new BattleUnit(p, selfId, start.guest);
       this.units.set(p.battleId, unit);
       this.layer.addChild(unit);
       if (unit.enemy) this.makePickable(unit);

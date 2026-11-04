@@ -8,7 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "node --test --import tsx ./src/resurl.test.ts ./src/questProgress.test.ts ./src/skill.test.ts ./src/petCatch.test.ts ./src/petGear.test.ts ./src/economy.test.ts ./src/payment.test.ts ./src/forge.test.ts ./src/transport.test.ts"
+    "test": "node --test --import tsx ./src/resurl.test.ts ./src/questProgress.test.ts ./src/skill.test.ts ./src/petCatch.test.ts ./src/petGear.test.ts ./src/economy.test.ts ./src/payment.test.ts ./src/forge.test.ts ./src/transport.test.ts ./src/guild.test.ts ./src/guildEstate.test.ts ./src/pk.test.ts ./src/ranking.test.ts"
   },
   "devDependencies": {
     "tsx": "^4.19.2",

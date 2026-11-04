@@ -4,6 +4,8 @@
 import type { QuestKill } from './battle.js';
 import type { CharProperty } from './character.js';
 import type { PetLoginInfo, PetSceneView } from './pet.js';
+import type { GuildInfo, GuildMember } from './guild.js';
+import type { GuildSlot } from './guildBank.js';
 
 export type ClientMessage = { t: 'call'; id: number; m: string; a: unknown[] };
 
@@ -90,6 +92,12 @@ export interface PlayerData extends PetLoginInfo {
   attEnergy: number;
   property: CharProperty; // final stats (gear + buffs applied), see character.ts
   state: number; // CharState: 1 normal, 5 in battle (always 1 at login in M2: battles end on disconnect)
+  /** Guild login payload (M6): own guild object, own member row, guild bank map; absent when the server has no guild module. */
+  guild?: GuildInfo | null;
+  gData?: GuildMember | null;
+  gi?: Record<string, GuildSlot>;
+  /** PK opt-in (uif apvp); the minimap PK button shows selected = closed when false. */
+  apvp?: boolean;
 }
 
 export interface SceneCharacter {
@@ -135,6 +143,8 @@ export interface MapInfo {
   safeX: number;
   safeY: number;
   safeFlag: number; // > 0: no random encounters (the client never sends cbom there)
+  pk?: number; // > 0: forced PvP map (the entry notice); -1 / 0 none
+  sArea?: string; // PK safe rectangles "x1,y1-x2,y2|..." ("0" none), see pk.ts parseSafeAreas
   info: string;
 }
 

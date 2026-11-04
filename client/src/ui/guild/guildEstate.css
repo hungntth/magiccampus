@@ -1,0 +1,109 @@
+/* Guild window phase B: bank grid, skill list, building dialogs. Same navy / gold language as guild.css. */
+.guild-btn.active {
+  background: #2f6da3;
+  border-color: #e8c46a;
+  color: #fff;
+}
+
+.gbank-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 38px);
+  gap: 3px;
+}
+
+.gbank-cell {
+  position: relative;
+  box-sizing: border-box;
+  width: 38px;
+  height: 38px;
+  border: 1px solid #4f86b3;
+  border-radius: 3px;
+  background: #0b2238;
+}
+
+.gbank-cell.filled {
+  cursor: pointer;
+  background: #14395a;
+}
+
+.gbank-cell.selected {
+  border-color: #e8c46a;
+  box-shadow: 0 0 4px #e8c46a;
+}
+
+.gbank-cell img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.gbank-count {
+  position: absolute;
+  right: 1px;
+  bottom: 0;
+  font-size: 10px;
+  text-shadow: 0 0 2px #000, 0 0 2px #000;
+}
+
+.gbank-detail {
+  padding: 4px;
+  border: 1px solid #2f6da3;
+  border-radius: 4px;
+}
+
+.gbank-num {
+  width: 60px;
+}
+
+.gskill-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.gskill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px;
+}
+
+.gskill-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.gskill-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.guild-build {
+  left: 200px;
+  top: 90px;
+  z-index: 49;
+  width: 360px;
+}
+
+.gbuild-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 5px;
+  margin-bottom: 5px;
+  border: 1px solid #2f6da3;
+  border-radius: 4px;
+}
+
+.gbuild-line.short,
+.gbuild-bad {
+  color: #ff7d7d;
+}
+
+.gbuild-ok {
+  color: #9be28e;
+}
+
+.guild-extend {
+  margin-top: 4px;
+}

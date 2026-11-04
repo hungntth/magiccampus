@@ -76,6 +76,8 @@ export interface ChaInfo {
   equiptList: BagItem[];
   /** Final stats, as in the character panel. */
   property: CharProperty;
+  /** Guild name, "Không bang hội" when none (legacy showChaInfo.guild). */
+  guild?: string;
 }
 
 /** Relationship wire types (GamePredef.RELATIONSHIP_TYPE); enemy / couple / tutor / brother (3..6) are not ported. */

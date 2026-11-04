@@ -4,7 +4,7 @@
 // Kept out of GameScene, which only hands over entities and the stage UI parent.
 
 import type { FederatedPointerEvent } from 'pixi.js';
-import { ChatChannel, type ChaInfo, type PlayerData, type SayPush, type WisperPush } from '@mc/shared';
+import { ChatChannel, type ChaInfo, type MapInfo, type PlayerData, type SayPush, type WisperPush } from '@mc/shared';
 import type { GameClient } from '../net/client';
 import { ChaInfoPanel } from '../ui/chaInfoPanel';
 import { ChatBox } from '../ui/chat';
@@ -12,6 +12,7 @@ import { PlayerMenu, type MenuTarget } from '../ui/playerMenu';
 import { PrivateChat } from '../ui/privateChat';
 import { toast } from '../ui/screens';
 import type { Entity } from './Entity';
+import { PkController } from './PkController';
 
 /** What the player menu needs from the party controller (built after this controller, hence the lazy accessor). */
 export interface PartyActions {
@@ -40,6 +41,8 @@ export interface SocialHost {
   entityOf(id: number): Entity | undefined;
   /** True while map interaction is blocked (battle). */
   locked(): boolean;
+  /** The current map (PK safe areas). */
+  mapInfo(): MapInfo | null;
   party(): PartyActions;
   friends(): FriendActions;
   trade(): TradeActions;
@@ -49,6 +52,8 @@ export interface SocialHost {
 
 export class SocialController {
   readonly chat: ChatBox;
+  /** PK click mode (system-bar PK button): while armed a click on a player attacks instead of opening the menu. */
+  readonly pk: PkController;
   private readonly menu: PlayerMenu;
   private readonly info = new ChaInfoPanel();
   private readonly pchat: PrivateChat;
@@ -57,6 +62,7 @@ export class SocialController {
   constructor(private readonly host: SocialHost) {
     const { client } = host;
     const fail = (e: unknown): void => toast((e as Error).message, true);
+    this.pk = new PkController({ client, mapInfo: () => host.mapInfo(), locked: () => host.locked() });
     this.chat = new ChatBox(host.ui, {
       onSend: (channelId, msg) => void client.call('say', channelId, msg).catch(fail),
       onWhisper: (name, text) => void client.call('wisper', name, text).catch(fail),
@@ -94,6 +100,7 @@ export class SocialController {
     entity.on('pointertap', (ev: FederatedPointerEvent) => {
       ev.stopPropagation();
       if (this.host.locked() || this.chat.focused) return;
+      if (this.pk.active) return this.pk.click(entity);
       const shown = entity.displayName || name; // renamed players keep their entity
       const target: MenuTarget = { id: entity.entityId, name: shown };
       if (ev.ctrlKey) this.chat.prefill(`/w ${shown} `);
@@ -112,6 +119,7 @@ export class SocialController {
 
   destroy(): void {
     for (const off of this.offs) off();
+    this.pk.cancel();
     this.menu.close();
     this.info.close();
     this.pchat.closeAll();

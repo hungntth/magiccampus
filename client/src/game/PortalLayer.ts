@@ -1,6 +1,7 @@
 // Transport gates (cổng dịch chuyển) of the current map: createSceneItems type-3 items drawn with their looping
 // vector-anim sheet (tools/swf swfanim), alpha/mirror/depth as in the Flash SceneItemView, hover tooltip
 // "Chuyển đến: <name>". Taps are reported to GameScene (walk onto the gate, then sceneChange).
+// Also drives one optional companion layer with the same scene lifecycle (guild buildings), so GameScene needs no extra hooks.
 
 import { Container, FederatedPointerEvent, Rectangle, Text, TextStyle } from 'pixi.js';
 import { SceneItemType } from '@mc/shared';
@@ -20,6 +21,13 @@ const tipStyle = new TextStyle({
   stroke: { color: '#000000', width: 3 },
 });
 
+/** A scene-bound layer driven together with the portals: loaded after the scene items, cleared on scene change, ticked per frame. */
+export interface SceneCompanion {
+  load(): Promise<void>;
+  clear(): void;
+  tick(dt: number): void;
+}
+
 export interface Portal {
   item: SceneItem;
   view: Container;
@@ -38,6 +46,7 @@ export class PortalLayer {
     private readonly layer: Container,
     overlay: Container,
     private readonly onTap: (portal: Portal, e: FederatedPointerEvent) => void,
+    private readonly companion?: SceneCompanion,
   ) {
     this.tip.anchor.set(0.5, 1);
     this.tip.visible = false;
@@ -48,6 +57,7 @@ export class PortalLayer {
   /** Draws the transport gates among `items`; a stale load (scene changed meanwhile) is dropped. */
   async load(items: SceneItem[]): Promise<void> {
     const gen = ++this.generation;
+    void this.companion?.load();
     await Promise.all(
       items.filter((i) => i.type === SceneItemType.TRANSPORT).map(async (item) => {
         const name = sheetNameFromResCode(item.resCode);
@@ -79,12 +89,14 @@ export class PortalLayer {
 
   clear(): void {
     this.generation++;
+    this.companion?.clear();
     this.tip.visible = false;
     for (const p of this.portals.values()) p.view.destroy({ children: true });
     this.portals.clear();
   }
 
   tick(dt: number): void {
+    this.companion?.tick(dt);
     for (const p of this.portals.values()) p.anim.tick(dt);
   }
 

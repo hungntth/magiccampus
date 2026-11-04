@@ -2,4 +2,5 @@
 - [Go combat navigation](reference_go_combat_navigation.md) — where Go combat code lives, live vs dead handlers, stale legacy memory docs, data column semantics
 - [Go pet navigation](reference_go_pet_navigation.md) — pet/mount code map, stub growth RPCs, pet stat formula, catchable semantics, quirks
 - [Go economy navigation](reference_go_economy_navigation.md) — shop/bank/craft/upgrade/rune code map, mock & unregistered RPCs, collisions, sid map
+- [Go guild/PK/rank navigation](reference_go_guild_pk_navigation.md) — guild leader-only authority, free buildings/skills, PvP via PVPStartClient only, rank stubs
 - [Go multiplayer navigation](reference_go_multiplayer_navigation.md) — chat/group/social/trade/group-battle code map, in-memory vs DB, quirks, stale claims

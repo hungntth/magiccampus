@@ -180,8 +180,8 @@ function playerAct(ctx: Ctx, p: Fighter, cmd: PlayerCommand): boolean {
 const MISSING: PlayerCommand = { action: BattleAction.TIMEOUT, targetSlot: -1 };
 
 /** A pet without a command attacks a random living enemy (Go: front line); with no target left it just stands. */
-export function petFallbackCommand(fighters: Iterable<Fighter>, rng: Rng): PlayerCommand {
-  const enemies = alive(fighters, 'enemy');
+export function petFallbackCommand(fighters: Iterable<Fighter>, rng: Rng, side: Fighter['side'] = 'player'): PlayerCommand {
+  const enemies = alive(fighters, side === 'player' ? 'enemy' : 'player');
   if (enemies.length === 0) return MISSING;
   return { action: BattleAction.ATTACK, targetSlot: enemies[Math.min(enemies.length - 1, Math.floor(rng() * enemies.length))].slot };
 }
@@ -196,27 +196,31 @@ export function resolveRound(
   fighters: Map<number, Fighter>, cmds: PlayerCommand | ReadonlyMap<number, PlayerCommand>, round: number, rng: Rng,
 ): RoundOutcome {
   const players = alive(fighters.values(), 'player');
+  // Command-driven fighters: every character / pet (PvP: both sides); only creatures run on enemy AI.
+  const actors = [...fighters.values()].filter((f) => f.alive && f.kind !== 'creature');
+  const pvp = [...fighters.values()].some((f) => f.side === 'enemy' && f.kind !== 'creature');
   const auto = new Map<number, PlayerCommand>();
-  for (const p of players) {
-    if (p.kind === 'pet' && !(cmds instanceof Map && cmds.has(p.slot))) auto.set(p.slot, petFallbackCommand(fighters.values(), rng));
+  for (const p of actors) {
+    if (p.kind === 'pet' && !(cmds instanceof Map && cmds.has(p.slot))) auto.set(p.slot, petFallbackCommand(fighters.values(), rng, p.side));
   }
   const cmdOf = (slot: number): PlayerCommand => auto.get(slot) ?? (cmds instanceof Map ? cmds.get(slot) ?? MISSING : (cmds as PlayerCommand));
   const defending = new Set<number>();
-  for (const p of players) if (cmdOf(p.slot).action === BattleAction.DEFENCE) defending.add(p.slot);
+  for (const p of actors) if (cmdOf(p.slot).action === BattleAction.DEFENCE) defending.add(p.slot);
   const ctx: Ctx = { fighters, rng, defending, groups: [] };
 
   // Enemy targets are drawn up front like Go's GenerateNPCCommands; a target that died by its turn becomes a miss.
   const enemyTarget = new Map<number, Fighter>();
   for (const e of alive(fighters.values(), 'enemy')) {
-    if (players.length > 0) enemyTarget.set(e.slot, players[Math.min(players.length - 1, Math.floor(rng() * players.length))]);
+    if (e.kind === 'creature' && players.length > 0) enemyTarget.set(e.slot, players[Math.min(players.length - 1, Math.floor(rng() * players.length))]);
   }
 
   let result: number | null = null;
   for (const actor of actOrder([...fighters.values()], rng)) {
     if (!actor.alive) continue;
-    if (actor.side === 'player') {
+    if (actor.kind !== 'creature') {
       if (playerAct(ctx, actor, cmdOf(actor.slot))) {
-        result = BattleResult.FLED;
+        // PvE: the flee ends the battle for everyone. PvP: the side that flees loses (the result is from the attacker's view).
+        result = pvp ? (actor.side === 'player' ? BattleResult.LOSE : BattleResult.WIN) : BattleResult.FLED;
         break;
       }
     } else {
@@ -225,7 +229,7 @@ export function resolveRound(
     result = checkVictory(fighters.values());
     if (result !== null) break;
   }
-  if (result === null && round >= MAX_ROUNDS) result = BattleResult.LOSE; // round cap: the enemy wins
+  if (result === null && round >= MAX_ROUNDS) result = pvp ? BattleResult.FLED : BattleResult.LOSE; // round cap: the enemy wins (PvP: a draw)
   if (result === null) return { groups: ctx.groups, ended: false, result: BattleResult.LOSE };
   ctx.groups.push([{ sid: -1, tid: -1, bid: B.STAND, end: true, result }]);
   return { groups: ctx.groups, ended: true, result };

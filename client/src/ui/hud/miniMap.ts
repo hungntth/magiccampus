@@ -1,8 +1,9 @@
 // Top-right MiniMapCanvas (right0/top0, 220 wide): location strip "<line> - <map> x,y", net delay strip
 // (checkNetDelay ping every 10 s), icon tray, shop button and the red function column (funCanvas).
 
-import type { NetDelayReply } from '@mc/shared';
+import { PK_NOTES, type MapInfo, type NetDelayReply } from '@mc/shared';
 import type { GameClient } from '../../net/client';
+import { toast } from '../screens';
 import { div, notReady, place, setStates, skinButton, skinImage, std, type SkinStates } from './skin';
 
 const TRAY = 'MainStage_TopRightButtonTray';
@@ -21,9 +22,11 @@ export class MiniMapCanvas {
   private readonly timer: number;
   private mapName = '';
   private lastPos = '';
-  private pkClosed = false;
+  private pkClosed = true; // legacy: the button is selected (= PK closed) until the login payload says apvp
+  private pkBtn: HTMLElement | null = null;
 
-  constructor(parent: HTMLElement, private readonly client: GameClient, onShop: () => void, onForge: (tab?: string) => void) {
+  constructor(parent: HTMLElement, private readonly client: GameClient, onShop: () => void, onForge: (tab?: string) => void,
+    onRank: () => void = notReady) {
     const root = div('hud-minimap', parent);
 
     const titleStrip = skinImage('MainStage_LocationBar/LocationIndicator', root, 59, 0);
@@ -38,13 +41,16 @@ export class MiniMapCanvas {
 
     const tray = skinImage(`${TRAY}/Tray`, root, 36, 53);
     skinButton({ up: `${TRAY}/rankingup`, over: `${TRAY}/rankingover`, down: `${TRAY}/rankingDown` }, tray, 27, 2,
-      'Xếp hạng', notReady);
+      'Xếp hạng', onRank);
     skinButton({ up: `${TRAY}/SpeakerUp`, over: `${TRAY}/Speakerover`, down: `${TRAY}/SpeakerDown` }, tray, 3, 21,
       'Cách chơi', notReady);
     const pk = skinButton(std(`${TRAY}/AllowPK`), tray, 57.7, 10, '', () => {
       this.pkClosed = !this.pkClosed;
       this.setPk(pk);
+      // Core.updateSettingNow('apvp', !btnPK.selected): fire-and-forget uif(key, value, petFlag)
+      void this.client.call('uif', 'apvp', !this.pkClosed, false).catch((e) => toast((e as Error).message, true));
     });
+    this.pkBtn = pk;
     this.setPk(pk);
     skinButton({ up: `${TRAY}/MouseUp`, over: `${TRAY}/Mouseover`, down: `${TRAY}/MouseDown` }, tray, 89.4, 2,
       'Thiết lập', notReady);
@@ -83,9 +89,16 @@ export class MiniMapCanvas {
     window.clearInterval(this.timer);
   }
 
-  setMap(name: string): void {
+  setMap(name: string, info?: MapInfo): void {
     this.mapName = name;
     this.lastPos = '';
+    if ((info?.pk ?? 0) > 0) toast(PK_NOTES.FORCED_MAP, false, 6000); // GameScene.as: entering a forced-PvP map
+  }
+
+  /** Saved opt-in from the login payload: selected (NotAllowPK) = PK closed. */
+  initPk(apvp: boolean): void {
+    this.pkClosed = !apvp;
+    if (this.pkBtn) this.setPk(this.pkBtn);
   }
 
   /** Location text: legacy getLocationInfo, "<line+1> - <map> <posX/10>,<posY/10>" (H5 has one line). */

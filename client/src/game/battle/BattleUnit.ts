@@ -5,6 +5,7 @@ import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { BattleParticipantType, type BattleParticipant } from '@mc/shared';
 import { SheetAnim, loadSheet } from '../SheetAnim';
 import { sheetNameFromResCode } from '../Entity';
+import { viewSlot } from '@mc/shared';
 import { Action, CLOSE_TO, RUN_SPEED, SLOT_POS, defaultDir, isEnemySlot } from './slots';
 
 // Legacy PropBar: 50x4 bar, #333 back, 1 px black line around a #ddd frame at (-1, -2, w + 2, h + 3); each next bar sits at
@@ -27,6 +28,8 @@ const nameStyle = (fill: string): TextStyle =>
 
 export class BattleUnit extends Container {
   readonly slot: number;
+  /** Where the unit is drawn: the slot itself, or the mirrored one for a `guest` client (PvP target). */
+  readonly viewSlot: number;
   readonly enemy: boolean;
   readonly isPet: boolean;
   readonly level: number;
@@ -51,15 +54,16 @@ export class BattleUnit extends Container {
   private fade: { left: number; total: number } | null = null;
 
   /** `selfId`: the local character id; in a group battle only that unit shows the MP / SP bars (teammates show HP only). */
-  constructor(p: BattleParticipant, selfId?: number) {
+  constructor(p: BattleParticipant, selfId?: number, guest = false) {
     super();
     this.slot = p.battleId;
-    this.enemy = isEnemySlot(p.battleId);
+    this.viewSlot = viewSlot(p.battleId, guest);
+    this.enemy = isEnemySlot(this.viewSlot);
     this.isPet = p.type === BattleParticipantType.PET;
     this.level = p.level;
     // The local character shows HP/MP/SP, its pet HP/MP (teammates and their pets: HP only).
     this.isSelf = selfId === undefined || (this.isPet ? p.cid === selfId : p.type === BattleParticipantType.CHARACTER && p.id === selfId);
-    const home = SLOT_POS[p.battleId] ?? { x: 450, y: 285 };
+    const home = SLOT_POS[this.viewSlot] ?? { x: 450, y: 285 };
     this.homeX = home.x;
     this.homeY = home.y;
     this.position.set(home.x, home.y);
@@ -69,7 +73,7 @@ export class BattleUnit extends Container {
     this.mpMax = Math.max(1, p.mpMax);
     this.sp = p.sp;
     this.spMax = p.spMax;
-    this.dir = defaultDir(p.battleId);
+    this.dir = defaultDir(this.viewSlot);
 
     const shadow = new Graphics().ellipse(0, 0, 22, 9).fill({ color: 0x000000, alpha: 0.35 });
     // Placeholder until the sheet loads (or when there is none).
@@ -206,7 +210,7 @@ export class BattleUnit extends Container {
   reset(): void {
     this.goal = null;
     this.position.set(this.homeX, this.homeY);
-    this.dir = defaultDir(this.slot);
+    this.dir = defaultDir(this.viewSlot);
     if (this.hp > 0) this.stand();
   }
 

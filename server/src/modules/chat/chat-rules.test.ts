@@ -9,9 +9,10 @@ describe('routeChannel', () => {
     assert.equal(routeChannel(ChatChannel.LOCAL), 'local');
     assert.equal(routeChannel(ChatChannel.WORLD), 'world');
     assert.equal(routeChannel(ChatChannel.TEAM), 'team');
+    assert.equal(routeChannel(ChatChannel.GUILD), 'guild');
   });
-  it('refuses guild, area, headline, rumour, whisper and unknown ids', () => {
-    for (const id of [2, 4, 5, 6, 9, 99, -1, 7]) assert.equal(routeChannel(id), 'unsupported');
+  it('refuses area, headline, rumour, whisper and unknown ids', () => {
+    for (const id of [4, 5, 6, 9, 99, -1, 7]) assert.equal(routeChannel(id), 'unsupported');
   });
 });
 

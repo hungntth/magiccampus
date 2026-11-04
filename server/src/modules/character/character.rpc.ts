@@ -81,7 +81,8 @@ export class CharacterRpc {
     // Effective stats (gear + buffs); current HP/MP are clamped to the effective max before they are sent.
     const stats = await this.stats.syncOnLogin(doc._id);
     const pets = await this.pets.loginInfo(doc._id);
-    return this.characters.toPlayerData(doc, await this.quests.loginInfo(doc._id), stats, pets);
+    const player = this.characters.toPlayerData(doc, await this.quests.loginInfo(doc._id), stats, pets);
+    return { ...player, ...(await this.characters.loginExtrasOf(doc._id)) };
   }
 
   @Rpc('backToCharSelect', { requireCharacter: true })

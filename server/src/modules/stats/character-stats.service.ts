@@ -17,6 +17,7 @@ import { Character } from '../character/character.schema';
 import { GameDataService, type Row } from '../gamedata/gamedata.service';
 import { equipBonusesOf, gemLinesOf, gemTemplateIds } from '../inventory/equip-stats';
 import { CharacterItem } from '../inventory/character-item.schema';
+import { GuildSkillBonusService } from './guild-skill-bonus.service';
 
 export interface CharStats {
   property: CharProperty;
@@ -34,6 +35,7 @@ export class CharacterStatsService {
     @InjectModel(CharacterItem.name) private readonly items: Model<CharacterItem>,
     @InjectModel(CharacterBuff.name) private readonly buffs: Model<CharacterBuff>,
     private readonly gameData: GameDataService,
+    private readonly guildSkills: GuildSkillBonusService,
   ) {}
 
   /** Effective stats right now (base + equipped gear + active buffs). Nothing is cached or written. */
@@ -50,6 +52,7 @@ export class CharacterStatsService {
     const now = Date.now();
     const active = (await this.buffs.find({ characterId }).lean()).filter((b) => isActive(b, now));
     const buffTpls = active.map((b) => this.gameData.getBuff(b.buffId)).filter((t): t is Row => t !== undefined);
+    buffTpls.push(...(await this.guildSkills.buffTemplates(characterId))); // guild skill passives ride the buff pipeline
     const bonuses = mergeBonuses(gear, buffBonuses(buffTpls));
     const final = assembleStats(profileOf(doc, this.gameData.getClass(doc.classId)), bonuses);
     const dist = distributedOf(doc);

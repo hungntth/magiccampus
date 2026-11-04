@@ -21,6 +21,7 @@ import { BattleLootService } from './battle-loot.service';
 import { BattleSettleService } from './battle-settle.service';
 import { CombatRpc } from './combat.rpc';
 import { CombatService } from './combat.service';
+import { PvpService } from './pvp.service';
 import { QuestBattleService } from './quest-battle.service';
 import { ReviveRpc } from './revive.rpc';
 import { ReviveService } from './revive.service';
@@ -40,8 +41,8 @@ import { ReviveService } from './revive.service';
     TradeModule,
   ],
   providers: [
-    BattleManager, BattleCommandService, BattleEndService, BattleLootService, BattleSettleService, CombatService, CombatRpc, QuestBattleService, ReviveService, ReviveRpc,
+    BattleManager, BattleCommandService, BattleEndService, BattleLootService, BattleSettleService, CombatService, CombatRpc, PvpService, QuestBattleService, ReviveService, ReviveRpc,
   ],
-  exports: [CombatService, QuestBattleService],
+  exports: [CombatService, PvpService, QuestBattleService],
 })
 export class CombatModule {}

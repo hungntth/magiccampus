@@ -21,12 +21,14 @@ import { ForgeController } from './ForgeController';
 import { MallController } from './MallController';
 import { CharacterController } from './CharacterController';
 import { PetController } from './PetController';
+import { RankingPanel } from '../ui/rankingPanel';
 import { PetLayer } from './PetLayer';
 import { BattleController } from './BattleController';
 import { runSceneCommand } from './sceneCommands';
 import { SocialController } from './SocialController';
 import { PartyController } from './PartyController';
 import { FriendController } from './FriendController';
+import { GuildController } from './GuildController';
 import { TradeController } from './TradeController';
 import { NpcPanels } from './NpcPanels';
 import type { ChatBox } from '../ui/chat';
@@ -67,6 +69,7 @@ export class GameScene {
   private readonly social: SocialController;
   private readonly party: PartyController;
   private readonly friends: FriendController;
+  private readonly guild: GuildController;
   private readonly chat: ChatBox;
   private readonly hud: MainHud;
   private readonly quest: QuestController;
@@ -76,6 +79,7 @@ export class GameScene {
   private readonly trade: TradeController;
   private readonly character: CharacterController;
   private readonly pet: PetController;
+  private readonly ranking: RankingPanel;
   private readonly petLayer: PetLayer;
   private readonly battle: BattleController;
   private readonly offs: (() => void)[] = [];
@@ -91,7 +95,7 @@ export class GameScene {
     const entityOf = (id: number): Entity | undefined => (id === this.self?.entityId ? this.self : this.players.get(id));
     this.social = new SocialController({
       client, player, ui, entityOf,
-      locked: () => this.battle.locked,
+      locked: () => this.battle.locked, mapInfo: () => this.mapInfo,
       party: () => this.party,
       trade: () => this.trade,
       friends: () => ({ isBlack: (id) => this.friends.isBlack(id), add: (name) => this.friends.addByName(name) }),
@@ -113,8 +117,10 @@ export class GameScene {
       onBag: () => this.bag.toggle(),
       onCharacter: () => this.character.toggle(),
       onFriend: () => this.friends.toggle(),
+      onGuild: () => this.guild.toggle(), onPk: () => this.social.pk.begin(),
       onShop: () => void this.mall.toggle(),
       onForge: (tab) => this.forge.open(tab),
+      onRank: () => this.ranking.toggle(),
       onPet: () => this.pet.toggle(),
       onLevelUp: () => this.character.levelUp(),
       onRecover: (kind) => this.bag.actions.recover(kind),
@@ -131,8 +137,10 @@ export class GameScene {
     this.bag = new BagController({ client, chat: this.chat, player, shop: this.panels.shop });
     this.mall = new MallController(client, this.bag);
     this.forge = new ForgeController(client, this.bag, () => player);
+    this.ranking = new RankingPanel(client);
     this.trade = new TradeController({ client, player, bag: this.bag });
     this.character = new CharacterController({ client, player, bag: this.bag });
+    this.guild = new GuildController({ client, player, bagItems: () => this.bag.list(), entities: this.entityLayer });
     this.pet = new PetController({ client, player, chat: this.chat, bag: this.bag, setBattlePet: (p) => this.hud.setBattlePet(p) });
     this.battle = new BattleController({
       client, player, root: this.root, world: this.world, entities: this.entityLayer,
@@ -143,7 +151,7 @@ export class GameScene {
     this.entityLayer.sortableChildren = true;
     this.world.addChild(this.entityLayer);
     this.petLayer = new PetLayer(client, this.entityLayer, entityOf);
-    this.portals = new PortalLayer(this.entityLayer, this.world, (p, e) => this.onGateTap(p, e));
+    this.portals = new PortalLayer(this.entityLayer, this.world, (p, e) => this.onGateTap(p, e), this.guild.buildings);
     this.root.addChild(this.world);
     this.root.scale.set(stageScale());
     this.app.stage.addChild(this.root);
@@ -166,10 +174,11 @@ export class GameScene {
 
   destroy(): void {
     for (const off of this.offs) off();
-    const { social, party, friends, trade, quest, bag, character, pet, petLayer, battle, hud } = this;
-    for (const c of [social, party, friends, trade, quest, bag, character, pet, petLayer, battle, hud]) c.destroy();
+    const { social, party, friends, guild, trade, quest, bag, character, pet, petLayer, battle, hud } = this;
+    for (const c of [social, party, friends, guild, trade, quest, bag, character, pet, petLayer, battle, hud]) c.destroy();
     this.mall.destroy();
     this.forge.destroy();
+    this.ranking.destroy();
     this.panels.closeAll();
     this.pendingNpc = null;
     this.app.ticker.stop();
@@ -225,7 +234,7 @@ export class GameScene {
       this.entityLayer.addChild(e);
     }
     this.chat.system(`Đã vào ${res.map.name} (map ${res.map.id}, ${res.map.width}×${res.map.height}, ${npcs.length} NPC)`);
-    this.hud.setMap(res.map.name);
+    this.hud.setMap(res.map.name, res.map);
     this.updateHud();
     await this.bag.load().catch((e) => toast((e as Error).message, true)); // before the quests: collect progress counts the bag
     await this.quest.load().catch((e) => toast((e as Error).message, true));

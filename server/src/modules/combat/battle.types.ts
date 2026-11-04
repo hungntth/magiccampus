@@ -104,6 +104,7 @@ export interface Battle {
   result: number; // BattleResult, meaningful once ended
   busy: boolean; // a round is being resolved
   deadline: number; // epoch ms of the round timeout
+  pvp?: boolean; // M6 PvP: two player sides (attacker 'player' at slot 10, target 'enemy' at slot 0); no rewards
 }
 
 /** A validated skill cast (MP already checked; the round spends it before the hit). */

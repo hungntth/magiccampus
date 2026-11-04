@@ -23,6 +23,9 @@ import { TradeModule } from './modules/trade/trade.module';
 import { PetModule } from './modules/pet/pet.module';
 import { ForgeModule } from './modules/forge/forge.module';
 import { TransportModule } from './modules/transport/transport.module';
+import { GuildModule } from './modules/guild/guild.module';
+import { PkModule } from './modules/pk/pk.module';
+import { RankingModule } from './modules/ranking/ranking.module';
 
 @Module({
   imports: [
@@ -47,6 +50,9 @@ import { TransportModule } from './modules/transport/transport.module';
     PetModule,
     ForgeModule,
     TransportModule,
+    GuildModule,
+    PkModule,
+    RankingModule,
     SystemModule,
   ],
 })

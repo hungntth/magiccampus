@@ -11,12 +11,14 @@ import type { Session } from '../../gateway/session';
 import { CharacterService } from '../character/character.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { PartyManager } from '../party/party.manager';
+import { GuildViewService } from '../guild/guild-view.service';
 import { withCharLock } from '../inventory/char-lock';
 import { ChatRateLimiter, findOnlineByName, normalizeMessage, routeChannel, worldChatCost } from './chat-rules';
 
 const NEED_LOA =
   'Mỗi lần phát ngôn trên kênh thế giới sẽ cần 1 Loa. (Mỗi 5 phút có thể phát ngôn miễn phí 1 lần)';
 const NO_TEAM = 'Bạn chưa có nhóm';
+const NO_GUILD = 'Chưa có bang hội';
 const OFFLINE = 'Người chơi không trực tuyến';
 const TOO_FAST = 'Bạn chat quá nhanh';
 const UNSUPPORTED = 'Kênh chat này chưa được hỗ trợ';
@@ -32,6 +34,7 @@ export class ChatService implements OnModuleInit {
     private readonly characters: CharacterService,
     private readonly inventory: InventoryService,
     private readonly parties: PartyManager,
+    private readonly guilds: GuildViewService,
   ) {}
 
   onModuleInit(): void {
@@ -51,6 +54,7 @@ export class ChatService implements OnModuleInit {
     const payload = this.sayPayload(session, channelId, msg);
     if (route === 'local') this.scenes.broadcast(session.mapId, 'onSay', [payload]);
     else if (route === 'team') this.sayTeam(session, payload);
+    else if (route === 'guild') await this.sayGuild(session, payload);
     else await this.sayWorld(session, payload);
   }
 
@@ -100,6 +104,13 @@ export class ChatService implements OnModuleInit {
     const party = this.parties.partyOf(session.characterId!);
     if (!party) throw RpcException.forbidden(NO_TEAM);
     for (const cid of party.members) this.scenes.findByCharacter(cid)?.callback('onSay', payload);
+  }
+
+  /** Guild channel: every online guild member including the sender; no guild is refused (Go: onBlueMsg). */
+  private async sayGuild(session: Session, payload: SayPush): Promise<void> {
+    const row = await this.guilds.memberOf(session.characterId!);
+    if (!row) throw RpcException.forbidden(NO_GUILD);
+    await this.guilds.toMembers(row.guildId, 'onSay', payload);
   }
 
   /** Free (level >= 10, once per 5 min) or one Loa; the cost is persisted before anything is broadcast. */

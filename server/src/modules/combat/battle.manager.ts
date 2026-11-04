@@ -2,9 +2,13 @@
 // checker. The combat service registers the expiry handler (it owns round resolution), so this class stays dependency-free.
 
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { PK_ROUND_MS } from '@mc/shared';
 import type { Battle } from './battle.types';
 
 export const BATTLE_DEADLINE_MS = 30_000;
+
+/** Round timeout: 30 s for PvE, 25 s for PvP. */
+export const roundMs = (battle?: Pick<Battle, 'pvp'>): number => (battle?.pvp ? PK_ROUND_MS : BATTLE_DEADLINE_MS);
 const CHECK_INTERVAL_MS = 5_000;
 
 export type ExpiryHandler = (battle: Battle) => Promise<void> | void;

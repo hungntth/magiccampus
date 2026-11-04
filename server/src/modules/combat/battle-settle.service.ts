@@ -18,6 +18,7 @@ import { QuestService } from '../quest/quest.service';
 import { BattleLootService } from './battle-loot.service';
 import type { Battle, BattleMember, Fighter } from './battle.types';
 import { expReward, moneyReward } from './rewards';
+import { applyPvpVitals } from './pvp-rules';
 import { isSurvivor, petSettlements, splitReward } from './roster';
 
 @Injectable()
@@ -37,6 +38,7 @@ export class BattleSettleService {
     if (battle.ended) return;
     battle.ended = true;
     battle.result = result;
+    if (battle.pvp) return this.settlePvp(battle);
     const fighterOf = (m: BattleMember): Fighter | undefined => battle.fighters.get(m.slot);
     const present = [...battle.members.values()].filter((m) => !m.left && fighterOf(m));
     const win = result === BattleResult.WIN;
@@ -54,6 +56,19 @@ export class BattleSettleService {
     await this.contractCaught(battle);
     if (win) await this.creditQuestsAndLoot(survivors, dead);
     for (const m of present) await this.persist(m, fighterOf(m)!, survivors.includes(m));
+  }
+
+  /**
+   * PvP: no exp, money, loot, quests or pet life drain. HP/MP are persisted for every connected character; nobody is left dead
+   * (H5 has no death or revive for PK): the loser ends at 1 HP.
+   */
+  private async settlePvp(battle: Battle): Promise<void> {
+    applyPvpVitals(battle.fighters.values(), battle.result);
+    for (const m of battle.members.values()) {
+      const f = battle.fighters.get(m.slot);
+      if (m.left || !f) continue;
+      await this.chars.updateOne({ _id: m.cid }, { $set: { currentHp: f.hp, currentMp: Math.max(0, f.mp) } });
+    }
   }
 
   /** Pet exp (survivor owners of a win) and life drain (every pet participant). A failure is logged and never blocks the rest. */

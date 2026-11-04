@@ -52,11 +52,11 @@ export interface Combatant {
   alive: boolean;
 }
 
-/** Slots of the ALIVE player characters that still owe a command this round (members that left owe nothing). */
+/** Slots of the ALIVE player characters (either side: PvP has two) that still owe a command this round (members that left owe nothing). */
 export function missingCommands(fighters: Iterable<Combatant>, submitted: ReadonlySet<number>, left: ReadonlySet<number>): number[] {
   const out: number[] = [];
   for (const f of fighters) {
-    if (f.side === 'player' && f.kind === 'character' && f.alive && !left.has(f.slot) && !submitted.has(f.slot)) out.push(f.slot);
+    if (f.kind === 'character' && f.alive && !left.has(f.slot) && !submitted.has(f.slot)) out.push(f.slot);
   }
   return out;
 }

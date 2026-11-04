@@ -25,3 +25,6 @@ Updated 2026-11-04 (M3 phase A, plan `docs/plans/2026-11-04_04_MULTIPLAYER.md`).
   Times New Roman 12 black, 100 px wrap, > 80 chars truncated with `...` (`CHAT_POPUP_MAXCHAR`), 2 px `0xFF9900`
   rim around `0xFFFF65` fill, orange tail under the left edge, hides after 5 s; a new message replaces the old one.
   H5 places it above the name label / quest marker (legacy: above the head, names were under the feet).
+
+## Guild channel (M6)
+Channel 2 is live: `say(2, msg)` reaches online guild members (`guild.md`).

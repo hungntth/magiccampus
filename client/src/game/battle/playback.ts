@@ -96,7 +96,7 @@ function behave(s: BattleUnit, t: BattleUnit | undefined, step: BattleStep): Pro
       s.face(dirFromDelta(s.homeX - s.x, s.homeY - s.y, s.dir));
       return s.runTo(s.homeX, s.homeY);
     case B.TURNBACK:
-      s.face(defaultDir(s.slot));
+      s.face(defaultDir(s.viewSlot));
       s.stand();
       return Promise.resolve();
     case B.ESCAPE: {

@@ -23,6 +23,9 @@ Legacy (Go/Flash) knowledge: `D:\mcgame\docs\PROJECT_KNOWLEDGE_BASE.md`.
 - [Party and group battle](memory/party.md) — PartyBook invites/leave/AFK, follower lock and trail, map follow, group battle roster/readiness/reward split.
 - [Economy](memory/economy.md) — bank and bag pages (sid map, page books), repair, payment radios, mall, transport scrolls, rename card.
 - [Forge](memory/forge.md) — equipment instance properties, crafting, material/gem mixing, star, sockets/gems, refine two-step, tier upgrade, resolve.
+- [Guild](memory/guild.md) — guilds/members/ranks with enforced permissions, contribution, guild chat, bank + withdraw, extensions, buildings on map 49, guild skills.
+- [PK](memory/pk.md) — uif apvp, PVPStartClient gates (forced pk maps, safe areas), PvP battle with guest slot swap, no rewards.
+- [Rankings](memory/ranking.md) — rankGet top-100 lists (exp, money), 5-min cache, empty categories.
 - [Pets](memory/pets.md) — pets collection, growth-scale stats, quest award, panel, map follow, battle pet at slot+5, catch, kind-3 objectives, pet skills/equipment/slots.
 - [Trade](memory/trade.md) — newTrade/tradeLock/tradeConfirm/stopTrade, saga swap under two char locks.
 - [Map portals](memory/portal.md) — transport gates: createSceneItems, legacy sceneChange(gateId) + onSceneEnter, destination/landing rules, swfanim gate art.

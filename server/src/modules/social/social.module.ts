@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CharacterModule } from '../character/character.module';
 import { Counter, CounterSchema } from '../character/counter.schema';
+import { GuildModule } from '../guild/guild.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { StatsModule } from '../stats/stats.module';
 import { ChaInfoService } from './cha-info.service';
@@ -15,6 +16,7 @@ import { SocialRpc } from './social.rpc';
   imports: [
     CharacterModule,
     InventoryModule,
+    GuildModule,
     StatsModule,
     MongooseModule.forFeature([
       { name: Relationship.name, schema: RelationshipSchema },

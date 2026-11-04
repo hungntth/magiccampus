@@ -29,7 +29,7 @@ export class BattleCommandService {
     switch (cmd.action) {
       case BattleAction.ATTACK: {
         const target = battle.fighters.get(cmd.tid);
-        if (!target || target.side !== 'enemy' || !target.alive) throw RpcException.invalidArgs('tid');
+        if (!target || target.side === own.side || !target.alive) throw RpcException.invalidArgs('tid'); // the other side (PvP: the other player)
         return { action: BattleAction.ATTACK, targetSlot: target.slot };
       }
       case BattleAction.SKILL:
@@ -76,9 +76,9 @@ export class BattleCommandService {
       throw RpcException.forbidden(plan.reason === 'passive' ? 'Không thể sử dụng kỹ năng bị động' : 'Kỹ năng chưa được hỗ trợ');
     }
     const self = plan.kind === 'cast' && plan.cast.category === 'heal';
-    const alive = [...battle.fighters.values()].filter((f) => f.side === 'enemy' && f.alive);
+    const alive = [...battle.fighters.values()].filter((f) => f.side !== own.side && f.alive);
     let target = battle.fighters.get(cmd.tid);
-    if (!self && (!target || target.side !== 'enemy' || !target.alive)) {
+    if (!self && (!target || target.side === own.side || !target.alive)) {
       // A fallback attack may arrive with a self target (heal skill without MP): hit the first living enemy.
       if (plan.kind !== 'basic') throw RpcException.invalidArgs('tid');
       target = alive[0];

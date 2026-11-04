@@ -54,6 +54,7 @@ export class ChaInfoPanel {
 
     const stats = el('div', 'char-stats');
     stats.appendChild(el('div', 'char-name', `${info.name}  Cấp ${info.level}`));
+    if (info.guild) stats.appendChild(row('Bang hội', info.guild));
     for (const [label, value] of statRows(info.property)) stats.appendChild(row(label, value));
     root.appendChild(stats);
 

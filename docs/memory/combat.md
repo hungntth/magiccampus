@@ -87,3 +87,6 @@ Solo behaviour is unchanged.
 - `GameScene.ts` is about 427 lines, over the cap; split it in a follow-up.
 - Not browser-tested: boss tint, crit shake, round cap, disconnect mid-battle, bag-full loot, the magic/heal/5 % skills.
 - Quiet the new RPCs only after the user confirms.
+
+## PvP (M6)
+PvP battles reuse BattleManager with two player sides; see `pk.md`.

@@ -7,6 +7,8 @@ import { InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
 import type { MapInfo, SceneNpc } from '@mc/shared';
 import { buildRecipePlans, type RecipePlan } from './forge-data';
+import { buildGuildBuildingTables, buildGuildSkillTables, type GuildBuildingTables, type GuildLot, type GuildSkillTables } from './guild-data';
+import type { BuildingRow, GuildSkillRow } from '@mc/shared';
 import { isNpcVisible } from './npc-visibility';
 import { buildSceneItemTables, type SceneItemRow, type SceneItemTables } from './sceneitem-data';
 import {
@@ -54,6 +56,8 @@ export class GameDataService implements OnModuleInit {
   private pets: PetTables = buildPetTables([], []);
   private recipePlans = new Map<number, RecipePlan[]>();
   private makable: Row[] | null = null;
+  private guildBuildings: GuildBuildingTables = buildGuildBuildingTables([], []);
+  private guildSkills: GuildSkillTables = buildGuildSkillTables([]);
 
   constructor(@InjectConnection() private readonly conn: Connection) {}
 
@@ -106,6 +110,8 @@ export class GameDataService implements OnModuleInit {
     this.skillsByName = skillsByName(this.skills);
     this.recipePlans = buildRecipePlans(await this.rows('data_tbl_recipe_plan'));
     this.makable = null;
+    this.guildBuildings = buildGuildBuildingTables(await this.rows('data_tbl_building'), await this.rows('data_tbl_extend_position', { mid: 49 }));
+    this.guildSkills = buildGuildSkillTables(await this.rows('data_tbl_skill', { use_env: 4 }));
     this.logger.log(
       `Loaded ${this.maps.size} maps, ${this.classes.size} classes, ${npcs.length} npcs, ` +
         `${quests.length} quests (${requires.length} require, ${pres.length} pre, ${awards.length} award), ` +
@@ -253,6 +259,28 @@ export class GameDataService implements OnModuleInit {
     return this.recipePlans.get(recipeId) ?? [];
   }
 
+  /** Guild building templates (data_tbl_building) and the lots of the guild map, cached at startup. */
+  guildBuildingRows(): BuildingRow[] {
+    return [...this.guildBuildings.rows.values()];
+  }
+
+  guildBuildingRow(id: number): BuildingRow | undefined {
+    return this.guildBuildings.rows.get(id);
+  }
+
+  guildLots(): GuildLot[] {
+    return this.guildBuildings.lots;
+  }
+
+  /** Guild skill rows (data_tbl_skill use_env 4 with a develop cost): by id and per chain (levels ascending). */
+  guildSkillRow(id: number): GuildSkillRow | undefined {
+    return this.guildSkills.byId.get(id);
+  }
+
+  guildSkillChains(): Map<string, GuildSkillRow[]> {
+    return this.guildSkills.chains;
+  }
+
   /** Equipment templates with makable == 1 (the craft recipes), loaded once and cached. */
   async makableEquipment(): Promise<Row[]> {
     if (!this.makable) {
@@ -297,6 +325,8 @@ export class GameDataService implements OnModuleInit {
       safeX: Number(row.safe_x ?? 0),
       safeY: Number(row.safe_y ?? 0),
       safeFlag: Number(row.safe_flag ?? 0),
+      pk: Number(row.pk ?? 0),
+      sArea: String(row.s_area ?? '0'),
       info: String(row.info ?? ''),
     };
   }

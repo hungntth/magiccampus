@@ -9,12 +9,12 @@ const MIN_H = 140;
 const MAX_H = 500;
 const H_STEP = 20;
 
-type Kind = 'local' | 'world' | 'team' | 'whisper' | 'system' | 'notice' | 'event';
+type Kind = 'local' | 'world' | 'team' | 'guild' | 'whisper' | 'system' | 'notice' | 'event';
 const TABS: { label: string; kinds: Kind[] | null }[] = [
   { label: 'Toàn Bộ', kinds: null },
   { label: 'Thế Giới', kinds: ['world'] },
   { label: 'Hiện tại', kinds: ['local'] },
-  { label: 'Bang Hội', kinds: [] },
+  { label: 'Bang Hội', kinds: ['guild'] },
   { label: 'Nhóm', kinds: ['team'] },
   { label: 'Mật Ngữ', kinds: ['whisper'] },
   { label: 'Chỉ Thị', kinds: ['notice'] },
@@ -25,13 +25,14 @@ const TABS: { label: string; kinds: Kind[] | null }[] = [
 const SEND_CHANNELS: { label: string; id: number | null }[] = [
   { label: 'Hiện tại', id: ChatChannel.LOCAL },
   { label: 'Thế giới', id: ChatChannel.WORLD },
-  { label: 'Bang hội', id: null },
+  { label: 'Bang', id: ChatChannel.GUILD },
   { label: 'Nhóm', id: ChatChannel.TEAM },
 ];
 const CHANNEL_LABEL: Record<number, { label: string; kind: Kind }> = {
   [ChatChannel.LOCAL]: { label: 'Hiện tại', kind: 'local' },
   [ChatChannel.WORLD]: { label: 'Thế Giới', kind: 'world' },
   [ChatChannel.TEAM]: { label: 'Nhóm', kind: 'team' },
+  [ChatChannel.GUILD]: { label: 'Bang Hội', kind: 'guild' },
 };
 
 export interface ChatHandlers {

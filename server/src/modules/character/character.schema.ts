@@ -90,6 +90,10 @@ export class Character {
   @Prop({ default: 0 })
   dir: number;
 
+  // PK opt-in (uif apvp, M6 phase C): other players may only PK this character on normal maps while it is on.
+  @Prop({ default: false })
+  apvp: boolean;
+
   @Prop({ default: 0 })
   money: number;
 

@@ -18,6 +18,7 @@ export function reportText(end: PlaybackEnd): string {
   if (end.result === BattleResult.FLED) return 'Bỏ chạy thành công';
   if (end.result !== BattleResult.WIN) return 'Bạn đã bị đánh bại';
   const r = end.report;
+  if (!r) return 'Chiến thắng!'; // PvP: nothing is granted, the server sends no report
   const parts = [`${r?.exp ?? 0} Exp`, `${r?.money ?? 0} Bạc khóa`, ...(r?.items ?? []).map((i) => `${i.name} x${i.count}`)];
   return `Chiến thắng! Nhận ${parts.join(', ')}`;
 }
