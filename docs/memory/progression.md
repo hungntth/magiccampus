@@ -13,9 +13,15 @@ The stat-feature panels are in `stat-features.md`; the magic weapon is in `magic
   The research's rate normalisation (`0 < v < 1` → `v*100`) was **not** applied.
 - **Currencies**: `Character.currencies` with a capped credit and a conditional-`$inc` spend. Sent at login (`PlayerData.currencies`); `CharProperty.spirituality` is set from it.
 - **Feature store**: the `character_features` collection and `FeatureStoreService`, keyed by (characterId, featureKey).
-- **`gmGrant`**: chat `/grant <currency|item|equip|title> <id> <n> [bound]`.
-  - **It is open to every player (dev only, like `/go` and `/buff`), so gate the GM commands before any public use.**
-  - For titles, n = seconds (0 = permanent).
+- **`gmGrant`**: chat `/grant <currency|item|equip|title> <id> <n> [bound]` (titles: n = seconds, 0 = permanent). Like `gmGoMap` (/go) and `gmAddBuff` (/buff) it is a
+  `requireGm` RPC: see **GM gate** below.
+
+## GM gate (2026-11-04)
+- `@Rpc(..., { requireGm: true })` (`gateway/gm-gate.ts`, checked in `RpcRegistry.dispatch`): allowed only when the account has `gmLevel > 0`
+  (`accounts.gmLevel`, default 0, copied to `session.gmLevel` at login) or the server runs with `DEV_COMMANDS=1` (`loadConfig().devCommands`).
+  Refusal: FORBIDDEN "Lệnh chỉ dành cho GM". The boot log says which mode is active.
+- Gated today: `gmGoMap`, `gmAddBuff`, `gmGrant`. New dev/GM RPCs must use `requireGm`.
+- Make an account GM: `docker exec mcgame-mongo mongosh mcgame --quiet --eval "db.accounts.updateOne({username:'<name>'},{\$set:{gmLevel:1}})"` then relog.
 
 ## Titles (`modules/title/`, shared `progression.ts`)
 - RPCs: `gtl()` → `{ct, cts}`; `setTitle(id|-1)` → `{f, t, bd?}`; `setActTitle(id|-1)` → `{f, t?}`.

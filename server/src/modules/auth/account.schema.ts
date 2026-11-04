@@ -18,6 +18,10 @@ export class Account {
   @Prop({ default: 0 })
   vipLevel: number;
 
+  /** GM level: > 0 unlocks the dev/GM RPCs (gmGoMap, gmAddBuff, gmGrant). Set by an admin in Mongo. */
+  @Prop({ default: 0 })
+  gmLevel: number;
+
   @Prop({ default: 0 })
   gold: number;
 

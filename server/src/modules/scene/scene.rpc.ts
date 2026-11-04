@@ -120,7 +120,7 @@ export class SceneRpc implements OnModuleInit {
   }
 
   /** H5 dev command /go <mapId>: the old map-id sceneChange, arrival at the safe point (or x, y). */
-  @Rpc('gmGoMap', { requireCharacter: true, forbidInBattle: true })
+  @Rpc('gmGoMap', { requireCharacter: true, forbidInBattle: true, requireGm: true })
   async gmGoMap(session: Session, args: unknown[]): Promise<SceneLoginResponse> {
     this.assertCanMove(session);
     const mapId = Number(args[0]);

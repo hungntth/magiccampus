@@ -187,5 +187,5 @@ are mostly independent of each other after M2.
 All milestones M1–M8 are implemented and committed on `main`; each milestone has its plan (`docs/plans/2026-11-04_02..09_*.md`, with per-phase
 implementation notes) and memory docs (index: `docs/PROJECT_KNOWLEDGE_BASE.md`). Deferred items are listed in each plan's non-goals and in the memory
 docs' "Deferred" sections (growth systems for pets, mounted sprite rendering, life skills, marriage, arenas, events without data, ...).
-Open follow-ups: quiet the new RPCs once the user confirms each feature; gate the dev commands (`/go`, `/buff`, `/grant`) before any public use;
+Open follow-ups: quiet the new RPCs once the user confirms each feature (dev commands are now GM-gated: `requireGm`, `DEV_COMMANDS`);
 split `GameScene.ts` (~430 lines) and `quest.service.ts` (~356 lines).

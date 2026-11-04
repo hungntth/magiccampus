@@ -12,6 +12,8 @@ export interface RpcOptions {
   quiet?: boolean;
   /** Refuse the call with FORBIDDEN while the session is in a battle (session.battleId set). */
   forbidInBattle?: boolean;
+  /** Dev/GM command: refused unless the account has gmLevel > 0 or the server runs with DEV_COMMANDS=1. */
+  requireGm?: boolean;
 }
 
 export function Rpc(name: string, options: RpcOptions = {}): MethodDecorator {

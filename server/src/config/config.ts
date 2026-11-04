@@ -1,6 +1,7 @@
 // Process configuration read once from the environment (.env is loaded in main.ts).
 
 import * as path from 'node:path';
+import { envFlag } from '../gateway/gm-gate';
 
 export interface AppConfig {
   port: number;
@@ -8,6 +9,8 @@ export interface AppConfig {
   assetDir: string;
   seedDir: string;
   corsOrigin: string;
+  /** DEV_COMMANDS=1: GM RPCs (/go, /buff, /grant) open to every account. Off by default: accounts need gmLevel > 0. */
+  devCommands: boolean;
 }
 
 export function loadConfig(): AppConfig {
@@ -17,6 +20,7 @@ export function loadConfig(): AppConfig {
     assetDir: path.resolve(process.env.ASSET_DIR ?? '../mcgame/frontend/s/res'),
     seedDir: path.resolve(process.env.SEED_DIR ?? '../mcgame/supabase/seeds'),
     corsOrigin: process.env.CORS_ORIGIN ?? '*',
+    devCommands: envFlag(process.env.DEV_COMMANDS),
   };
 }
 

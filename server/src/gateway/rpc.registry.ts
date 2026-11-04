@@ -1,8 +1,10 @@
 // Discovers every @Rpc-decorated method on Nest providers and dispatches calls to them.
 // Equivalent of the old dispatcher.go: method -> handler map, auth gating, quiet logging.
 
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { DiscoveryService, MetadataScanner } from '@nestjs/core';
+import { APP_CONFIG, type AppConfig } from '../config/config';
+import { gmAllowed } from './gm-gate';
 import { RPC_METHOD_KEY, RPC_OPTIONS_KEY, type RpcOptions } from './rpc.decorator';
 import { RpcException } from './errors';
 import type { Session } from './session';
@@ -23,6 +25,7 @@ export class RpcRegistry implements OnModuleInit {
   constructor(
     private readonly discovery: DiscoveryService,
     private readonly scanner: MetadataScanner,
+    @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
   onModuleInit(): void {
@@ -40,6 +43,7 @@ export class RpcRegistry implements OnModuleInit {
       }
     }
     this.logger.log(`Registered ${this.handlers.size} RPC methods`);
+    this.logger.log(this.config.devCommands ? 'GM commands open to every account (DEV_COMMANDS)' : 'GM commands require gmLevel > 0');
   }
 
   register(name: string, handler: RpcHandler, options: RpcOptions, owner: string): void {
@@ -66,6 +70,9 @@ export class RpcRegistry implements OnModuleInit {
     }
     if (options.requireCharacter && !session.hasCharacter) {
       throw RpcException.unauthorized('character not selected');
+    }
+    if (!gmAllowed({ requireGm: options.requireGm, gmLevel: session.gmLevel, devCommands: this.config.devCommands })) {
+      throw RpcException.forbidden('Lệnh chỉ dành cho GM');
     }
     if (options.forbidInBattle && session.battleId !== null) throw RpcException.forbidden('Đang chiến đấu');
     return entry.handler(session, args);

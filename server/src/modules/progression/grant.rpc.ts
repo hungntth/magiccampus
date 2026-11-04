@@ -38,7 +38,7 @@ export class GrantRpc {
     private readonly gameData: GameDataService,
   ) {}
 
-  @Rpc('gmGrant', { requireCharacter: true, forbidInBattle: true })
+  @Rpc('gmGrant', { requireCharacter: true, forbidInBattle: true, requireGm: true })
   async gmGrant(session: Session, args: unknown[]): Promise<GmGrantResult> {
     const kind = String(args[0] ?? '');
     const cid = session.characterId!;

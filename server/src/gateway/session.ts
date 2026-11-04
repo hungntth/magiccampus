@@ -9,6 +9,8 @@ export class Session {
   readonly id: number;
   accountId: string | null = null;
   username: string | null = null;
+  /** Account GM level (0 = player); gates requireGm RPCs. Set at login. */
+  gmLevel = 0;
   characterId: number | null = null;
   characterName: string | null = null;
   mapId = 0;

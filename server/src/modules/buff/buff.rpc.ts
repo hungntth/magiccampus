@@ -36,7 +36,7 @@ export class BuffRpc {
   }
 
   /** H5 dev command `/buff <id> [seconds]`: grants a buff (0 seconds = permanent) to the caller. */
-  @Rpc('gmAddBuff', { requireCharacter: true })
+  @Rpc('gmAddBuff', { requireCharacter: true, requireGm: true })
   async gmAddBuff(session: Session, args: unknown[]): Promise<LongBuff> {
     const buffId = Number(args[0]);
     const seconds = args[1] === undefined ? 0 : Number(args[1]);

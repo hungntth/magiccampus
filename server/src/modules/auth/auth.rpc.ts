@@ -31,6 +31,7 @@ export class AuthRpc {
     const account = await this.auth.login(username, passwordMd5);
     session.accountId = account.id;
     session.username = account.username;
+    session.gmLevel = account.gmLevel ?? 0;
     const previous = this.scenes.bindAccount(session, account.id);
     if (previous) {
       previous.callback('onKickChar', KICKED_BY_OTHER);
@@ -44,6 +45,7 @@ export class AuthRpc {
     this.scenes.release(session);
     session.accountId = null;
     session.username = null;
+    session.gmLevel = 0;
     session.characterId = null;
     session.characterName = null;
     return { ok: true };
