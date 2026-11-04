@@ -10,6 +10,8 @@ export interface RpcOptions {
   requireAuth?: boolean;
   requireCharacter?: boolean;
   quiet?: boolean;
+  /** Refuse the call with FORBIDDEN while the session is in a battle (session.battleId set). */
+  forbidInBattle?: boolean;
 }
 
 export function Rpc(name: string, options: RpcOptions = {}): MethodDecorator {

@@ -1,6 +1,7 @@
 // Wire protocol between the H5 client and the NestJS game server (JSON over WebSocket).
 // Mirrors the old RTMP shape: client "call" (method + args) and server "callback" pushes.
 
+import type { QuestKill } from './battle.js';
 import type { CharProperty } from './character.js';
 
 export type ClientMessage = { t: 'call'; id: number; m: string; a: unknown[] };
@@ -83,6 +84,7 @@ export interface PlayerData {
   attIntelligence: number;
   attEnergy: number;
   property: CharProperty; // final stats (gear + buffs applied), see character.ts
+  state: number; // CharState: 1 normal, 5 in battle (always 1 at login in M2: battles end on disconnect)
 }
 
 export interface SceneCharacter {
@@ -120,6 +122,7 @@ export interface MapInfo {
   resCode: string;
   safeX: number;
   safeY: number;
+  safeFlag: number; // > 0: no random encounters (the client never sends cbom there)
   info: string;
 }
 
@@ -279,6 +282,7 @@ export interface QuestView {
   state: number; // QuestState
   data: QuestData;
   require: QuestRequire[];
+  questKill: QuestKill[]; // kill objectives, num = REMAINING kills (all of them for a quest not taken yet)
   sName: string; // start NPC name
   sMid: number; // start NPC map id (legacy QuestCanvas sMid), 0 if unknown
   sMap: string; // start NPC map name (H5: the client has no map table)

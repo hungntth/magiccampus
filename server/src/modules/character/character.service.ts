@@ -4,7 +4,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import type { CharListEntry, MoneyKey, PlayerData, SceneCharacter } from '@mc/shared';
+import { CharState, type CharListEntry, type MoneyKey, type PlayerData, type SceneCharacter } from '@mc/shared';
 import { Character, type CharacterDocument } from './character.schema';
 import { Counter } from './counter.schema';
 import { classStartAttrs, profileOf } from './character-profile';
@@ -12,6 +12,7 @@ import { buildBaseStats } from './character-stats';
 import type { CharStats } from '../stats/character-stats.service';
 import { RpcException } from '../../gateway/errors';
 import { GameDataService } from '../gamedata/gamedata.service';
+import { SkillService } from '../skill/skill.service';
 
 const NAME_RE = /^[\p{L}\p{N} _]{2,16}$/u;
 const MAX_CHAR_SLOTS = 6;
@@ -25,6 +26,7 @@ export class CharacterService {
     @InjectModel(Character.name) private readonly characters: Model<Character>,
     @InjectModel(Counter.name) private readonly counters: Model<Counter>,
     private readonly gameData: GameDataService,
+    private readonly skills: SkillService,
   ) {}
 
   async listByAccount(accountId: string): Promise<CharacterDocument[]> {
@@ -57,7 +59,7 @@ export class CharacterService {
     const att = classStartAttrs(cls);
     const base = { strength: att.str, agility: att.agi, stamina: att.sta, intelligence: att.int, energy: att.eng };
     const { maxHp, maxMp } = buildBaseStats(profileOf(base, cls));
-    return this.characters.create({
+    const doc = await this.characters.create({
       _id: id,
       accountId,
       name: trimmed,
@@ -72,6 +74,8 @@ export class CharacterService {
       posX: START_X,
       posY: START_Y,
     });
+    await this.skills.learnStartSkills(id, classId); // class start skills ignore the level gate (Go LearnStarterSkill)
+    return doc;
   }
 
   async updatePosition(id: number, mapId: number, x: number, y: number, dir: number): Promise<void> {
@@ -156,6 +160,7 @@ export class CharacterService {
       attIntelligence: stats.att.int,
       attEnergy: stats.att.eng,
       property: stats.property,
+      state: CharState.NORMAL,
     };
   }
 

@@ -1,0 +1,137 @@
+/* Battle DOM layer (ui/battleMenu.ts, ui/reviveDialog.ts). While #stage has .in-battle the HUD is hidden; chat stays. */
+#stage.in-battle > *:not(.battle-ui):not(.hud-chat-bar):not(.hud-chat-menu):not(.confirm-dialog):not(.revive-dialog) {
+  display: none !important;
+}
+
+/* #stage > * sets pointer-events: auto; the layer itself must let clicks through to the Pixi stage. */
+#stage > .battle-ui {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 900px;
+  height: 570px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+#stage > .battle-ui > * {
+  pointer-events: auto;
+}
+
+#stage > .battle-ui > .battle-timer,
+#stage > .battle-ui > .battle-banner {
+  pointer-events: none;
+}
+
+.battle-menu,
+.battle-items {
+  position: absolute;
+  top: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  background: rgba(14, 20, 40, 0.88);
+  border: 1px solid #e8c46a;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 13px;
+}
+
+.battle-menu {
+  right: 12px;
+  width: 96px;
+}
+
+.battle-items {
+  right: 118px;
+  min-width: 150px;
+}
+
+.battle-menu-title {
+  text-align: center;
+  font-weight: 700;
+  color: #e8c46a;
+  padding-bottom: 2px;
+  border-bottom: 1px solid #5a4a22;
+  margin-bottom: 2px;
+}
+
+.battle-btn {
+  font: inherit;
+  color: #fff;
+  background: #243255;
+  border: 1px solid #4a5a88;
+  border-radius: 4px;
+  padding: 6px 4px;
+  cursor: pointer;
+}
+
+.battle-btn:hover {
+  background: #34467a;
+}
+
+.battle-btn.selected {
+  border-color: #e8c46a;
+  background: #3d4f86;
+}
+
+.battle-item {
+  text-align: left;
+  padding: 5px 8px;
+}
+
+.battle-empty {
+  color: #aab;
+  padding: 4px 6px;
+}
+
+.battle-timer {
+  position: absolute;
+  left: calc(50% + 15px);
+  bottom: 318px;
+  transform: translateX(-50%);
+  font-size: 64px;
+  font-weight: 900;
+  color: #ffe14d;
+  text-shadow: 0 0 4px #000, 2px 2px 0 #000;
+  pointer-events: none;
+}
+
+.battle-timer.urgent {
+  color: #ff3b30;
+  font-size: 76px;
+}
+
+.battle-banner {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  transform: translate(-50%, -50%);
+  font-size: 34px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 0 6px #000, 2px 2px 0 #000;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Revive dialog (free variant), amount-dialog look. */
+.amount-dialog.revive-dialog {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  transform: translate(-50%, -50%);
+  z-index: 60;
+  width: 340px;
+}
+
+.amount-dialog.revive-dialog .confirm-text {
+  white-space: pre-line;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.amount-dialog.revive-dialog .revive-count {
+  color: #ff4d4d;
+}

@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
-  firstFreeSlot, maxStack, planAdd, planMove, planSort, planSplit, sellUnit, sidOf, type AddSpec, type BagSlotRow, type BagStack,
+  firstFreeSlot, maxStack, planAdd, planMove, planRemove, planSort, planSplit, sellUnit, sidOf, type AddSpec, type BagSlotRow, type BagStack,
 } from './bag-rules';
 
 const stack = (id: number, slotIndex: number, over: Partial<BagStack> = {}): BagStack => ({
@@ -150,5 +150,19 @@ describe('firstFreeSlot', () => {
   it('returns the lowest free index or -1 when full', () => {
     assert.equal(firstFreeSlot([0, 1, 3]), 2);
     assert.equal(firstFreeSlot(Array.from({ length: 30 }, (_, i) => i)), -1);
+  });
+});
+
+describe('planRemove', () => {
+  it('takes across stacks, unbound first, then lowest slot', () => {
+    const bag = [stack(1, 0, { stackCount: 2 }), stack(2, 1, { stackCount: 3, isBound: false }), stack(3, 2, { templateId: 9 })];
+    assert.deepEqual(planRemove(bag, 1, 1, 4), {
+      takes: [{ id: 2, slotIndex: 1, take: 3, left: 0 }, { id: 1, slotIndex: 0, take: 1, left: 1 }],
+    });
+  });
+  it('is null when the bag holds too few or the count is invalid', () => {
+    assert.equal(planRemove([stack(1, 0, { stackCount: 2 })], 1, 1, 3), null);
+    assert.equal(planRemove([], 1, 1, 1), null);
+    assert.equal(planRemove([stack(1, 0)], 1, 1, 0), null);
   });
 });

@@ -15,7 +15,7 @@ import { CharacterItem } from './character-item.schema';
 import { EquipmentService } from './equipment.service';
 import { InventoryService } from './inventory.service';
 import {
-  HP_POTION, healAmount, ITEM_TYPE_POTION, MP_POTION, planRecover, type RecoverCandidate,
+  HP_POTION, healAmount, ITEM_TYPE_POTION, MP_POTION, planRecover, type HealAmount, type RecoverCandidate,
 } from './potion';
 import { push, type Push } from './pushes';
 import { sidOf } from './bag-rules';
@@ -45,6 +45,34 @@ export class UseItemService {
   /** fullHpRecoverByItem / fullMpRecoverByItem: spends potions (client-ordered or auto-scanned) until HP/MP is full. */
   recover(characterId: number, kind: RecoverKind, entries: { id: number; priority: number }[]): Promise<Push[]> {
     return withCharLock(characterId, () => this.doRecover(characterId, kind, entries));
+  }
+
+  /**
+   * Battle potion: validates and consumes ONE unit without crediting HP/MP (the battle heals its own fighter and the
+   * result is persisted at settle). `room` is how much the fighter can still heal; a potion that would do nothing is
+   * refused before anything is consumed. Returns the heal amounts and the ordered bag pushes.
+   */
+  consumeForBattle(
+    characterId: number, itemId: number, room: HealAmount,
+  ): Promise<{ heal: HealAmount; pushes: Push[] }> {
+    return withCharLock(characterId, async () => {
+      const item = await this.items.findOne({ _id: itemId, characterId, slotType: SlotType.BAG }).lean();
+      if (!item || item.itemType !== ItemKind.ITEM) throw RpcException.notFound('Không tìm thấy vật phẩm');
+      const tpl = await this.gameData.template(29, item.templateId);
+      if (!tpl) throw RpcException.notFound('Không tìm thấy vật phẩm');
+      const level = (await this.chars.findById(characterId, { level: 1 }).lean())?.level ?? 1;
+      if (level < Number(tpl.req_level ?? 0)) throw RpcException.forbidden('Cấp độ bạn chưa đủ!');
+      const useType = Number(tpl.use_type ?? 0);
+      if (useType === 4 || useType === 2) throw RpcException.forbidden('Vật phẩm này bạn không dùng được!');
+      const heal = healAmount(tpl);
+      if (heal.hp <= 0 && heal.mp <= 0) throw RpcException.forbidden('Vật phẩm này chưa dùng được');
+      if ((heal.hp <= 0 || room.hp <= 0) && (heal.mp <= 0 || room.mp <= 0)) {
+        throw RpcException.forbidden(heal.hp > 0 ? 'HP đã đầy!' : 'MP đã đầy!');
+      }
+      const left = await this.consume(characterId, itemId, 1);
+      if (left === null) throw RpcException.forbidden('Vật phẩm vừa thay đổi, hãy thử lại');
+      return { heal, pushes: await this.slotPushes(characterId, [{ id: itemId, sid: sidOf(item.slotIndex), left }]) };
+    });
   }
 
   private async useConsumable(characterId: number, itemId: number): Promise<Push[]> {

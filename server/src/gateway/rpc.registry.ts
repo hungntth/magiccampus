@@ -67,6 +67,7 @@ export class RpcRegistry implements OnModuleInit {
     if (options.requireCharacter && !session.hasCharacter) {
       throw RpcException.unauthorized('character not selected');
     }
+    if (options.forbidInBattle && session.battleId !== null) throw RpcException.forbidden('Đang chiến đấu');
     return entry.handler(session, args);
   }
 

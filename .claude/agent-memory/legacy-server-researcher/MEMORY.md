@@ -1,1 +1,2 @@
 - [Legacy code map](legacy_code_map.md) — Go package ownership, dispatcher notes, stale memory files, enum scales/collisions
+- [Go combat navigation](reference_go_combat_navigation.md) — where Go combat code lives, live vs dead handlers, stale legacy memory docs, data column semantics

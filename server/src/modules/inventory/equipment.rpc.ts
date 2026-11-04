@@ -20,7 +20,7 @@ export class EquipmentRpc {
   constructor(private readonly equipment: EquipmentService) {}
 
   /** One arg: the target slot is decided by the template position. Reply `{success, equipItems}`. */
-  @Rpc('equipOn', { requireCharacter: true })
+  @Rpc('equipOn', { requireCharacter: true, forbidInBattle: true })
   async equipOn(session: Session, args: unknown[]): Promise<EquipOnReply> {
     const itemId = intArg(args[0], 'itemId');
     return midNoteOnFail(session, async () => {
@@ -31,7 +31,7 @@ export class EquipmentRpc {
   }
 
   /** toSid -1 = first free bag slot. Reply null. */
-  @Rpc('equipOff', { requireCharacter: true })
+  @Rpc('equipOff', { requireCharacter: true, forbidInBattle: true })
   async equipOff(session: Session, args: unknown[]): Promise<null> {
     const itemId = intArg(args[0], 'itemId');
     const toSid = args[1] === undefined || args[1] === null ? -1 : intArg(args[1], 'toSid');

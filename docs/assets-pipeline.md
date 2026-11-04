@@ -29,8 +29,8 @@ handY, totalWidth, totalHeight`. The Flash client positions every resource at `(
 - **Directions** (counter-clockwise from south): `0=S 1=SW 2=W 3=NW 4=N 5=NE 6=E 7=SE`.
   Left/right variants share bitmaps and differ only by a horizontal flip in the placement matrix.
 - **Behaviors** (index observed in the exported data, names from the client's `AbstractGameRes`):
-  `0 BREATH_SLOW (stand) · 1 RUN_FAST · 2 RUN_NORMAL · 3 ATTACK · 4 HURT · 5 DEAD · 6 DEFENCE · 7 MAGIC`.
-  Index 5/6/7 are inferred; verify when combat is ported.
+  `0 BREATH_SLOW (stand) · 1 RUN_FAST · 2 RUN_NORMAL · 3 ATTACK · 4 DEAD (lying pose) · 5 HURT (flinch) · 6 DEFENCE · 7 MAGIC`.
+  4/5 were swapped here until the combat port (client research 2026-11-04 §4.3); 6/7 follow the Go behaviour ids.
 - Stage origin is the top-left of the frame (200×150 for PC, varies per NPC/creature). Feet are at
   `(midX, footY)` from `GameResInst` — e.g. PC_MALE_000001 `(100, 102)`, NPC_CRE_000001 `(83, 112)`;
   do not derive them from the frame size.

@@ -33,7 +33,7 @@ export class UseItemRpc {
   constructor(private readonly useItem: UseItemService) {}
 
   /** targetType 1 = character (pets are not ported), petId is ignored. */
-  @Rpc('useItem', { requireCharacter: true })
+  @Rpc('useItem', { requireCharacter: true, forbidInBattle: true })
   async use(session: Session, args: unknown[]): Promise<null> {
     if (intArg(args[0], 'targetType') !== 1) throw RpcException.invalidArgs('targetType');
     const itemId = intArg(args[2], 'itemId');
@@ -43,12 +43,12 @@ export class UseItemRpc {
     });
   }
 
-  @Rpc('fullHpRecoverByItem', { requireCharacter: true })
+  @Rpc('fullHpRecoverByItem', { requireCharacter: true, forbidInBattle: true })
   fullHp(session: Session, args: unknown[]): Promise<null> {
     return this.recover(session, 'hp', args);
   }
 
-  @Rpc('fullMpRecoverByItem', { requireCharacter: true })
+  @Rpc('fullMpRecoverByItem', { requireCharacter: true, forbidInBattle: true })
   fullMp(session: Session, args: unknown[]): Promise<null> {
     return this.recover(session, 'mp', args);
   }

@@ -9,6 +9,7 @@ import { StatsModule } from '../stats/stats.module';
 import { GameDataModule } from '../gamedata/gamedata.module';
 import { AuthModule } from '../auth/auth.module';
 import { QuestModule } from '../quest/quest.module';
+import { SkillModule } from '../skill/skill.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { QuestModule } from '../quest/quest.module';
     ]),
     GameDataModule,
     AuthModule,
+    SkillModule,
     QuestModule,
     StatsModule,
   ],

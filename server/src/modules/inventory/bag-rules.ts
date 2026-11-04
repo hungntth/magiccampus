@@ -174,3 +174,24 @@ export function firstFreeSlot(used: Iterable<number>, capacity = BAG_PAGE_SLOTS)
   for (let i = 0; i < capacity; i++) if (!set.has(i)) return i;
   return -1;
 }
+
+export interface RemovePlan {
+  takes: { id: number; slotIndex: number; take: number; left: number }[];
+}
+
+/** Takes `count` units of a template from its stacks, lowest slot first (unbound before bound); null when the bag holds fewer. */
+export function planRemove(bag: readonly BagStack[], templateId: number, itemType: number, count: number): RemovePlan | null {
+  if (!Number.isInteger(count) || count <= 0) return null;
+  const stacks = bag
+    .filter((s) => s.templateId === templateId && s.itemType === itemType && s.stackCount > 0)
+    .sort((a, b) => Number(a.isBound) - Number(b.isBound) || a.slotIndex - b.slotIndex);
+  const takes: RemovePlan['takes'] = [];
+  let rest = count;
+  for (const s of stacks) {
+    if (rest <= 0) break;
+    const take = Math.min(rest, s.stackCount);
+    takes.push({ id: s.id, slotIndex: s.slotIndex, take, left: s.stackCount - take });
+    rest -= take;
+  }
+  return rest > 0 ? null : { takes };
+}

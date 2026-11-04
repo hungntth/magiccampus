@@ -6,7 +6,9 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { GameDataModule } from '../gamedata/gamedata.module';
 import { Character, CharacterSchema } from '../character/character.schema';
 import { CharacterQuest, CharacterQuestSchema, QuestHistory, QuestHistorySchema } from './quest.schema';
+import { InventoryModule } from '../inventory/inventory.module';
 import { StatsModule } from '../stats/stats.module';
+import { QuestProgressService } from './quest-progress.service';
 import { QuestRpc } from './quest.rpc';
 import { QuestService } from './quest.service';
 
@@ -18,9 +20,10 @@ import { QuestService } from './quest.service';
       { name: Character.name, schema: CharacterSchema },
     ]),
     GameDataModule,
+    InventoryModule,
     StatsModule,
   ],
-  providers: [QuestService, QuestRpc],
-  exports: [QuestService],
+  providers: [QuestService, QuestProgressService, QuestRpc],
+  exports: [QuestService, QuestProgressService],
 })
 export class QuestModule {}

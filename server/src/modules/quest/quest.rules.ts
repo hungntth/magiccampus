@@ -1,5 +1,5 @@
 // Pure quest rules (no Nest/Mongo): accept gating (Go service.go:91-195 = Flash Player.canTakeQuest),
-// H5 "supported quest" filter, exp/level-up (Go character.go GainExperience) and NPC quest states.
+// H5 "supported quest" filter (grant / collect / kill), exp/level-up (Go character.go GainExperience), NPC quest states.
 
 import { ATTR_POINTS_PER_LEVEL, AUTO_LEVEL_CAP, LEVEL_EXP, QuestState, QuestType } from '@mc/shared';
 import type { QuestPreRow, QuestRequireRow, QuestTemplate } from '../gamedata/quest-data';
@@ -60,10 +60,17 @@ export function canAccept(
   return acceptBlocker(char, tpl, active, done, pre) === null;
 }
 
-/** H5 slice: supported type and every objective satisfiable without inventory/combat. */
+/**
+ * H5 slice: supported type and every require row is the accept-time granted item (pre-met), an item to collect
+ * (kind 1, item table 29, any quality) or a creature to kill (kind 2, type 12). Pet / equipment objectives stay out.
+ */
 export function isSupported(tpl: QuestTemplate, require: readonly QuestRequireRow[]): boolean {
   if (!SUPPORTED_QUEST_TYPES.has(tpl.type)) return false;
-  return require.every((r) => r.kind === 1 && tpl.startGrantItem > 0 && r.itemId === tpl.startGrantItem);
+  return require.every((r) => {
+    if (r.kind === 1 && tpl.startGrantItem > 0 && r.itemId === tpl.startGrantItem) return true;
+    if (r.kind === 1) return r.type === 29 && r.q < 0 && r.num > 0;
+    return r.kind === 2 && r.type === 12 && r.num > 0;
+  });
 }
 
 /** Cumulative exp needed to be at `level` (level 1 starts at 0). */

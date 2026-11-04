@@ -8,6 +8,10 @@ import { Connection } from 'mongoose';
 import type { MapInfo, SceneNpc } from '@mc/shared';
 import { isNpcVisible } from './npc-visibility';
 import { buildSceneItemTables, type SceneItemRow, type SceneItemTables } from './sceneitem-data';
+import {
+  buildCombatTables, type CombatTables, type CreatureTemplate, type LootRow, type MapCreatureRow,
+} from './combat-data';
+import { buildSkillTable, type SkillTemplate } from './skill-data';
 import { buildQuestTables, type QuestPreRow, type QuestRequireRow, type QuestTables, type QuestTemplate } from './quest-data';
 
 export type Row = Record<string, unknown>;
@@ -35,6 +39,8 @@ export class GameDataService implements OnModuleInit {
   private shopSlotsBySid = new Map<number, Row[]>();
   private shopSlotsById = new Map<number, Row>();
   private buffs = new Map<number, Row>();
+  private combat: CombatTables = buildCombatTables([], []);
+  private skills = new Map<number, SkillTemplate>();
 
   constructor(@InjectConnection() private readonly conn: Connection) {}
 
@@ -77,11 +83,17 @@ export class GameDataService implements OnModuleInit {
       this.shopSlotsBySid.get(sid)!.push(slot);
     }
     this.buffs = await this.indexById('data_tbl_buff');
+    const [mapCreatures, creatures, loot] = await Promise.all([
+      this.rows('data_tbl_map_creature'), this.rows('data_tbl_creature'), this.rows('data_tbl_creature_loot'),
+    ]);
+    this.combat = buildCombatTables(mapCreatures, creatures, loot);
+    this.skills = buildSkillTable(await this.rows('data_tbl_skill'));
     this.logger.log(
       `Loaded ${this.maps.size} maps, ${this.classes.size} classes, ${npcs.length} npcs, ` +
         `${quests.length} quests (${requires.length} require, ${pres.length} pre), ` +
         `${instances.length} scene items (${this.sceneItems.gates.length} gates), ` +
-        `${this.shopsById.size} shops (${shopSlots.length} slots), ${this.buffs.size} buffs` +
+        `${this.shopsById.size} shops (${shopSlots.length} slots), ${this.buffs.size} buffs, ` +
+        `${this.combat.creatures.size} creatures (${mapCreatures.length} map rows, ${loot.length} loot rows), ${this.skills.size} skills` +
         (this.maps.size === 0 ? ' — run `pnpm import:seeds` to populate static data' : ''),
     );
   }
@@ -179,6 +191,25 @@ export class GameDataService implements OnModuleInit {
     return this.buffs.get(id);
   }
 
+  /** Spawn rows (data_tbl_map_creature) of a map, boss rows included. */
+  mapCreatures(mapId: number): MapCreatureRow[] {
+    return this.combat.mapCreatures.get(mapId) ?? [];
+  }
+
+  creature(id: number): CreatureTemplate | undefined {
+    return this.combat.creatures.get(id);
+  }
+
+  /** Skill template (data_tbl_skill), cached at startup. */
+  skill(id: number): SkillTemplate | undefined {
+    return this.skills.get(id);
+  }
+
+  /** Loot rows of a creature (data_tbl_creature_loot), cached at startup. */
+  creatureLoot(creatureId: number): LootRow[] {
+    return this.combat.loot.get(creatureId) ?? [];
+  }
+
   /** Item (type 29) or equipment (type 19) template by id, queried on demand; undefined if unknown. */
   async template(type: number, id: number): Promise<Row | undefined> {
     return (await this.templatesByIds(type, [id])).get(id);
@@ -213,6 +244,7 @@ export class GameDataService implements OnModuleInit {
       resCode: String(row.res_code ?? 0),
       safeX: Number(row.safe_x ?? 0),
       safeY: Number(row.safe_y ?? 0),
+      safeFlag: Number(row.safe_flag ?? 0),
       info: String(row.info ?? ''),
     };
   }

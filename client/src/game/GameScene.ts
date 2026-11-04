@@ -29,6 +29,7 @@ import { ShopPanel } from '../ui/shopPanel';
 import { QuestController } from './QuestController';
 import { BagController } from './BagController';
 import { CharacterController } from './CharacterController';
+import { BattleController } from './BattleController';
 import { runSceneCommand } from './sceneCommands';
 import { ChatBox } from '../ui/chat';
 import { MainHud } from '../ui/hud/mainHud';
@@ -41,10 +42,10 @@ const NPC_STAND_OFFSET = 120; // how far from the NPC the player stops when walk
 const NPC_DIALOG_CLOSE_DIST = 300;
 const NPC_CLICK_THROTTLE_MS = 1100;
 const GATE_CLICK_THROTTLE_MS = 1100; // RPCConfig sceneChange throttle
-// Combat / minigame / walk NPCs: not ported, clicking only shows a placeholder toast.
+// Boss / minigame / walk NPCs: not ported, clicking only shows a placeholder toast. Battle NPCs (10 / 19 / 20) are
+// handled by the server: a matching active kill quest starts the battle, otherwise the normal dialog opens.
 const UNSUPPORTED_NPC_TYPES: ReadonlySet<number> = new Set([
-  NpcType.WALK, NpcType.BATTLE, NpcType.STORY_BATTLE, NpcType.QUEST_BATTLE, NpcType.BOSS,
-  NpcType.HULA, NpcType.DOTA, NpcType.TRIPLE_TOWN,
+  NpcType.WALK, NpcType.BOSS, NpcType.HULA, NpcType.DOTA, NpcType.TRIPLE_TOWN,
 ]);
 
 export class GameScene {
@@ -72,6 +73,7 @@ export class GameScene {
   private readonly quest: QuestController;
   private readonly bag: BagController;
   private readonly character: CharacterController;
+  private readonly battle: BattleController;
   private readonly offs: (() => void)[] = [];
 
   constructor(
@@ -100,9 +102,16 @@ export class GameScene {
       mapId: () => this.mapInfo?.id ?? 0,
       talkToNpc: (id) => this.talkToNpc(id),
       playerChanged: () => this.updateHud(),
+      bagCount: (id) => this.bag.countOf(id),
     }, ui);
     this.bag = new BagController({ client, chat: this.chat, player, shop: this.shop });
     this.character = new CharacterController({ client, player, bag: this.bag });
+    this.battle = new BattleController({
+      client, player, root: this.root, world: this.world, entities: this.entityLayer,
+      bagItems: () => this.bag.list(),
+      stopWalking: () => this.self?.teleport(this.self.x, this.self.y),
+      mapSafe: () => (this.mapInfo?.safeFlag ?? 0) > 0,
+    });
     this.entityLayer.sortableChildren = true;
     this.world.addChild(this.entityLayer);
     this.portals = new PortalLayer(this.entityLayer, this.world, (p, e) => this.onGateTap(p, e));
@@ -131,6 +140,7 @@ export class GameScene {
     this.quest.destroy();
     this.bag.destroy();
     this.character.destroy();
+    this.battle.destroy();
     this.hud.destroy();
     this.npcDialog.close();
     this.shop.close();
@@ -156,6 +166,7 @@ export class GameScene {
   private async applyScene(res: SceneLoginResponse): Promise<void> {
     this.clearScene();
     this.mapInfo = res.map;
+    this.battle.setCheckPoint(res.self.posX, res.self.posY);
     this.map = new MapLayer(res.map);
     this.world.addChildAt(this.map, 0);
     const [, mask] = await Promise.all([this.map.loadInitial(), HitMask.load(res.map.resCode)]);
@@ -186,8 +197,8 @@ export class GameScene {
     this.chat.system(`Đã vào ${res.map.name} (map ${res.map.id}, ${res.map.width}×${res.map.height}, ${npcs.length} NPC)`);
     this.hud.setMap(res.map.name);
     this.updateHud();
+    await this.bag.load().catch((e) => toast((e as Error).message, true)); // before the quests: collect progress counts the bag
     await this.quest.load().catch((e) => toast((e as Error).message, true));
-    await this.bag.load().catch((e) => toast((e as Error).message, true));
   }
 
   private clearScene(): void {
@@ -244,7 +255,7 @@ export class GameScene {
   }
 
   private onTap(e: FederatedPointerEvent): void {
-    if (!this.self || !this.mapInfo || this.chat.focused) return;
+    if (!this.self || !this.mapInfo || this.chat.focused || this.battle.locked) return;
     this.pendingNpc = null;
     this.pendingGate = null;
     const local = this.world.toLocal(e.global);
@@ -279,7 +290,7 @@ export class GameScene {
   /** Gate click (SceneItemView.mouseDown): walk to the clicked point; arriving on the gate sends sceneChange(gateId). */
   private onGateTap(portal: Portal, e: FederatedPointerEvent): void {
     const self = this.self;
-    if (!self || !this.mapInfo || this.chat.focused) return;
+    if (!self || !this.mapInfo || this.chat.focused || this.battle.locked) return;
     e.stopPropagation();
     this.pendingNpc = null;
     const local = this.world.toLocal(e.global);
@@ -308,7 +319,7 @@ export class GameScene {
 
   private onNpcClick(npc: Entity): void {
     const self = this.self;
-    if (!self || !this.mapInfo || this.chat.focused) return;
+    if (!self || !this.mapInfo || this.chat.focused || this.battle.locked) return;
     if (UNSUPPORTED_NPC_TYPES.has(npc.npcType)) {
       toast('Tính năng đang phát triển');
       return;
@@ -379,6 +390,8 @@ export class GameScene {
   private tick(dt: number): void {
     if (!this.self || !this.mapInfo) return;
     this.self.tick(dt);
+    if (this.self.moving) this.battle.onWalking(this.self.x, this.self.y);
+    this.battle.tick(dt);
     this.portals.tick(dt);
     this.hud.setPosition(this.self.x, this.self.y);
     this.closeDialogIfFar();

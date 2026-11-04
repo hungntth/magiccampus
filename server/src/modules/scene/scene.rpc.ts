@@ -94,7 +94,7 @@ export class SceneRpc implements OnModuleInit {
   }
 
   /** Legacy sceneChange(gateInstanceId): walks through a transport gate (login.go / teleport.go). Reply null, push onSceneEnter. */
-  @Rpc('sceneChange', { requireCharacter: true })
+  @Rpc('sceneChange', { requireCharacter: true, forbidInBattle: true })
   async sceneChange(session: Session, args: unknown[]): Promise<null> {
     const gateId = Number(args[0]);
     if (!Number.isInteger(gateId)) throw RpcException.invalidArgs('gateId');
@@ -106,7 +106,7 @@ export class SceneRpc implements OnModuleInit {
   }
 
   /** H5 dev command /go <mapId>: the old map-id sceneChange, arrival at the safe point (or x, y). */
-  @Rpc('gmGoMap', { requireCharacter: true })
+  @Rpc('gmGoMap', { requireCharacter: true, forbidInBattle: true })
   async gmGoMap(session: Session, args: unknown[]): Promise<SceneLoginResponse> {
     const mapId = Number(args[0]);
     const mapRow = this.gameData.getMap(mapId);
@@ -142,6 +142,7 @@ export class SceneRpc implements OnModuleInit {
 
   private async move(session: Session, x: number, y: number, dir: number, route: number[][]): Promise<void> {
     if (!Number.isFinite(x) || !Number.isFinite(y)) throw RpcException.invalidArgs('x/y');
+    if (session.battleId !== null) return; // the map is frozen while fighting
     const now = Date.now();
     if (now - session.lastMoveAt < MOVE_MIN_INTERVAL_MS) return;
     session.lastMoveAt = now;

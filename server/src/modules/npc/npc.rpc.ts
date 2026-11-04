@@ -1,10 +1,11 @@
 // NPC RPCs: clickNpc, npcFuncClick. Pushes (to the caller only; both RPCs return null): npcFuncInit, onOpenShop,
-// onSceneEnter (transport NPCs that teleport on click).
+// onSceneEnter (transport NPCs that teleport on click); quest-battle NPCs (type 10/19/20) start a battle instead.
 
 import { Injectable } from '@nestjs/common';
 import { Rpc } from '../../gateway/rpc.decorator';
 import { RpcException } from '../../gateway/errors';
 import type { Session } from '../../gateway/session';
+import { QuestBattleService } from '../combat/quest-battle.service';
 import { GameDataService, type Row } from '../gamedata/gamedata.service';
 import { QuestService } from '../quest/quest.service';
 import { SceneTransportService } from '../scene/scene-transport.service';
@@ -23,9 +24,10 @@ export class NpcRpc {
     private readonly quests: QuestService,
     private readonly shops: ShopService,
     private readonly transport: SceneTransportService,
+    private readonly questBattle: QuestBattleService,
   ) {}
 
-  @Rpc('clickNpc', { requireCharacter: true })
+  @Rpc('clickNpc', { requireCharacter: true, forbidInBattle: true })
   async clickNpc(session: Session, args: unknown[]): Promise<null> {
     const npc = this.npcOnMap(session, args);
     const teleportMap = CLICK_TELEPORT_NPCS[Number(npc.id)];
@@ -33,6 +35,7 @@ export class NpcRpc {
       await this.teleport(session, teleportMap);
       return null;
     }
+    if (await this.questBattle.tryStart(session, npc)) return null; // onBattleStart replaces the dialog
     const quests = await this.quests.listForNpc(session.characterId!, Number(npc.id));
     // Legacy npc_click.go: a shop NPC without quests opens the shop directly, no npcFuncInit.
     if (this.shopIdOf(npc) > 0 && Object.keys(quests.list).length === 0) {
@@ -44,7 +47,7 @@ export class NpcRpc {
   }
 
   /** Function button of the NPC dialog (Flash NpcFuncPanel): opens the NPC's shop. */
-  @Rpc('npcFuncClick', { requireCharacter: true })
+  @Rpc('npcFuncClick', { requireCharacter: true, forbidInBattle: true })
   async npcFuncClick(session: Session, args: unknown[]): Promise<null> {
     const npc = this.npcOnMap(session, args);
     if (this.shopIdOf(npc) <= 0) throw RpcException.notFound('shop');

@@ -53,8 +53,17 @@ NPC 430 (Sứ Giả Viên) is on **map 3 (Vân Đài)**, so 161 is turned in and
   list, `import-seeds` now logs an ERROR when rows have more values than columns; re-imported `data_tbl_quest`
   (209 quests with a grant). The server caches quests at startup: restart it after a re-import.
 
+## Kill / collect objectives (M2 phase B, 2026-11-04)
+- Supported now: collect (kind 1 / type 29 / q < 0) and kill (kind 2 / type 12).
+  - Kill counts live in `character_quests.objectives[].current` and are credited at battle settle.
+  - `questKill` in `onAddChaQuest` carries the **remaining** count.
+- Collect objectives are bag-derived. `finishQuest` re-syncs from the bag, refuses with "Chưa hoàn thành yêu cầu nhiệm vụ" when short,
+  **consumes** the items (Go `CompleteQuest`), and pushes the slot changes before `onAddMoney`.
+- Grant-item objectives keep the old behaviour: met at accept, not consumed, because `start_grant_item` is not granted into the bag yet.
+- Pure helpers `quest/quest-progress.ts` and shared `questProgress.ts`. Details: `combat.md`.
+
 ## Deferred
-Item/equipment/pet rewards and accept-time grant items (no inventory), kill/collect/pet objectives, quest manager window,
+Item/equipment/pet rewards and accept-time grant items (no inventory), equipment/quality/pet objectives, quest manager window,
 loop/daily/class/guild quests, choose-one rewards, real marker art, HP/MP recalculation, goldBind field, cross-map
 pathing for "Tìm". Quiet the 4 quest RPCs only after the user confirms the feature works.
 

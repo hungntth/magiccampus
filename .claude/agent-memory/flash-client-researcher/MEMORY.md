@@ -1,1 +1,3 @@
 - [Decompile gaps and RPC semantics](decompile_gaps_and_rpc_semantics.md) — CallBack.as/BagPanel.as are empty; fire-and-forget vs Responder; RPC_DELAY drops
+- [Decompile gaps](decompile_gaps.md) — CallBack stub, missing AbstractGameRes/ResManager/BagPanel, verified sheet behavior ids
+- [Combat client map](combat_client_map.md) — battle file cluster and non-obvious facts (star report, cbom throttle)

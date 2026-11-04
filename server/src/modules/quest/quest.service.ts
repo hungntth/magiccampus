@@ -1,5 +1,6 @@
-// Quest logic + persistence: NPC quest lists/markers, take / finish / cancel, active quest DTOs and the
-// login questLog. Rewards: exp (auto level-up < 20) and money; item/pet rewards are not granted yet.
+// Quest logic + persistence: NPC quest lists/markers, take / finish / cancel, active quest DTOs, kill credit and the
+// login questLog. Collect objectives are counted from the bag and consumed on finish. Rewards: exp (auto level-up < 20)
+// and money; item/pet rewards are not granted yet.
 
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -10,6 +11,10 @@ import { RpcException } from '../../gateway/errors';
 import { Character } from '../character/character.schema';
 import { GameDataService } from '../gamedata/gamedata.service';
 import type { QuestTemplate } from '../gamedata/quest-data';
+import { withCharLock } from '../inventory/char-lock';
+import type { Push } from '../inventory/pushes';
+import { allMet, creditKills, initialObjectives, questKillOf } from './quest-progress';
+import { QuestProgressService } from './quest-progress.service';
 import { CharacterQuest, QuestHistory, type QuestObjective } from './quest.schema';
 import {
   acceptBlocker, applyExp, isSupported, npcQuestStates, npcStateOf,
@@ -34,6 +39,13 @@ export interface FinishOutcome {
   qn: number;
   exp: ExpResult;
   money: { key: CreditedMoney; amount: number; total: number } | null;
+  pushes: Push[]; // bag changes from consuming the collected items (sent before the rewards)
+}
+
+/** Quests whose kill counters moved in a battle: the onAddChaQuest payloads and the finish NPCs of the now finishable ones. */
+export interface KillCredit {
+  quests: ChaQuest[];
+  finishNpcs: number[];
 }
 
 type CreditedMoney = Extract<MoneyKey, 'moneyBind' | 'money' | 'gold'>;
@@ -46,7 +58,6 @@ const MONEY_FIELD: Record<number, CreditedMoney> = {
   [MoneyType.GOLD]: 'gold',
 };
 
-const allMet = (objectives: readonly QuestObjective[]): boolean => objectives.every((o) => o.current >= o.required);
 const isDupKey = (e: unknown): boolean => (e as { code?: number } | null)?.code === 11000;
 
 @Injectable()
@@ -56,6 +67,7 @@ export class QuestService {
     @InjectModel(QuestHistory.name) private readonly history: Model<QuestHistory>,
     @InjectModel(Character.name) private readonly characters: Model<Character>,
     private readonly gameData: GameDataService,
+    private readonly progress: QuestProgressService,
   ) {}
 
   async loadCtx(characterId: number): Promise<QuestCtx> {
@@ -65,9 +77,10 @@ export class QuestService {
       this.history.find({ characterId }, { questId: 1 }).lean(),
     ]);
     if (!doc) throw RpcException.notFound('character not found');
+    const synced = await this.progress.syncRows(characterId, rows);
     return {
       char: { level: doc.level, gender: doc.gender, classId: doc.classId },
-      active: new Map(rows.map((r) => [r.questId, { questId: r.questId, takeDate: r.takeDate, objectives: r.objectives }])),
+      active: new Map(synced.map((r) => [r.questId, { questId: r.questId, takeDate: r.takeDate, objectives: r.objectives }])),
       done: new Set(hist.map((h) => h.questId)),
     };
   }
@@ -99,7 +112,7 @@ export class QuestService {
     const list: Record<string, QuestView> = {};
     for (const [qid, state] of states) {
       const tpl = this.gameData.getQuest(qid);
-      if (tpl) list[String(qid)] = await this.toView(tpl, state);
+      if (tpl) list[String(qid)] = await this.toView(tpl, state, ctx.active.get(qid)?.objectives);
     }
     return { state: npcStateOf(states), list };
   }
@@ -114,8 +127,8 @@ export class QuestService {
     if (ctx.active.size >= MAX_QUEST_NUM) throw RpcException.forbidden(`Chỉ được nhận tối đa ${MAX_QUEST_NUM} nhiệm vụ`);
     const blocker = acceptBlocker(ctx.char, tpl, new Set(ctx.active.keys()), ctx.done, this.gameData.questPre(questId));
     if (blocker) throw RpcException.forbidden(blocker);
-    // Supported quests only require the accept-time granted item, so every objective starts met.
-    const objectives: QuestObjective[] = require.map((r) => ({ kind: r.kind, itemId: r.itemId, current: r.num, required: r.num }));
+    // Grant items start met, kills at 0; collect objectives are counted from the bag whenever they are read.
+    const objectives = initialObjectives(tpl, require);
     const takeDate = new Date();
     try {
       await this.quests.create({ characterId, questId, takeDate, objectives });
@@ -123,19 +136,27 @@ export class QuestService {
       if (isDupKey(e)) throw RpcException.forbidden('Đã nhận nhiệm vụ này');
       throw e;
     }
-    return this.toChaQuest(tpl, { questId, takeDate, objectives });
+    const synced = await this.progress.syncObjectives(characterId, tpl, objectives);
+    return this.toChaQuest(tpl, { questId, takeDate, objectives: synced });
   }
 
-  async finish(characterId: number, questId: number, npcId: number, mapId: number): Promise<FinishOutcome> {
+  /** Serialized per character: the collected items are consumed first, then the active row is deleted, then the reward. */
+  finish(characterId: number, questId: number, npcId: number, mapId: number): Promise<FinishOutcome> {
+    return withCharLock(characterId, () => this.finishLocked(characterId, questId, npcId, mapId));
+  }
+
+  private async finishLocked(characterId: number, questId: number, npcId: number, mapId: number): Promise<FinishOutcome> {
     const tpl = this.gameData.getQuest(questId);
     if (!tpl) throw RpcException.notFound('Nhiệm vụ không tồn tại');
-    const row = await this.quests.findOne({ characterId, questId });
+    const row = await this.quests.findOne({ characterId, questId }).lean();
     if (!row) throw RpcException.forbidden('Chưa nhận nhiệm vụ này');
-    if (!allMet(row.objectives)) throw RpcException.forbidden('Chưa hoàn thành yêu cầu nhiệm vụ');
+    const objectives = await this.progress.syncObjectives(characterId, tpl, row.objectives);
+    if (!allMet(objectives)) throw RpcException.forbidden('Chưa hoàn thành yêu cầu nhiệm vụ');
     if (tpl.finishNpc > 0 && (npcId !== tpl.finishNpc || !this.npcOnMap(npcId, mapId))) {
       throw RpcException.forbidden('Không thể trả nhiệm vụ ở đây');
     }
-    // Consume first: only the request that actually deletes the active row gets the reward.
+    // Go CompleteQuest: the collected items are taken out of the bag before the quest is completed and rewarded.
+    const pushes = await this.progress.consumeCollected(characterId, tpl, objectives);
     const del = await this.quests.deleteOne({ _id: row._id });
     if (del.deletedCount !== 1) throw RpcException.forbidden('Chưa nhận nhiệm vụ này');
     await this.history.create({ characterId, questId }).catch((e: unknown) => {
@@ -163,7 +184,7 @@ export class QuestService {
     }
     await doc.save();
     const qn = await this.quests.countDocuments({ characterId });
-    return { tpl, qn, exp, money };
+    return { tpl, qn, exp, money, pushes };
   }
 
   async cancel(characterId: number, questId: number): Promise<{ flag: boolean; qn: number; info?: string; tpl?: QuestTemplate }> {
@@ -177,11 +198,35 @@ export class QuestService {
   }
 
   async active(characterId: number): Promise<ChaQuest[]> {
-    const rows = await this.quests.find({ characterId }).sort({ takeDate: -1 }).lean();
+    const rows = await this.progress.syncRows(characterId, await this.quests.find({ characterId }).sort({ takeDate: -1 }).lean());
     const out: ChaQuest[] = [];
     for (const r of rows) {
       const tpl = this.gameData.getQuest(r.questId);
       if (tpl) out.push(await this.toChaQuest(tpl, r));
+    }
+    return out;
+  }
+
+  /**
+   * Kill credit for a won battle (Go OnMonsterKilled, one call per dead creature): the first incomplete matching kill
+   * objective of each active quest gains +1. Persisted here; the caller pushes the returned quests after battlePlayEnd.
+   */
+  async onCreatureKilled(characterId: number, creatureIds: readonly number[]): Promise<KillCredit> {
+    if (creatureIds.length === 0) return { quests: [], finishNpcs: [] };
+    const rows = await this.quests.find({ characterId }).lean();
+    const moved: ActiveRow[] = [];
+    for (const r of rows) {
+      const credit = creditKills(r.objectives, creatureIds);
+      if (!credit.changed) continue;
+      await this.quests.updateOne({ _id: r._id }, { $set: { objectives: credit.objectives } });
+      moved.push({ questId: r.questId, takeDate: r.takeDate, objectives: credit.objectives });
+    }
+    const out: KillCredit = { quests: [], finishNpcs: [] };
+    for (const row of await this.progress.syncRows(characterId, moved)) {
+      const tpl = this.gameData.getQuest(row.questId);
+      if (!tpl) continue;
+      out.quests.push(await this.toChaQuest(tpl, row));
+      if (allMet(row.objectives) && tpl.finishNpc > 0) out.finishNpcs.push(tpl.finishNpc);
     }
     return out;
   }
@@ -195,11 +240,12 @@ export class QuestService {
     return { questLog: `|${hist.map((h) => `${h.questId}|`).join('')}`, qn };
   }
 
-  async toView(tpl: QuestTemplate, state: number): Promise<QuestView> {
+  /** `objectives` = the active row (for questKill); omitted for a quest not taken yet (every kill still remaining). */
+  async toView(tpl: QuestTemplate, state: number, objectives?: readonly QuestObjective[]): Promise<QuestView> {
+    const rows = this.gameData.questRequire(tpl.id);
     const require: QuestRequire[] = await Promise.all(
-      this.gameData.questRequire(tpl.id).map(async (r) => ({
-        kind: r.kind, type: r.type, itemId: r.itemId, num: r.num, q: r.q,
-        name: r.kind === 1 ? await this.gameData.templateName(r.type, r.itemId) : `#${r.itemId}`,
+      rows.map(async (r) => ({
+        kind: r.kind, type: r.type, itemId: r.itemId, num: r.num, q: r.q, name: await this.requireName(r.kind, r.type, r.itemId),
       })),
     );
     const start = this.gameData.getNpc(tpl.startNpc);
@@ -215,6 +261,7 @@ export class QuestService {
         startNpc: tpl.startNpc, finishNpc: tpl.finishNpc, minLevel: tpl.minLevel, color: tpl.color,
       },
       require,
+      questKill: questKillOf(objectives ?? initialObjectives(tpl, rows)),
       sName: String(start?.name ?? ''),
       sMid: Number(start?.pos_map_id ?? 0),
       sMap: String(startMap?.name ?? ''),
@@ -232,7 +279,12 @@ export class QuestService {
 
   private async toChaQuest(tpl: QuestTemplate, row: ActiveRow): Promise<ChaQuest> {
     const state = allMet(row.objectives) ? QuestState.CAN_FINISH : QuestState.TAKEN;
-    return { ...(await this.toView(tpl, state)), takeDate: row.takeDate.getTime() };
+    return { ...(await this.toView(tpl, state, row.objectives)), takeDate: row.takeDate.getTime() };
+  }
+
+  private requireName(kind: number, type: number, id: number): Promise<string> | string {
+    if (kind === 1) return this.gameData.templateName(type, id);
+    return kind === 2 ? (this.gameData.creature(id)?.name ?? `#${id}`) : `#${id}`;
   }
 
   npcOnMap(npcId: number, mapId: number): boolean {

@@ -1,5 +1,6 @@
 // Quest RPCs: takeQuest, finishQuest, cancelQuest, initQuestManager.
-// Pushes (self): onAddChaQuest, onCancelQuest, onSetNpcState, onAddMoney, onUPP, onPlayerLevelUp.
+// Pushes (self): onAddChaQuest, onCancelQuest, onSetNpcState, onAddMoney, onUPP, onPlayerLevelUp; finishQuest first sends
+// onDelCharactorSlot / onAddCharactorSlot for the collected items it consumed.
 
 import { Injectable } from '@nestjs/common';
 import type {
@@ -9,6 +10,7 @@ import { Rpc } from '../../gateway/rpc.decorator';
 import { RpcException } from '../../gateway/errors';
 import type { Session } from '../../gateway/session';
 import { GameDataService } from '../gamedata/gamedata.service';
+import { sendPushes } from '../inventory/pushes';
 import { CharacterStatsService } from '../stats/character-stats.service';
 import { QuestService } from './quest.service';
 
@@ -51,6 +53,7 @@ export class QuestRpc {
     }
     const out = await this.quests.finish(session.characterId!, questId, npcId, session.mapId);
     const id = session.characterId!;
+    sendPushes(session, out.pushes); // consumed collect items leave the bag before the rewards arrive (Go order)
     const update: PlayerUpdate = { level: out.exp.level, exp: out.exp.exp, attrPoints: out.exp.attrPoints };
     if (out.money) {
       session.callback('onAddMoney', id, out.money.key, out.money.amount, out.money.total);

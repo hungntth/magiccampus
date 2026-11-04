@@ -15,6 +15,8 @@ import { InventoryModule } from './modules/inventory/inventory.module';
 import { SystemModule } from './modules/system/system.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { BuffModule } from './modules/buff/buff.module';
+import { CombatModule } from './modules/combat/combat.module';
+import { SkillModule } from './modules/skill/skill.module';
 
 @Module({
   imports: [
@@ -32,6 +34,7 @@ import { BuffModule } from './modules/buff/buff.module';
     InventoryModule,
     StatsModule,
     BuffModule,
+    CombatModule,
     SystemModule,
   ],
 })

@@ -29,6 +29,6 @@ import { UseItemService } from './use-item.service';
   providers: [
     InventoryService, InventoryRpc, EquipmentService, EquipmentRpc, UseItemService, UseItemRpc, BagOpsService, BagOpsRpc,
   ],
-  exports: [InventoryService],
+  exports: [InventoryService, UseItemService],
 })
 export class InventoryModule {}

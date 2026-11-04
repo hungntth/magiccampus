@@ -20,14 +20,14 @@ function intArg(v: unknown, field: string): number {
 export class BagOpsRpc {
   constructor(private readonly ops: BagOpsService) {}
 
-  @Rpc('moveItem', { requireCharacter: true })
+  @Rpc('moveItem', { requireCharacter: true, forbidInBattle: true })
   moveItem(session: Session, args: unknown[]): Promise<OkReply> {
     const from = intArg(args[0], 'fromSid');
     const to = intArg(args[1], 'toSid');
     return this.run(session, () => this.ops.moveItem(session.characterId!, from, to));
   }
 
-  @Rpc('moveItemNum', { requireCharacter: true })
+  @Rpc('moveItemNum', { requireCharacter: true, forbidInBattle: true })
   moveItemNum(session: Session, args: unknown[]): Promise<OkReply> {
     const from = intArg(args[0], 'fromSid');
     const to = intArg(args[1], 'toSid');
@@ -35,13 +35,13 @@ export class BagOpsRpc {
     return this.run(session, () => this.ops.moveItemNum(session.characterId!, from, to, n));
   }
 
-  @Rpc('dropItem', { requireCharacter: true })
+  @Rpc('dropItem', { requireCharacter: true, forbidInBattle: true })
   dropItem(session: Session, args: unknown[]): Promise<OkReply> {
     const itemId = intArg(args[0], 'itemId');
     return this.run(session, () => this.ops.dropItem(session.characterId!, itemId));
   }
 
-  @Rpc('bagSort', { requireCharacter: true })
+  @Rpc('bagSort', { requireCharacter: true, forbidInBattle: true })
   bagSort(session: Session): Promise<OkReply> {
     return this.run(session, () => this.ops.bagSort(session.characterId!));
   }

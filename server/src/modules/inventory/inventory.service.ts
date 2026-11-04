@@ -5,12 +5,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { BAG_PAGE_SLOTS, SlotType, type BagItem } from '@mc/shared';
+import { BAG_PAGE_SLOTS, ItemKind, SlotType, type BagItem } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
 import { Counter } from '../character/counter.schema';
 import { GameDataService, type Row } from '../gamedata/gamedata.service';
 import { toBagItem, templateTable } from './bag-mapping';
-import { planAdd, sellUnit, type AddSpec, type BagStack } from './bag-rules';
+import { planAdd, planRemove, sellUnit, sidOf, type AddSpec, type BagStack } from './bag-rules';
 import { CharacterItem } from './character-item.schema';
 
 export interface SoldItem {
@@ -97,6 +97,47 @@ export class InventoryService {
     }
     const fresh = await this.items.find({ _id: { $in: changedIds } }).sort({ slotIndex: 1 }).lean();
     return this.mapDocs(fresh);
+  }
+
+  /** Bag units per item template id (ItemKind.ITEM stacks only) for the requested ids. */
+  async countByTemplate(characterId: number, templateIds: readonly number[]): Promise<Map<number, number>> {
+    const out = new Map<number, number>();
+    if (templateIds.length === 0) return out;
+    const docs = await this.items
+      .find({ characterId, slotType: SlotType.BAG, itemType: ItemKind.ITEM, templateId: { $in: [...templateIds] } }, { templateId: 1, stackCount: 1 })
+      .lean();
+    for (const d of docs) out.set(d.templateId, (out.get(d.templateId) ?? 0) + d.stackCount);
+    return out;
+  }
+
+  /**
+   * Consumes `count` units of an item template (quest turn-in). Conditional decrements; a stack that changed under us
+   * undoes the earlier takes and throws. Returns the bag changes as pushes' payload: rows left (updated) and rows deleted.
+   */
+  async removeByTemplate(
+    characterId: number, templateId: number, count: number,
+  ): Promise<{ updated: BagItem[]; deleted: { id: number; sid: number }[] }> {
+    const docs = await this.items.find({ characterId, slotType: SlotType.BAG, itemType: ItemKind.ITEM, templateId }).lean();
+    const plan = planRemove(docs.map(toStack), templateId, ItemKind.ITEM, count);
+    if (!plan) throw RpcException.forbidden('Không đủ vật phẩm yêu cầu');
+    const done: { id: number; take: number }[] = [];
+    try {
+      for (const t of plan.takes) {
+        const r = await this.items.updateOne(
+          { _id: t.id, characterId, slotType: SlotType.BAG, stackCount: { $gte: t.take } },
+          { $inc: { stackCount: -t.take } },
+        );
+        if (r.modifiedCount !== 1) throw RpcException.forbidden('Túi đồ vừa thay đổi, hãy thử lại');
+        done.push(t);
+      }
+    } catch (e) {
+      await Promise.all(done.map((t) => this.items.updateOne({ _id: t.id }, { $inc: { stackCount: t.take } })));
+      throw e;
+    }
+    const gone = plan.takes.filter((t) => t.left <= 0);
+    if (gone.length > 0) await this.items.deleteMany({ _id: { $in: gone.map((t) => t.id) }, characterId, stackCount: { $lte: 0 } });
+    const updated = await this.byIds(characterId, plan.takes.filter((t) => t.left > 0).map((t) => t.id));
+    return { updated, deleted: gone.map((t) => ({ id: t.id, sid: sidOf(t.slotIndex) })) };
   }
 
   /** Deletes a whole bag stack for sale (delete first, so a double click cannot pay twice). */

@@ -19,7 +19,7 @@ function intArg(v: unknown, field: string): number {
 export class ShopRpc {
   constructor(private readonly shop: ShopService) {}
 
-  @Rpc('buyAmountItemClient', { requireCharacter: true })
+  @Rpc('buyAmountItemClient', { requireCharacter: true, forbidInBattle: true })
   async buy(session: Session, args: unknown[]): Promise<number> {
     try {
       const slotId = intArg(args[0], 'shopSlotId');
@@ -36,7 +36,7 @@ export class ShopRpc {
     }
   }
 
-  @Rpc('sellItem', { requireCharacter: true })
+  @Rpc('sellItem', { requireCharacter: true, forbidInBattle: true })
   async sell(session: Session, args: unknown[]): Promise<boolean> {
     try {
       const itemId = intArg(args[0], 'itemId');

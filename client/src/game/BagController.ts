@@ -66,8 +66,20 @@ export class BagController {
     this.changed();
   }
 
+  /** Every bag and equipped item (the battle potion list filters it). */
+  list(): BagItem[] {
+    return [...this.items.values()].filter((i) => i.slotType === SlotType.BAG);
+  }
+
   find(id: number): BagItem | undefined {
     return this.items.get(id);
+  }
+
+  /** Units of an item template in the bag (quest collect progress). */
+  countOf(templateId: number): number {
+    let n = 0;
+    for (const it of this.items.values()) if (it.slotType === SlotType.BAG && it.tid === templateId) n += it.stackNum;
+    return n;
   }
 
   /** Equipped items by equipment sid (1..22). */

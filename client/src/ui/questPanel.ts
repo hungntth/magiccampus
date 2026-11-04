@@ -2,7 +2,7 @@
 // name, NPC speech and Nhận / Xong / Bỏ; right = "Mô tả nvụ" description (type prefix, name, info, requirements,
 // start/finish NPC with map) and the Tiền / Exp / Quà rewards. Drag by the title bar, Esc or × closes.
 
-import { MoneyType, QuestState, QuestType, type QuestView } from '@mc/shared';
+import { MoneyType, QuestState, QuestType, requireLabel, type QuestView, type RequireProgress } from '@mc/shared';
 import { iconUrl } from '../assets';
 import { stageEl } from './stage';
 import { closeOnEscape, makeDraggable } from './panelBehavior';
@@ -17,6 +17,7 @@ const PREFIX_COLOR = '#1E90FF';
 const GIFT_SLOTS = 6;
 
 export interface QuestPanelOpts {
+  progress: { lines: RequireProgress[]; finishable: boolean }; // per-requirement counts; finishable = can be turned in now
   npcId: number | null; // NPC the panel was opened at; null = from the tracker
   npcName: string;
   iconCode: string;
@@ -28,10 +29,16 @@ export interface QuestPanelOpts {
 export class QuestPanel {
   private root: HTMLElement | null = null;
   private qid: number | null = null;
+  private shown: { view: QuestView; opts: QuestPanelOpts } | null = null;
   private offs: (() => void)[] = [];
 
   get questId(): number | null {
     return this.qid;
+  }
+
+  /** The quest currently shown (so the controller can re-render it when counters change). */
+  current(): { view: QuestView; opts: QuestPanelOpts } | null {
+    return this.shown;
   }
 
   show(view: QuestView, opts: QuestPanelOpts): void {
@@ -46,7 +53,7 @@ export class QuestPanel {
 
     const body = el('div', 'qp-body');
     body.appendChild(this.leftColumn(view, opts));
-    body.append(el('div', 'qp-label qp-desc-label', 'Mô tả nvụ'), description(view));
+    body.append(el('div', 'qp-label qp-desc-label', 'Mô tả nvụ'), description(view, opts.progress.lines));
     const money = view.data.moneyNum;
     const gold = view.data.moneyType === MoneyType.GOLD || view.data.moneyType === MoneyType.GOLD_BIND;
     body.append(el('div', 'qp-label', 'Tiền'), reward(gold ? 'qp-coin gold' : 'qp-coin', money > 0 ? money : 0));
@@ -59,6 +66,7 @@ export class QuestPanel {
     stageEl().appendChild(root);
     this.root = root;
     this.qid = view.qid;
+    this.shown = { view, opts };
     this.offs.push(makeDraggable(root, header), closeOnEscape(() => this.close()));
   }
 
@@ -68,6 +76,7 @@ export class QuestPanel {
     this.root?.remove();
     this.root = null;
     this.qid = null;
+    this.shown = null;
   }
 
   private leftColumn(view: QuestView, opts: QuestPanelOpts): HTMLElement {
@@ -85,7 +94,8 @@ export class QuestPanel {
     name.title = name.textContent ?? '';
     head.append(portrait, name);
     // NPC speech: the accept text until the quest can be turned in, then the completion text.
-    const speech = view.state === QuestState.CAN_FINISH ? view.data.completeText || view.data.startText : view.data.startText;
+    const finishable = opts.progress.finishable;
+    const speech = finishable ? view.data.completeText || view.data.startText : view.data.startText;
     left.append(head, el('div', 'qp-speech', speech || '…'));
 
     const actions = el('div', 'qp-actions');
@@ -94,7 +104,7 @@ export class QuestPanel {
     } else if (view.state === QuestState.TAKEN || view.state === QuestState.CAN_FINISH) {
       if (view.data.finishNpc <= 0 || opts.npcId === view.data.finishNpc) {
         const done = button('Xong', opts.onFinish);
-        done.disabled = view.state !== QuestState.CAN_FINISH;
+        done.disabled = !finishable;
         actions.appendChild(done);
       }
       const give = button('Bỏ', opts.onCancel);
@@ -107,7 +117,7 @@ export class QuestPanel {
 }
 
 /** QuestCanvas info box: "[Phụ][Name]", info, "Yêu cầu nhiệm vụ:" lines, then the start / finish NPC with their maps. */
-function description(view: QuestView): HTMLElement {
+function description(view: QuestView, progress: readonly RequireProgress[]): HTMLElement {
   const box = el('div', 'qp-desc');
   const title = el('div', 'qp-qname');
   const prefix = TYPE_PREFIX[view.data.type];
@@ -116,10 +126,9 @@ function description(view: QuestView): HTMLElement {
   box.appendChild(title);
   if (view.data.info) box.appendChild(el('div', 'qp-line', view.data.info));
   box.appendChild(el('div', 'qp-line', 'Yêu cầu nhiệm vụ:'));
-  const met = view.state === QuestState.CAN_FINISH;
-  for (const r of view.require) {
+  for (const p of progress) {
     const line = el('div', 'qp-line qp-indent');
-    line.append(colored(r.name, ITEM_COLOR[0]), ` (${met ? r.num : 0}/${r.num})`);
+    line.append(colored(requireLabel(p), p.done ? '#7fd17f' : ITEM_COLOR[0]));
     box.appendChild(line);
   }
   if (view.sName) box.appendChild(npcLine('NPC nhận nhiệm vụ: ', view.sName, view.sMap));

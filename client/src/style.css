@@ -484,3 +484,12 @@ body {
   color: #7fd17f;
   text-decoration: underline;
 }
+
+.quest-tracker .qt-req {
+  padding-left: 12px;
+  color: #d8d8d8;
+}
+
+.quest-tracker .qt-req.done {
+  color: #7fd17f;
+}

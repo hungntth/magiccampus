@@ -10,7 +10,8 @@
     "test": "node --test --import tsx ./src/**/*.test.ts",
     "import:seeds": "tsx tools/import-seeds.ts",
     "resmap": "tsx tools/resmap.ts",
-    "fix:char-attributes": "tsx tools/fix-char-attributes.ts"
+    "fix:char-attributes": "tsx tools/fix-char-attributes.ts",
+    "learn:start-skills": "tsx tools/learn-start-skills.ts"
   },
   "dependencies": {
     "@mc/shared": "workspace:*",

@@ -1,7 +1,7 @@
-// On-screen quest tracker (legacy QuestGuide.as): active quests by take date, type prefix, and a
-// "Tìm <NPC>" link when the quest can be turned in.
+// On-screen quest tracker (legacy QuestGuide.as): active quests by take date, type prefix, one progress line per
+// requirement (kills from questKill, items from the bag) and a "Tìm <NPC>" link when the quest can be turned in.
 
-import { QuestState, type ChaQuest } from '@mc/shared';
+import { requireLabel, type ChaQuest, type RequireProgress } from '@mc/shared';
 
 // QUESTGUIDE_S prefixes by quest type.
 export const TYPE_PREFIX: Record<number, string> = {
@@ -16,6 +16,7 @@ export class QuestTracker {
     parent: HTMLElement,
     private readonly onOpen: (q: ChaQuest) => void,
     private readonly onFind: (q: ChaQuest) => void,
+    private readonly progressOf: (q: ChaQuest) => { lines: RequireProgress[]; finishable: boolean },
   ) {
     this.root = document.createElement('div');
     this.root.className = 'quest-tracker';
@@ -38,12 +39,19 @@ export class QuestTracker {
       name.textContent = `${TYPE_PREFIX[q.data.type] ?? ''} ${q.data.name}`.trim();
       name.onclick = () => this.onOpen(q);
       item.appendChild(name);
-      if (q.state === QuestState.CAN_FINISH && q.fName) {
+      const progress = this.progressOf(q);
+      if (progress.finishable && q.fName) {
         const find = document.createElement('a');
         find.className = 'qt-find';
         find.textContent = ` • Tìm ${q.fName}`;
         find.onclick = () => this.onFind(q);
         item.appendChild(find);
+      }
+      for (const line of progress.lines) {
+        const row = document.createElement('div');
+        row.className = `qt-req${line.done ? ' done' : ''}`;
+        row.textContent = requireLabel(line);
+        item.appendChild(row);
       }
       this.list.appendChild(item);
     }

@@ -49,8 +49,8 @@ export const Behavior = {
   RUN_FAST: 1,
   RUN: 2,
   ATTACK: 3,
-  HURT: 4,
-  DEAD: 5,
+  DEAD: 4, // lying pose (verified on the sheets; the converter doc used to list 4 as HURT)
+  HURT: 5,
   DEFENCE: 6,
   MAGIC: 7,
 } as const;

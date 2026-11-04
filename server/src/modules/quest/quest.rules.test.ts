@@ -56,8 +56,19 @@ test('isSupported', () => {
   assert.equal(isSupported(tpl({ type: 6 }), []), false);
   const granted = tpl({ id: 160, startGrantItem: 335, startGrantQty: 1 });
   assert.equal(isSupported(granted, [{ qid: 160, kind: 1, type: 29, itemId: 335, num: 1, q: -1 }]), true);
-  assert.equal(isSupported(granted, [{ qid: 160, kind: 1, type: 29, itemId: 336, num: 1, q: -1 }]), false);
-  assert.equal(isSupported(tpl(), [{ qid: 1, kind: 2, type: 12, itemId: 5, num: 10, q: -1 }]), false);
+  assert.equal(isSupported(granted, [{ qid: 160, kind: 1, type: 29, itemId: 336, num: 1, q: -1 }]), true); // plain collect
+  assert.equal(isSupported(tpl(), [{ qid: 1, kind: 3, type: 12, itemId: 5, num: 1, q: -1 }]), false); // pet objective
+  assert.equal(isSupported(tpl(), [{ qid: 1, kind: 1, type: 19, itemId: 5, num: 1, q: -1 }]), false); // equipment
+  assert.equal(isSupported(tpl(), [{ qid: 1, kind: 1, type: 29, itemId: 5, num: 1, q: 2 }]), false); // quality filter
+});
+
+test('isSupported: quests 47-50 (collect 516 / 30 / 1684, kill creature 157)', () => {
+  const collect = (qid: number, itemId: number) => [{ qid, kind: 1, type: 29, itemId, num: 1, q: -1 }];
+  assert.equal(isSupported(tpl({ id: 47, minLevel: 3 }), collect(47, 516)), true);
+  assert.equal(isSupported(tpl({ id: 48, minLevel: 3 }), collect(48, 30)), true);
+  assert.equal(isSupported(tpl({ id: 49, minLevel: 3 }), collect(49, 1684)), true);
+  assert.equal(isSupported(tpl({ id: 50, minLevel: 5 }), [{ qid: 50, kind: 2, type: 12, itemId: 157, num: 1, q: 1 }]), true);
+  assert.equal(isSupported(tpl({ id: 50, type: 6 }), [{ qid: 50, kind: 2, type: 12, itemId: 157, num: 1, q: 1 }]), false);
 });
 
 test('applyExp: level-up thresholds and cap', () => {

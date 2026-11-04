@@ -2,10 +2,10 @@
 // markers (onSetNpcState), rewards (onUPP / onAddMoney / onPlayerLevelUp), the quest panel and tracker.
 // RPCs: takeQuest, finishQuest, cancelQuest (throttled to 1 / 1100 ms each), initQuestManager on scene load.
 
-import { MAX_QUEST_NUM } from '@mc/shared';
+import { isFinishable, MAX_QUEST_NUM, QuestState, requireProgress } from '@mc/shared';
 import type {
   CancelQuestResult, ChaQuest, FinishQuestArg, FinishQuestReply, InitQuestManagerReply, PlayerData,
-  PlayerLevelUp, PlayerUpdate, QuestView,
+  PlayerLevelUp, PlayerUpdate, QuestView, RequireProgress,
 } from '@mc/shared';
 import type { GameClient } from '../net/client';
 import type { ChatBox } from '../ui/chat';
@@ -25,6 +25,7 @@ export interface QuestHost {
   mapId(): number;
   talkToNpc(id: number): void;
   playerChanged(): void;
+  bagCount(templateId: number): number;
 }
 
 export class QuestController {
@@ -36,10 +37,13 @@ export class QuestController {
   private pendingMoney = ''; // onAddMoney arrives just before onUPP; reported together
 
   constructor(private readonly host: QuestHost, ui: HTMLElement) {
-    this.tracker = new QuestTracker(ui, (q) => this.openFromTracker(q), (q) => this.find(q));
+    this.tracker = new QuestTracker(ui, (q) => this.openFromTracker(q), (q) => this.find(q), (q) => this.progressOf(q));
     const c = host.client;
     this.offs.push(
       c.on('onAddChaQuest', (d) => this.onAdd(d as ChaQuest)),
+      // The bag changes after this handler (BagController registers later): re-render once it has applied the push.
+      c.on('onAddCharactorSlot', () => this.refreshSoon()),
+      c.on('onDelCharactorSlot', () => this.refreshSoon()),
       c.on('onCancelQuest', (d) => this.onCancel(d as CancelQuestResult)),
       c.on('onSetNpcState', (id, state) => this.host.npc(Number(id))?.setQuestState(Number(state))),
       c.on('onUPP', (d) => this.onUpdate(d as PlayerUpdate)),
@@ -74,8 +78,26 @@ export class QuestController {
     this.showPanel(q, null, '');
   }
 
+  /** Requirement lines and whether the quest can be turned in: the server state, or the bag / kill counters. */
+  private progressOf(view: QuestView): { lines: RequireProgress[]; finishable: boolean } {
+    const lines = requireProgress(view, QuestState.CAN_FINISH, (id) => this.host.bagCount(id));
+    const taken = view.state === QuestState.TAKEN || view.state === QuestState.CAN_FINISH;
+    return { lines, finishable: taken && isFinishable(lines, view.state === QuestState.CAN_FINISH) };
+  }
+
+  private refreshSoon(): void {
+    setTimeout(() => {
+      this.tracker.render(this.quests.values());
+      const open = this.panel.current();
+      if (!open) return;
+      const view = this.quests.get(open.view.qid) ?? open.view;
+      this.panel.show(view, { ...open.opts, progress: this.progressOf(view) });
+    }, 0);
+  }
+
   private showPanel(view: QuestView, npcId: number | null, npcName: string): void {
     this.panel.show(view, {
+      progress: this.progressOf(view),
       npcId,
       npcName,
       iconCode: npcId !== null ? this.host.npcIcon(npcId) : '0',
@@ -128,11 +150,14 @@ export class QuestController {
     else toast(`${q.fName} ở bản đồ ${q.pos.name || q.pos.map}`);
   }
 
+  /** onAddChaQuest = a newly taken quest, or an update of one we already track (kill counters). */
   private onAdd(q: ChaQuest): void {
+    const isNew = !this.quests.has(q.qid);
     this.quests.set(q.qid, q);
     this.host.player.qn = this.quests.size;
     this.tracker.render(this.quests.values());
-    this.host.chat.system(`Nhận nhiệm vụ: ${q.data.name}`);
+    if (isNew) this.host.chat.system(`Nhận nhiệm vụ: ${q.data.name}`);
+    if (this.panel.questId === q.qid) this.refreshSoon();
   }
 
   private onCancel(r: CancelQuestResult): void {

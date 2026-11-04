@@ -13,6 +13,10 @@ export class Session {
   characterName: string | null = null;
   mapId = 0;
   lastMoveAt = 0;
+  /** Active battle (combat module); set from battle start until battlePlayEnd. */
+  battleId: string | null = null;
+  /** Epoch ms before which cbom cannot start a random encounter. */
+  encounterUntil = 0;
 
   constructor(readonly socket: WebSocket) {
     this.id = nextSessionId++;
