@@ -5,7 +5,7 @@
   left: calc(50% - 256px);
   top: 8%;
   width: 512px;
-  height: 342px;
+  height: 364px;
   padding: 32px 12px 10px;
   box-sizing: border-box;
   background: linear-gradient(180deg, #1d4a72 0%, #123553 40%, #0e2a45 100%);
@@ -66,7 +66,7 @@
 .char-equip {
   position: absolute;
   left: 12px;
-  top: 32px;
+  top: 54px;
   width: 276px;
   height: 298px;
   background: #0d2d4a;
@@ -189,3 +189,36 @@
   border-radius: 4px;
   background: linear-gradient(180deg, #ffc65a 0%, #f08a1c 55%, #d96a0a 100%);
 }
+
+.char-titles.char-features { left: 84px; }
+
+.char-titles {
+  z-index: 1;
+  position: absolute;
+  top: 4px;
+  left: 8px;
+  height: 20px;
+  padding: 0 8px;
+  border: 1px solid var(--char-gold);
+  border-radius: 4px;
+  background: linear-gradient(180deg, #3e7fb5 0%, #1c4c7a 100%);
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Equipment / Thần khí tabs and the magic weapon tool buttons */
+.char-tabs { position: absolute; left: 12px; top: 32px; width: 276px; display: flex; gap: 4px; }
+.char-tab {
+  flex: 1;
+  height: 20px;
+  padding: 0;
+  border: 1px solid #4f86b3;
+  border-radius: 4px 4px 0 0;
+  background: #0d2d4a;
+  color: #bcd6ea;
+  font: inherit;
+  cursor: pointer;
+}
+.char-tab.on { background: #2a6aa0; color: #ffe9a8; border-color: var(--char-gold); }
+.char-mwtools { position: absolute; left: 0; right: 0; bottom: 8px; display: flex; justify-content: center; gap: 10px; }

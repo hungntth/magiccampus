@@ -2,6 +2,7 @@
 
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { AchievementState, AchievementStateSchema } from '../achievement/achievement.schema';
 import { Character, CharacterSchema } from '../character/character.schema';
 import { Guild, GuildMemberRow, GuildMemberSchema, GuildSchema } from '../guild/guild.schema';
 import { RankingRpc } from './ranking.rpc';
@@ -13,6 +14,7 @@ import { RankingService } from './ranking.service';
       { name: Character.name, schema: CharacterSchema },
       { name: Guild.name, schema: GuildSchema },
       { name: GuildMemberRow.name, schema: GuildMemberSchema },
+      { name: AchievementState.name, schema: AchievementStateSchema },
     ]),
   ],
   providers: [RankingService, RankingRpc],

@@ -2,10 +2,11 @@
 // Reads the equipment template lines, overridden by instance rolls (crafted quality), the star multiplier and socketed gems
 // (flat props through EQUIP_PROP); souls are not ported.
 
-import { MAX_HOLES, starMultiplier } from '@mc/shared';
+import { MAX_HOLES, MW, starMultiplier } from '@mc/shared';
 import { addProp, emptyBonuses, EQUIP_PROP, type Bonuses } from '../character/character-stats';
 
 type Tpl = Record<string, unknown>;
+const MW_KIND = MW.KIND;
 
 const int = (v: unknown): number => {
   const n = Math.trunc(Number(v ?? 0));
@@ -58,7 +59,8 @@ export function gemLinesOf(props: object | undefined, gemTpls: ReadonlyMap<numbe
 export function equipBonusesOf(entries: readonly EquipEntry[]): Bonuses {
   const b = emptyBonuses();
   for (const { tpl, props = {}, star = 0, gems = [] } of entries) {
-    const mult = starMultiplier(star);
+    // Magic weapons (kind 8) keep their upgrade level in `star`, but the ladder values are already written into the lines.
+    const mult = int(tpl.kind) === MW_KIND ? 1 : starMultiplier(star);
     for (const n of [1, 2]) {
       const own = int(props[`mainProp${n}`]);
       const prop = own > 0 ? own : int(tpl[`main_prop${n}`]);

@@ -9,6 +9,11 @@ import type { MapInfo, SceneNpc } from '@mc/shared';
 import { buildRecipePlans, type RecipePlan } from './forge-data';
 import { buildGuildBuildingTables, buildGuildSkillTables, type GuildBuildingTables, type GuildLot, type GuildSkillTables } from './guild-data';
 import type { BuildingRow, GuildSkillRow } from '@mc/shared';
+import { buildHeiyaoshiTables, type HeiyaoshiTables } from './heiyaoshi-data';
+import { artifactRowAt, buildArtifactTables, cumulativeSpirit, type ArtifactRow, type ArtifactTables, type MwSkill } from './artifact-data';
+import { buildStarTables, starKey, type StarTables, type StarTemplate } from './star-data';
+import { buildFeatureTables, type AwakenRow, type AwakenSkillRow, type FeatureTables, type SoulRow, type WspRow } from './feature-data';
+import { buildNameIndex, nameKey } from './name-index';
 import { isNpcVisible } from './npc-visibility';
 import { buildSceneItemTables, type SceneItemRow, type SceneItemTables } from './sceneitem-data';
 import {
@@ -35,6 +40,8 @@ const TEMPLATE_FIELDS = {
   level: 1, item_level: 1, next_jewel_tid: 1, prop_type: 1, propl_num: 1, hole_num: 1,
   // forge upgrades: tier upgrade target, soul (active prop) template values
   next_equ_tid: 1, active_prop_type: 1, active_prop_num: 1,
+  // magic weapon: pipe list of skill ids (first = base skill)
+  artifact_skill: 1,
 };
 
 @Injectable()
@@ -50,6 +57,12 @@ export class GameDataService implements OnModuleInit {
   private shopSlotsBySid = new Map<number, Row[]>();
   private shopSlotsById = new Map<number, Row>();
   private buffs = new Map<number, Row>();
+  private titles = new Map<number, Row>();
+  private titleNames = new Map<string, number[]>();
+  private creatureNames = new Map<string, number[]>();
+  private achievements: Row[] = [];
+  private achievementRequires: Row[] = [];
+  private itemNames: Map<string, number[]> | null = null;
   private combat: CombatTables = buildCombatTables([], []);
   private skills = new Map<number, SkillTemplate>();
   private skillsByName = new Map<string, SkillTemplate[]>(); // pet skill books resolve skills by exact name
@@ -58,6 +71,10 @@ export class GameDataService implements OnModuleInit {
   private makable: Row[] | null = null;
   private guildBuildings: GuildBuildingTables = buildGuildBuildingTables([], []);
   private guildSkills: GuildSkillTables = buildGuildSkillTables([]);
+  private features: FeatureTables = buildFeatureTables([], [], [], []);
+  private heiyaoshi: HeiyaoshiTables = buildHeiyaoshiTables([], [], [], [], []);
+  private stars: StarTables = buildStarTables([]);
+  private artifacts: ArtifactTables = buildArtifactTables([], []);
 
   constructor(@InjectConnection() private readonly conn: Connection) {}
 
@@ -101,10 +118,16 @@ export class GameDataService implements OnModuleInit {
       this.shopSlotsBySid.get(sid)!.push(slot);
     }
     this.buffs = await this.indexById('data_tbl_buff');
+    this.titles = await this.indexById('data_tbl_title');
+    this.titleNames = buildNameIndex(this.titles.values(), 'n');
+    this.achievements = await this.rows('data_tbl_achievement');
+    this.achievementRequires = await this.rows('data_tbl_achievement_require');
+    this.itemNames = null;
     const [mapCreatures, creatures, loot] = await Promise.all([
       this.rows('data_tbl_map_creature'), this.rows('data_tbl_creature'), this.rows('data_tbl_creature_loot'),
     ]);
     this.combat = buildCombatTables(mapCreatures, creatures, loot);
+    this.creatureNames = buildNameIndex(creatures, 'name');
     this.pets = buildPetTables(creatures, await this.rows('data_tbl_creature_skill'));
     this.skills = buildSkillTable(await this.rows('data_tbl_skill'));
     this.skillsByName = skillsByName(this.skills);
@@ -112,6 +135,16 @@ export class GameDataService implements OnModuleInit {
     this.makable = null;
     this.guildBuildings = buildGuildBuildingTables(await this.rows('data_tbl_building'), await this.rows('data_tbl_extend_position', { mid: 49 }));
     this.guildSkills = buildGuildSkillTables(await this.rows('data_tbl_skill', { use_env: 4 }));
+    this.features = buildFeatureTables(
+      await this.rows('data_tbl_soul'), await this.rows('data_tbl_awakening'), await this.rows('data_tbl_awakening_skill'),
+      await this.rows('data_tbl_war_sprite'),
+    );
+    this.heiyaoshi = buildHeiyaoshiTables(
+      await this.rows('data_tbl_heiyaoshi_point'), await this.rows('data_tbl_heiyaoshi_point_link'), await this.rows('data_tbl_heiyaoshi_area'),
+      await this.rows('data_tbl_heiyaoshi_area_attribute'), await this.rows('data_tbl_heiyaoshi_full_buff'),
+    );
+    this.stars = buildStarTables(await this.rows('data_tbl_stars_template'));
+    this.artifacts = buildArtifactTables(await this.rows('data_tbl_artifact'), await this.rows('data_tbl_skill', { use_env: 5 }));
     this.logger.log(
       `Loaded ${this.maps.size} maps, ${this.classes.size} classes, ${npcs.length} npcs, ` +
         `${quests.length} quests (${requires.length} require, ${pres.length} pre, ${awards.length} award), ` +
@@ -220,6 +253,39 @@ export class GameDataService implements OnModuleInit {
     return this.buffs.get(id);
   }
 
+  /** Title template (data_tbl_title: n name, a style, b buff id, k kind, s special flag), cached at startup. */
+  getTitle(id: number): Row | undefined {
+    return this.titles.get(id);
+  }
+
+  /** Lowest title id whose name equals `name` (case / spacing insensitive), or undefined. */
+  titleIdByName(name: string): number | undefined {
+    return this.titleNames.get(nameKey(name))?.[0];
+  }
+
+  /** Creature template ids whose name equals `name` exactly (achievement kill targets). */
+  creatureIdsByName(name: string): readonly number[] {
+    return this.creatureNames.get(nameKey(name)) ?? [];
+  }
+
+  /** Raw achievement tables (data_tbl_achievement / data_tbl_achievement_require), cached at startup. */
+  achievementRows(): readonly Row[] {
+    return this.achievements;
+  }
+
+  achievementRequireRows(): readonly Row[] {
+    return this.achievementRequires;
+  }
+
+  /** Lowest item template id (data_tbl_item_template) with this exact name, or undefined; the name table loads on first use. */
+  async itemIdByName(name: string): Promise<number | undefined> {
+    if (!this.itemNames) {
+      const rows = await this.conn.db!.collection<Row>('data_tbl_item_template').find({}, { projection: { id: 1, name: 1 } }).toArray();
+      this.itemNames = buildNameIndex(rows, 'name');
+    }
+    return this.itemNames.get(nameKey(name))?.[0];
+  }
+
   /** Spawn rows (data_tbl_map_creature) of a map, boss rows included. */
   mapCreatures(mapId: number): MapCreatureRow[] {
     return this.combat.mapCreatures.get(mapId) ?? [];
@@ -279,6 +345,58 @@ export class GameDataService implements OnModuleInit {
 
   guildSkillChains(): Map<string, GuildSkillRow[]> {
     return this.guildSkills.chains;
+  }
+
+  /** Train soul row of a level (data_tbl_soul id = level 1..100), cached at startup. */
+  soulRow(level: number): SoulRow | undefined {
+    return this.features.soul.get(level);
+  }
+
+  /** Awakening row of a TARGET level (data_tbl_awakening id = level 1..77) and the skill rows, cached at startup. */
+  awakenRow(level: number): AwakenRow | undefined {
+    return this.features.awakening.get(level);
+  }
+
+  awakenSkillRow(id: number): AwakenSkillRow | undefined {
+    return this.features.awakenSkills.get(id);
+  }
+
+  awakenSkillRows(): AwakenSkillRow[] {
+    return [...this.features.awakenSkills.values()];
+  }
+
+  /** War sprite template (data_tbl_war_sprite: kind 1 level-up chain, kind 2 evolve chain), cached at startup. */
+  warSpriteRow(id: number): WspRow | undefined {
+    return this.features.warSprites.get(id);
+  }
+
+  /** Heiyaoshi topology (points / links, stage-1 triangles, completion bonuses), cached at startup. */
+  heiyaoshiTables(): HeiyaoshiTables {
+    return this.heiyaoshi;
+  }
+
+  /** Zodiac star template by row id or by (type 1..12, level 1..12), cached at startup. */
+  starTemplate(id: number): StarTemplate | undefined {
+    return this.stars.byId.get(id);
+  }
+
+  starTemplateAt(type: number, level: number): StarTemplate | undefined {
+    return this.stars.byTypeLevel.get(starKey(type, level));
+  }
+
+  /** Magic weapon ladder row of a main template at a level (data_tbl_artifact, 50 levels per tid), cached at startup. */
+  artifactRow(tid: number, level: number): ArtifactRow | undefined {
+    return artifactRowAt(this.artifacts, tid, level);
+  }
+
+  /** Spirituality paid to reach `level` from 0 (resolve refund base). */
+  artifactSpiritTotal(tid: number, level: number): number {
+    return cumulativeSpirit(this.artifacts, tid, level);
+  }
+
+  /** Magic weapon skills (data_tbl_skill use_env = 5): the reset pool and the name lookup. */
+  mwSkills(): ReadonlyMap<number, MwSkill> {
+    return this.artifacts.skills;
   }
 
   /** Equipment templates with makable == 1 (the craft recipes), loaded once and cached. */

@@ -120,6 +120,17 @@ export class Character {
   @Prop({ default: 1 })
   bankSlotNum: number;
 
+  // Special currencies (M7): key -> balance (shared CURRENCY_IDS keys). Spent with a conditional $inc, never read-modify-write.
+  @Prop({ type: Object, default: {} })
+  currencies: Record<string, number>;
+
+  // Active titles (M7): data_tbl_title ids, 0 = none. Ownership lives in character_titles.
+  @Prop({ default: 0 })
+  titleId: number;
+
+  @Prop({ default: 0 })
+  actTitleId: number;
+
   @Prop({ default: false })
   deleted: boolean;
 

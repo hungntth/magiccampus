@@ -120,7 +120,7 @@ export class GameScene {
       onGuild: () => this.guild.toggle(), onPk: () => this.social.pk.begin(),
       onShop: () => void this.mall.toggle(),
       onForge: (tab) => this.forge.open(tab),
-      onRank: () => this.ranking.toggle(),
+      onRank: () => this.ranking.toggle(), onAchieve: () => this.character.toggleAchievements(),
       onPet: () => this.pet.toggle(),
       onLevelUp: () => this.character.levelUp(),
       onRecover: (kind) => this.bag.actions.recover(kind),
@@ -139,7 +139,7 @@ export class GameScene {
     this.forge = new ForgeController(client, this.bag, () => player);
     this.ranking = new RankingPanel(client);
     this.trade = new TradeController({ client, player, bag: this.bag });
-    this.character = new CharacterController({ client, player, bag: this.bag });
+    this.character = new CharacterController({ client, player, bag: this.bag, entityOf });
     this.guild = new GuildController({ client, player, bagItems: () => this.bag.list(), entities: this.entityLayer });
     this.pet = new PetController({ client, player, chat: this.chat, bag: this.bag, setBattlePet: (p) => this.hud.setBattlePet(p) });
     this.battle = new BattleController({
@@ -176,9 +176,7 @@ export class GameScene {
     for (const off of this.offs) off();
     const { social, party, friends, guild, trade, quest, bag, character, pet, petLayer, battle, hud } = this;
     for (const c of [social, party, friends, guild, trade, quest, bag, character, pet, petLayer, battle, hud]) c.destroy();
-    this.mall.destroy();
-    this.forge.destroy();
-    this.ranking.destroy();
+    for (const c of [this.mall, this.forge, this.ranking]) c.destroy();
     this.panels.closeAll();
     this.pendingNpc = null;
     this.app.ticker.stop();
@@ -212,6 +210,7 @@ export class GameScene {
     this.self = new Entity(res.self.id, 'self', res.self.name, res.self.iconCode, res.self.resCode, res.self.posX, res.self.posY, res.self.posDir);
     this.entityLayer.addChild(this.self);
     this.party.track(res.self);
+    this.character.applyTitles(this.self, res.self);
     this.petLayer.fromScene(res.self);
 
     const [peers, npcs, items] = await Promise.all([
@@ -271,6 +270,7 @@ export class GameScene {
     this.players.set(data.id, e);
     this.social.bindPlayer(e, data.name);
     this.entityLayer.addChild(e);
+    this.character.applyTitles(e, data);
     this.party.track(data);
     this.petLayer.fromScene(data);
   }

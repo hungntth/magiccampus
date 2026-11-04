@@ -1,6 +1,6 @@
-// Chat slash commands for the world scene: /go <mapId> (gmGoMap, dev teleport), /maps (getMapList), /tp (teleport map picker: scroll or gold), /buff <id> [seconds] (gmAddBuff).
+// Chat slash commands for the world scene: /go <mapId> (gmGoMap, dev teleport), /maps (getMapList), /tp (teleport map picker: scroll or gold), /buff <id> [seconds] (gmAddBuff), /grant <currency|item|title> <id> <n> (gmGrant).
 
-import type { SceneLoginResponse } from '@mc/shared';
+import type { GmGrantResult, SceneLoginResponse } from '@mc/shared';
 import type { GameClient } from '../net/client';
 import type { ChatBox } from '../ui/chat';
 
@@ -39,6 +39,16 @@ export async function runSceneCommand(
         return;
       }
       await client.call('gmAddBuff', id, secs);
+      return;
+    }
+    if (cmd === 'grant') {
+      const kind = args[0];
+      if (!['currency', 'item', 'title', 'equip'].includes(kind ?? '') || args[1] === undefined) {
+        chat.system('Dùng: /grant <currency|item|title|equip> <id> [n] [khóa] (currency: tên hoặc id, vd spirituality; title: n = giây, 0 = vĩnh viễn; equip: id trang bị, khóa = 1)');
+        return;
+      }
+      const r = await client.call<GmGrantResult>('gmGrant', kind, args[1], args[2] === undefined ? undefined : Number(args[2]), args[3] === undefined ? undefined : Number(args[3]));
+      chat.system(`Đã cấp: ${r.note}`);
       return;
     }
     chat.system(`Lệnh không rõ: /${cmd}`);

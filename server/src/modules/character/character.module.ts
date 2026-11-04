@@ -7,6 +7,7 @@ import { CharacterRpc } from './character.rpc';
 import { CharacterStatsRpc } from './character-stats.rpc';
 import { StatsModule } from '../stats/stats.module';
 import { GameDataModule } from '../gamedata/gamedata.module';
+import { AchievementEventsModule } from '../achievement/achievement-events.module';
 import { AuthModule } from '../auth/auth.module';
 import { QuestModule } from '../quest/quest.module';
 import { SkillModule } from '../skill/skill.module';
@@ -18,6 +19,7 @@ import { PetModule } from '../pet/pet.module';
       { name: Character.name, schema: CharacterSchema },
       { name: Counter.name, schema: CounterSchema },
     ]),
+    AchievementEventsModule,
     GameDataModule,
     AuthModule,
     SkillModule,

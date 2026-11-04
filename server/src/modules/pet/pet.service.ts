@@ -8,6 +8,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { PetLimits, PetState, type PetLoginInfo, type PetView, type PetWrapper } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
+import { AchievementEvents } from '../achievement/achievement-events.service';
 import { Character } from '../character/character.schema';
 import { Counter } from '../character/counter.schema';
 import { GameDataService } from '../gamedata/gamedata.service';
@@ -44,6 +45,7 @@ export class PetService implements PetItemHook, OnModuleInit {
     private readonly follow: PetFollowService,
     private readonly bonus: PetBonusService,
     private readonly gear: PetEquipService,
+    private readonly achievements: AchievementEvents,
   ) {}
 
   onModuleInit(): void {
@@ -106,6 +108,7 @@ export class PetService implements PetItemHook, OnModuleInit {
       skills: initialSkills(this.gameData.creatureSkillIds(creatureId)), equ: emptyEquipment(), element: tpl.element,
     });
     const obj = row.toObject();
+    void this.pets.distinct('tid', { characterId }).then((kinds) => this.achievements.record(characterId, 'petsOwned', { value: kinds.length }));
     return petWrapper(obj, tpl, await this.bonus.extrasOf(characterId, obj)); // default skills may be passive
   }
 

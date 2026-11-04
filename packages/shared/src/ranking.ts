@@ -8,7 +8,7 @@ export const RANK_CATEGORIES = [
 export type RankCategory = (typeof RANK_CATEGORIES)[number];
 
 /** Categories with an H5 data source; every other category answers the empty shape. */
-export const RANK_LIVE_CATEGORIES: readonly RankCategory[] = ['exp', 'money'];
+export const RANK_LIVE_CATEGORIES: readonly RankCategory[] = ['exp', 'money', 'achPoint'];
 
 /** List size and server-side cache lifetime (plan decision 5). */
 export const RANK_TOP = 100;
@@ -20,7 +20,7 @@ export interface RankRow {
   name: string;
   /** Guild name, "" when the character has no guild. */
   guild: string;
-  /** `exp`: character level; `money`: moneyBind + money. */
+  /** `exp`: character level; `money`: moneyBind + money; `achPoint`: achievement points. */
   value: number;
 }
 

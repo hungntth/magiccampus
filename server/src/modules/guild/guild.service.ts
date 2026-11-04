@@ -12,6 +12,7 @@ import { RpcException } from '../../gateway/errors';
 import { SceneManager } from '../../gateway/scene.manager';
 import type { Session } from '../../gateway/session';
 import { CharacterService } from '../character/character.service';
+import { AchievementEvents } from '../achievement/achievement-events.service';
 import { Counter } from '../character/counter.schema';
 import { GuildMemberService } from './guild-member.service';
 import { GuildSkillService } from './guild-skill.service';
@@ -31,6 +32,7 @@ export class GuildService {
     private readonly characters: CharacterService,
     private readonly scenes: SceneManager,
     private readonly skills: GuildSkillService,
+    private readonly achievements: AchievementEvents,
   ) {}
 
   /** `initViewGuildP`: the answer is the onInitViewGuildP push. */
@@ -76,6 +78,7 @@ export class GuildService {
         skills: restore.skills,
       });
       session.callback('onUPP', { [key]: total });
+      this.achievements.record(cid, 'guildJoined', { value: 1 });
       this.scenes.broadcastAll('onAddGuild', [await this.view.listEntry(g)]);
       await this.sendPanel(session);
       return this.view.guildDto(g);

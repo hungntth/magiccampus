@@ -1,0 +1,109 @@
+/* "Thành tựu" window (460x470); same navy / gold language as .title-panel. */
+.ach-panel {
+  --ach-gold: #e8c46a;
+  position: absolute;
+  left: calc(50% - 230px);
+  top: 6%;
+  width: 460px;
+  height: 470px;
+  padding: 32px 10px 10px;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #1d4a72 0%, #123553 40%, #0e2a45 100%);
+  border: 2px solid var(--ach-gold);
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px #3a2a08, inset 0 0 0 1px #6fa3cf, 0 6px 18px rgba(0, 0, 0, 0.55);
+  font-family: Tahoma, Verdana, Arial, sans-serif;
+  font-size: 12px;
+  color: #fff;
+  pointer-events: auto;
+  z-index: 46;
+}
+
+.ach-header { position: absolute; top: 0; left: 0; right: 0; height: 30px; }
+
+.ach-name {
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 90px;
+  padding: 3px 18px 4px;
+  background: linear-gradient(180deg, #3e7fb5 0%, #1c4c7a 100%);
+  border: 2px solid var(--ach-gold);
+  border-top: 0;
+  border-radius: 0 0 12px 12px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffe9a8;
+  text-shadow: 0 1px 0 #3a2a08, 0 0 3px #000;
+}
+
+.ach-close {
+  z-index: 1;
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid #ffd0d0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ff7a7a, #c41818 70%);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 16px;
+  cursor: pointer;
+}
+
+.ach-body { display: flex; flex-direction: column; gap: 6px; height: 100%; }
+.ach-points { color: #ffe9a8; font-weight: 700; }
+.ach-tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+
+.ach-tab, .ach-btn, .ach-claim {
+  padding: 2px 8px;
+  border: 1px solid #4f86b3;
+  border-radius: 4px;
+  background: #1c4c7a;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+.ach-tab.on { background: #3e7fb5; border-color: var(--ach-gold); color: #ffe9a8; }
+.ach-btn:disabled, .ach-claim:disabled { opacity: 0.5; cursor: default; }
+
+.ach-list { flex: 1; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
+.ach-h { color: #ffe9a8; font-weight: 700; margin-top: 2px; }
+.ach-sum { padding-left: 6px; }
+.ach-empty { padding: 8px; color: #b8d0e6; }
+
+.ach-row {
+  position: relative;
+  padding: 4px 90px 4px 8px;
+  background: rgba(8, 28, 48, 0.7);
+  border: 1px solid #2f648f;
+  border-radius: 4px;
+}
+.ach-row.done { border-color: #6bbd6b; }
+.ach-row.untracked { opacity: 0.55; }
+.ach-rname { font-weight: 700; }
+.ach-pts { position: absolute; top: 4px; right: 8px; color: #ffe9a8; }
+.ach-desc { color: #cfe3f5; }
+.ach-date { color: #9fd89f; }
+
+.ach-bar {
+  position: relative;
+  height: 14px;
+  margin-top: 3px;
+  background: #0a1c2e;
+  border: 1px solid #2f648f;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.ach-fill { height: 100%; background: linear-gradient(180deg, #4fa3e0, #2a6fa8); }
+.ach-bartext { position: absolute; inset: 0; text-align: center; line-height: 13px; font-size: 11px; text-shadow: 0 0 2px #000; }
+
+.ach-claim { position: absolute; right: 8px; bottom: 6px; }
+.ach-nav { display: flex; align-items: center; justify-content: center; gap: 8px; padding-top: 4px; }

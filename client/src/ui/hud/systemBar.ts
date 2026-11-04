@@ -1,5 +1,5 @@
 // Bottom-right menu buttons of SystemBarCanvas (sysBtnBar right0/bottom-8, 40x45 icons) and their keyboard
-// shortcuts from the SYSTEMBARCANVAS_S tooltips. Character (C), bag (B), pets (W), friends (K) and guild (E) open panels, PK (A) arms the PK click mode; the rest toast "not ready".
+// shortcuts from the SYSTEMBARCANVAS_S tooltips. Character (C), bag (B), pets (W), friends (K), guild (E) and achievements (R) open panels, PK (A) arms the PK click mode; the rest toast "not ready".
 
 import { div, notReady, skinButton, type SkinStates } from './skin';
 
@@ -37,11 +37,11 @@ export class SystemBar {
 
   /** `typing()` tells whether a text field has focus, so letters go to it instead of the shortcuts. */
   constructor(parent: HTMLElement, private readonly typing: () => boolean, onBag: () => void, onCharacter: () => void,
-    onFriend: () => void, onPet: () => void, onGuild: () => void, onPk: () => void) {
+    onFriend: () => void, onPet: () => void, onGuild: () => void, onPk: () => void, onAchieve: () => void) {
     const bar = div('hud-sysbar', parent);
     const actions = new Map<string, () => void>();
     for (const b of BUTTONS) {
-      const act = b.key === 'b' ? onBag : b.key === 'c' ? onCharacter : b.key === 'k' ? onFriend : b.key === 'w' ? onPet : b.key === 'e' ? onGuild : b.key === 'a' ? onPk : notReady;
+      const act = b.key === 'b' ? onBag : b.key === 'c' ? onCharacter : b.key === 'k' ? onFriend : b.key === 'w' ? onPet : b.key === 'e' ? onGuild : b.key === 'a' ? onPk : b.key === 'r' ? onAchieve : notReady;
       skinButton(b.skin, bar, b.x, b.y, b.tip, act);
       if (b.key) actions.set(b.key, act);
     }

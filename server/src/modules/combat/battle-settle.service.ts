@@ -9,6 +9,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { BattleResult } from '@mc/shared';
+import { AchievementEvents } from '../achievement/achievement-events.service';
 import { Character } from '../character/character.schema';
 import { PetBattleService } from '../pet/pet-battle.service';
 import { PetCatchService } from '../pet/pet-catch.service';
@@ -31,6 +32,7 @@ export class BattleSettleService {
     private readonly lootService: BattleLootService,
     private readonly petBattle: PetBattleService,
     private readonly petCatch: PetCatchService,
+    private readonly achievements: AchievementEvents,
   ) {}
 
   /** Decides the battle's result and credits it once; later calls do nothing. */
@@ -122,14 +124,19 @@ export class BattleSettleService {
       if (report.money > 0) $inc.moneyBind = report.money;
     }
     const update = Object.keys($inc).length > 0 ? { $set, $inc } : { $set };
-    const saved = await this.chars.findByIdAndUpdate(m.cid, update, { new: true, projection: { moneyBind: 1 } });
+    const saved = await this.chars.findByIdAndUpdate(m.cid, update, { new: true, projection: { moneyBind: 1, money: 1 } });
     m.result.moneyTotal = saved?.moneyBind ?? 0;
+    if (rewarded && saved) {
+      if (m.result.levelUp) this.achievements.record(m.cid, 'level', { value: Number($set.level) });
+      if (report.money > 0) this.achievements.record(m.cid, 'silver', { value: saved.moneyBind + (saved.money ?? 0) });
+    }
   }
 
   /** Kill credit per survivor and the group loot. A failure is logged, never allowed to block exp / HP persistence. */
   private async creditQuestsAndLoot(survivors: readonly BattleMember[], dead: readonly Fighter[]): Promise<void> {
     const creatureIds = dead.filter((f) => f.kind === 'creature').map((f) => f.refId);
     for (const m of survivors) {
+      this.achievements.record(m.cid, 'creatureKill', { creatureIds });
       try {
         m.result.quest = await this.quests.onCreatureKilled(m.cid, creatureIds);
       } catch (e) {

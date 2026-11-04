@@ -8,9 +8,10 @@ import { BuffModule } from '../buff/buff.module';
 import { PartyModule } from '../party/party.module';
 import { TradeModule } from '../trade/trade.module';
 import { PetModule } from '../pet/pet.module';
+import { TitleModule } from '../title/title.module';
 
 @Module({
-  imports: [CharacterModule, GameDataModule, QuestModule, BuffModule, PartyModule, TradeModule, PetModule],
+  imports: [CharacterModule, GameDataModule, QuestModule, BuffModule, PartyModule, TradeModule, PetModule, TitleModule],
   providers: [SceneRpc, SceneTransportService],
   exports: [SceneTransportService],
 })

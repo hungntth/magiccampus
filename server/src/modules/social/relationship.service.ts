@@ -9,6 +9,7 @@ import { RpcException } from '../../gateway/errors';
 import { SceneManager } from '../../gateway/scene.manager';
 import type { Session } from '../../gateway/session';
 import { CharacterService } from '../character/character.service';
+import { AchievementEvents } from '../achievement/achievement-events.service';
 import { Counter } from '../character/counter.schema';
 import { canDelete, planAdd, type RelationRow } from './relationship-rules';
 import { Relationship, type RelationshipDocument } from './relationship.schema';
@@ -27,6 +28,7 @@ export class RelationshipService {
     @InjectModel(Counter.name) private readonly counters: Model<Counter>,
     private readonly characters: CharacterService,
     private readonly scenes: SceneManager,
+    private readonly achievements: AchievementEvents,
   ) {}
 
   /** Both lists, newest first; rows of deleted characters are skipped. */
@@ -68,6 +70,9 @@ export class RelationshipService {
     }
     const [entry] = await this.entries([row]);
     session.callback('onAddRelationship', entry);
+    if (type === RelationType.FRIEND) {
+      void this.rels.countDocuments({ characterId: selfId, type: RelationType.FRIEND }).then((n) => this.achievements.record(selfId, 'friends', { value: n }));
+    }
   }
 
   /** `delRelationship(id)`: only the caller's own rows; pushes `onDelRelationship(id)`. */

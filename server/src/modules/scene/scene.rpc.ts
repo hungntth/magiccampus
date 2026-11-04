@@ -12,6 +12,7 @@ import { CharacterService } from '../character/character.service';
 import { GameDataService } from '../gamedata/gamedata.service';
 import { QuestService } from '../quest/quest.service';
 import { BuffService } from '../buff/buff.service';
+import { TitleService } from '../title/title.service';
 import { PartyService } from '../party/party.service';
 import { PetFollowService } from '../pet/pet-follow.service';
 import { portalDataOf } from './portal-data';
@@ -30,6 +31,7 @@ export class SceneRpc implements OnModuleInit {
     private readonly quests: QuestService,
     private readonly transport: SceneTransportService,
     private readonly buffs: BuffService,
+    private readonly titles: TitleService,
     private readonly party: PartyService,
     private readonly petFollow: PetFollowService,
   ) {}
@@ -56,7 +58,10 @@ export class SceneRpc implements OnModuleInit {
       await doc.save();
     }
     // The client binds its callbacks before calling sceneLogin, so this is the first safe moment for initLongBuff.
-    session.callback('initLongBuff', await this.buffs.initPayload(doc._id));
+    const longBuffs = await this.buffs.initPayload(doc._id);
+    const titleBuff = await this.titles.initBuff(doc._id); // long-buff row 0 = the active title's buff
+    if (titleBuff) longBuffs['0'] = titleBuff;
+    session.callback('initLongBuff', longBuffs);
     return this.transport.enterScene(session, doc.mapId, doc.posX, doc.posY, doc.dir);
   }
 

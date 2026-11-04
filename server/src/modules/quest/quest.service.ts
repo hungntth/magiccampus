@@ -8,6 +8,7 @@ import { Model } from 'mongoose';
 import { MAX_QUEST_NUM, MoneyType, QuestState } from '@mc/shared';
 import type { ChaQuest, MoneyKey, QuestRequire, QuestView } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
+import { AchievementEvents } from '../achievement/achievement-events.service';
 import { Character } from '../character/character.schema';
 import { GameDataService } from '../gamedata/gamedata.service';
 import type { QuestTemplate } from '../gamedata/quest-data';
@@ -76,6 +77,7 @@ export class QuestService {
     private readonly gameData: GameDataService,
     private readonly progress: QuestProgressService,
     private readonly rewards: QuestRewardService,
+    private readonly achievements: AchievementEvents,
   ) {}
 
   async loadCtx(characterId: number): Promise<QuestCtx> {
@@ -197,6 +199,9 @@ export class QuestService {
       money = { key: field, amount: tpl.moneyNum, total: doc[field] };
     }
     await doc.save();
+    this.achievements.record(characterId, 'questsFinished');
+    if (exp.leveled) this.achievements.record(characterId, 'level', { value: exp.level });
+    if (money) this.achievements.record(characterId, money.key === 'gold' ? 'gold' : 'silver', { value: money.key === 'gold' ? doc.gold + doc.goldBind : doc.money + doc.moneyBind });
     const granted = await this.rewards.grant(characterId, awards);
     const petPushes = await this.rewards.grantPets(characterId, tpl, doc.classId, selectId); // after the item awards
     const petExp = await this.rewards.grantPetExp(characterId, tpl.awardExp); // the active pet gets the full quest exp

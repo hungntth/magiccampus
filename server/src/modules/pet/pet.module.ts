@@ -8,6 +8,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Character, CharacterSchema } from '../character/character.schema';
 import { Counter, CounterSchema } from '../character/counter.schema';
 import { GameDataModule } from '../gamedata/gamedata.module';
+import { AchievementEventsModule } from '../achievement/achievement-events.module';
 import { CharacterItem, CharacterItemSchema } from '../inventory/character-item.schema';
 import { InventoryModule } from '../inventory/inventory.module';
 import { PetBattleService } from './pet-battle.service';
@@ -32,6 +33,7 @@ import { PetService } from './pet.service';
       { name: Character.name, schema: CharacterSchema },
       { name: CharacterItem.name, schema: CharacterItemSchema },
     ]),
+    AchievementEventsModule,
     GameDataModule,
     InventoryModule,
   ],

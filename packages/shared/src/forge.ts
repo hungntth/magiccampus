@@ -63,7 +63,8 @@ export interface EquipProperties extends EquipLines {
   holeNum?: number; // drilled holes
   activeProp?: number; // soul (Linh hồn) prop 1..8 and value
   activePropNum?: number;
-  [gem: `t${number}`]: number | undefined; // t1..t10: 0 empty drilled hole, > 0 gem template id, absent = undrilled
+  [gem: `t${number}`]: number | undefined; // t1..t10: 0 empty drilled hole, > 0 gem template id, absent = undrilled (magic weapon: skill ids)
+  flag?: string; // magic weapon: JSON string, sub weapons carry succ0..succ2 lines
 }
 
 /** Instance fields carried by a BagItem (all optional: items and plain equipment have none). */

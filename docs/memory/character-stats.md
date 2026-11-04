@@ -66,3 +66,6 @@ Not verified in the browser:
 - The x10 step.
 
 Quiet the new RPCs only after the user confirms.
+
+## Stat providers (M7)
+Bonuses now come from the `STAT_BONUS_PROVIDERS` registry (gear, buffs, guild skills, titles, stat features); BUFF_PROP 59/60 = finalPraDef/finalPraMagDef. See `progression.md`.

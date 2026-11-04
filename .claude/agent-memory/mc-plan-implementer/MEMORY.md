@@ -1,1 +1,5 @@
 - [Repo gotchas](repo_gotchas.md) — CRLF files, module cycles, nest watch restarts, browser-test tips, party flag push
+- [Progression foundation](progression_foundation.md) — stat provider registry, schema @Prop types under tsx, titles wiring, e2e tips
+- [Achievements hooks](achievements_hooks.md) — AchievementEvents wiring, seed text quirks, dotted state, browser tab pitfalls
+- [Stat features (M7 C)](stat_features.md) — modules/feature layout, provider placement, feature keys, e2e/browser tips
+- [Magic weapon (M7 E)](magic_weapon.md) — magicweapon module, stone templates, artifact semantics, Vite css miss, browser flow

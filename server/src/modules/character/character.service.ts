@@ -16,6 +16,7 @@ import type { CharStats } from '../stats/character-stats.service';
 import { RpcException } from '../../gateway/errors';
 import { GameDataService } from '../gamedata/gamedata.service';
 import { SkillService } from '../skill/skill.service';
+import { titleView } from '../title/title-rules';
 
 const NAME_RE = /^[\p{L}\p{N} _]{2,16}$/u;
 const MAX_CHAR_SLOTS = 6;
@@ -217,6 +218,7 @@ export class CharacterService {
       attIntelligence: stats.att.int,
       attEnergy: stats.att.eng,
       property: stats.property,
+      currencies: { ...(doc.currencies ?? {}) },
       state: CharState.NORMAL,
     };
   }
@@ -227,8 +229,16 @@ export class CharacterService {
     return String(gender === 1 ? cls.res_code_female : cls.res_code_male);
   }
 
+  /** Active title views for scene payloads (display data only; the buff text stays on the login / gtl views). */
+  private titleViews(doc: CharacterDocument): Pick<SceneCharacter, 't' | 'actT' | 'tv' | 'atv'> {
+    const t = this.gameData.getTitle(doc.titleId ?? 0);
+    const a = this.gameData.getTitle(doc.actTitleId ?? 0);
+    return { t: t ? doc.titleId : 0, actT: a ? doc.actTitleId : 0, ...(t ? { tv: titleView(t, undefined) } : {}), ...(a ? { atv: titleView(a, undefined) } : {}) };
+  }
+
   toSceneCharacter(doc: CharacterDocument): SceneCharacter {
     return {
+      ...this.titleViews(doc),
       resCode: this.resCode(doc.classId, doc.gender),
       id: doc._id,
       name: doc.name,

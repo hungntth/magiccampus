@@ -25,6 +25,11 @@ import { ForgeModule } from './modules/forge/forge.module';
 import { TransportModule } from './modules/transport/transport.module';
 import { GuildModule } from './modules/guild/guild.module';
 import { PkModule } from './modules/pk/pk.module';
+import { ProgressionModule } from './modules/progression/progression.module';
+import { TitleModule } from './modules/title/title.module';
+import { AchievementModule } from './modules/achievement/achievement.module';
+import { FeatureModule } from './modules/feature/feature.module';
+import { MagicWeaponModule } from './modules/magicweapon/magicweapon.module';
 import { RankingModule } from './modules/ranking/ranking.module';
 
 @Module({
@@ -52,6 +57,11 @@ import { RankingModule } from './modules/ranking/ranking.module';
     TransportModule,
     GuildModule,
     PkModule,
+    TitleModule,
+    ProgressionModule,
+    AchievementModule,
+    FeatureModule,
+    MagicWeaponModule,
     RankingModule,
     SystemModule,
   ],

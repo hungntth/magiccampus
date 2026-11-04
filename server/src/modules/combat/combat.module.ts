@@ -6,6 +6,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Character, CharacterSchema } from '../character/character.schema';
 import { CharacterModule } from '../character/character.module';
 import { GameDataModule } from '../gamedata/gamedata.module';
+import { AchievementEventsModule } from '../achievement/achievement-events.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { PartyModule } from '../party/party.module';
 import { PetModule } from '../pet/pet.module';
@@ -29,6 +30,7 @@ import { ReviveService } from './revive.service';
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Character.name, schema: CharacterSchema }]),
+    AchievementEventsModule,
     CharacterModule,
     GameDataModule,
     InventoryModule,

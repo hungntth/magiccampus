@@ -10,6 +10,7 @@ import {
 } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
 import type { Session } from '../../gateway/session';
+import { AchievementEvents } from '../achievement/achievement-events.service';
 import { CharacterService } from '../character/character.service';
 import { Counter } from '../character/counter.schema';
 import { canAppoint, canKick, mergeParked, parkContribution, type Contribution, type Restore } from './guild-rules';
@@ -32,6 +33,7 @@ export class GuildMemberService {
     private readonly view: GuildViewService,
     private readonly characters: CharacterService,
     private readonly skills: GuildSkillService,
+    private readonly achievements: AchievementEvents,
   ) {}
 
   async nextRowId(): Promise<number> {
@@ -106,6 +108,7 @@ export class GuildMemberService {
     await this.view.toMembers(guild._id, 'onConfirmGuildApply', push);
     this.view.sessionOf(app.cid)?.callback('onConfirmGuildApply', push);
     await this.skills.refreshStatsOf(app.cid);
+    this.achievements.record(app.cid, 'guildJoined', { value: 1 });
   }
 
   /** `refuseGuildMember(tableId)`: needs canAdd; onDelGuildMember type 3 to the members and the applicant. */

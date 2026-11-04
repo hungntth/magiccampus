@@ -9,16 +9,20 @@ export interface RankChar {
   exp: number;
   money: number;
   moneyBind: number;
+  /** Achievement points (character_achievements.achPoint), 0 without a state row. */
+  achPoint: number;
 }
 
 /** Sort key per live category (bigger first); ties go to the lower character id (the older character). */
 const keys: Partial<Record<RankCategory, (c: RankChar) => number[]>> = {
   exp: (c) => [c.level, c.exp],
   money: (c) => [c.moneyBind + c.money],
+  achPoint: (c) => [c.achPoint],
 };
 const values: Partial<Record<RankCategory, (c: RankChar) => number>> = {
   exp: (c) => c.level,
   money: (c) => c.moneyBind + c.money,
+  achPoint: (c) => c.achPoint,
 };
 
 export function isLive(category: RankCategory): boolean {
@@ -30,6 +34,7 @@ export function topChars(category: RankCategory, chars: readonly RankChar[], lim
   const key = keys[category];
   if (!key) return [];
   return [...chars]
+    .filter((c) => category !== 'achPoint' || c.achPoint > 0) // nobody is ranked with 0 achievement points
     .sort((a, b) => {
       const ka = key(a);
       const kb = key(b);

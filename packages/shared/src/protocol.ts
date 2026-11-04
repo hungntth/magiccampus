@@ -6,6 +6,10 @@ import type { CharProperty } from './character.js';
 import type { PetLoginInfo, PetSceneView } from './pet.js';
 import type { GuildInfo, GuildMember } from './guild.js';
 import type { GuildSlot } from './guildBank.js';
+import type { Currencies, TitleView } from './progression.js';
+import type { AchieveReqProgress } from './achievement.js';
+import type { AwakenLogin } from './statFeatures.js';
+import type { StarsData } from './zodiac.js';
 
 export type ClientMessage = { t: 'call'; id: number; m: string; a: unknown[] };
 
@@ -58,7 +62,7 @@ export interface ClassInfo {
   largeImgFemale: string;
 }
 
-export interface PlayerData extends PetLoginInfo {
+export interface PlayerData extends PetLoginInfo, Partial<AwakenLogin> {
   id: number;
   name: string;
   classId: number;
@@ -98,6 +102,25 @@ export interface PlayerData extends PetLoginInfo {
   gi?: Record<string, GuildSlot>;
   /** PK opt-in (uif apvp); the minimap PK button shows selected = closed when false. */
   apvp?: boolean;
+  /** Progression (M7): special currencies, active titles (`t`, `actT`) and owned title lists (`ct` "|a|b|", `cts` "a|b|"). */
+  currencies?: Currencies;
+  t?: number;
+  actT?: number;
+  ct?: string;
+  cts?: string;
+  /** H5 extension: display data of the active titles. */
+  tv?: TitleView;
+  atv?: TitleView;
+  /** Achievements (M7 phase B): login snapshot (Flash names; reqLog keyed by requirement id). */
+  achPnt?: number;
+  achieveLog?: Record<string, number>;
+  achieveReqLog?: Record<string, AchieveReqProgress>;
+  takeAchieveAwardLog?: Record<string, number>;
+  /** Stat features (M7 phase C): train soul level / progress (awaken* come from AwakenLogin). */
+  trainSoulLvl?: number;
+  trainSoulExp?: number;
+  /** Zodiac stars (M7 phase D): starsData snapshot (Flash name); finishDate is server time (see getStarsData for the clock). */
+  starsData?: StarsData;
 }
 
 export interface SceneCharacter {
@@ -118,6 +141,11 @@ export interface SceneCharacter {
   /** Following pet (pets phase B): present only when the character has one and is not in an active party. */
   showPetId?: number;
   showPetObj?: PetSceneView;
+  /** Active titles (M7): data_tbl_title ids (0 = none) and their H5 display views. */
+  t?: number;
+  actT?: number;
+  tv?: TitleView;
+  atv?: TitleView;
 }
 
 export interface SceneNpc {
@@ -353,7 +381,7 @@ export type PlayerUpdate = Partial<
     PlayerData,
     | 'level' | 'exp' | 'money' | 'moneyBind' | 'gold' | 'goldBind' | 'attrPoints' | 'currentHp' | 'currentMp' | 'maxHp'
     | 'maxMp' | 'attStrength' | 'attAgility' | 'attStamina' | 'attIntelligence' | 'attEnergy' | 'property' | 'petMaxNum' | 'bagSlotNum'
-    | 'bankSlotNum' | 'selectedMoneyType' | 'selectedGoldType' | 'name'
+    | 'bankSlotNum' | 'selectedMoneyType' | 'selectedGoldType' | 'name' | 'currencies'
   >
 >;
 

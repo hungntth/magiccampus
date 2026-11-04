@@ -5,6 +5,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { AchievementEvents } from '../achievement/achievement-events.service';
 import { withCharLock } from '../inventory/char-lock';
 import { push, type Push } from '../inventory/pushes';
 import { NO_PET_ROOM, PetService } from './pet.service';
@@ -15,6 +16,7 @@ export class PetCatchService {
   constructor(
     @InjectModel(Pet.name) private readonly pets: Model<Pet>,
     private readonly petService: PetService,
+    private readonly achievements: AchievementEvents,
   ) {}
 
   /** Free pet slots right now (petMaxNum - owned); the caller subtracts the pets it already caught in the same battle. */
@@ -30,6 +32,7 @@ export class PetCatchService {
       for (const id of creatureIds) {
         const wrapper = await this.petService.award(characterId, id);
         pushes.push(wrapper ? push('onAddPet', wrapper) : push('onRedMsg', NO_PET_ROOM));
+        if (wrapper) this.achievements.record(characterId, 'petCaught');
       }
       return pushes;
     });

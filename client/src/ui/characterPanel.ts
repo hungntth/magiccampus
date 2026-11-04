@@ -1,10 +1,12 @@
 // "Nhân vật" window (legacy CharactorPanel): 22-slot equipment grid (legacy slot layout), HP/MP + combat stats, the five
-// attributes with +/- free-point allocation (step 1 or 10, OK sends changeProperty) and the info header.
+// attributes with +/- free-point allocation (step 1 or 10, OK sends changeProperty) and the info header. Two tabs: "Trang bị" (slots 1-14,
+// 21-22) and "Thần khí" (slots 15-20, Lv 50, with the repair / function buttons of the magic weapon).
 // Pure view: CharacterController owns the data. Drop a bag item here = equip; double-click an equipped slot = unequip.
 
-import { EQUIP_SLOT_COUNT, LEVEL_EXP, type BagItem, type CharProperty, type PlayerData } from '@mc/shared';
+import { EQUIP_SLOT_COUNT, LEVEL_EXP, MW, type BagItem, type CharProperty, type PlayerData } from '@mc/shared';
 import { endDrag, dragging, fillItemCell, itemTooltip } from './itemCell';
 import { closeOnEscape, makeDraggable } from './panelBehavior';
+import { toast } from './screens';
 import { stageEl } from './stage';
 import './characterPanel.css';
 
@@ -34,6 +36,14 @@ export interface CharacterPanelHost {
   onUnequip(item: BagItem): void;
   /** OK button: strings like the Flash client ("" = 0). */
   onAllocate(add: Record<`add${AttrKey}`, string>): void;
+  /** Header "Danh hiệu" button: toggles the title window. */
+  onTitles(): void;
+  /** Header "Tu luyện" button: toggles the stat-feature window (train soul, awakening, war sprite, magic crystal). */
+  onFeatures(): void;
+  /** Thần khí tab "Chức năng" button: toggles the magic weapon window. */
+  onMagicWeapon(): void;
+  /** Thần khí tab "Sửa" button: repairs the worn magic weapons. */
+  onRepairMagicWeapons(): void;
   onClose(): void;
 }
 
@@ -43,6 +53,9 @@ export class CharacterPanel {
   private stats: HTMLElement | null = null;
   private pending: Record<AttrKey, number> = { Strength: 0, Agility: 0, Stamina: 0, Intelligence: 0, Energy: 0 };
   private step10 = false;
+  private mode: 'equip' | 'mw' = 'equip';
+  private tabs: HTMLElement[] = [];
+  private mwTools: HTMLElement | null = null;
   private offs: (() => void)[] = [];
 
   constructor(private readonly host: CharacterPanelHost) {}
@@ -61,17 +74,41 @@ export class CharacterPanel {
     x.title = 'Đóng';
     x.onclick = () => this.host.onClose();
     root.appendChild(x);
+    const titles = el('button', 'char-titles', 'Danh hiệu');
+    titles.onclick = () => this.host.onTitles();
+    root.appendChild(titles);
+    const features = el('button', 'char-titles char-features', 'Tu luyện');
+    features.onclick = () => this.host.onFeatures();
+    root.appendChild(features);
+    const tabs = el('div', 'char-tabs');
+    this.tabs = (['equip', 'mw'] as const).map((m) => {
+      const b = el('button', 'char-tab', m === 'equip' ? 'Trang bị' : 'Thần khí');
+      b.onclick = () => this.setMode(m);
+      tabs.appendChild(b);
+      return b;
+    });
+    root.appendChild(tabs);
     const equip = el('div', 'char-equip');
     this.slots.clear();
     for (let sid = 1; sid <= EQUIP_SLOT_COUNT; sid++) {
       const [label, sx, sy] = SLOTS[sid];
-      const cell = el('div', `char-slot${LOCKED.has(sid) ? ' locked' : ''}`);
+      const cell = el('div', 'char-slot');
       cell.style.left = `${sx}px`;
       cell.style.top = `${sy}px`;
-      cell.title = LOCKED.has(sid) ? `${label} (chưa mở)` : label;
+      cell.title = label;
       this.slots.set(sid, cell);
       equip.appendChild(cell);
     }
+    const tools = el('div', 'char-mwtools');
+    const repair = el('button', 'char-ok', 'Sửa');
+    repair.title = 'Sửa chữa thần khí đang mặc (Thâm Lam Tinh)';
+    repair.onclick = () => this.host.onRepairMagicWeapons();
+    const fn = el('button', 'char-ok', 'Chức năng');
+    fn.title = 'Thăng cấp, phân giải, kỹ năng, chuyển / tái lập thuộc tính';
+    fn.onclick = () => this.host.onMagicWeapon();
+    tools.append(repair, fn);
+    equip.appendChild(tools);
+    this.mwTools = tools;
     root.appendChild(equip);
     this.stats = el('div', 'char-stats');
     root.appendChild(this.stats);
@@ -99,14 +136,30 @@ export class CharacterPanel {
     this.root = null;
     this.slots.clear();
     this.stats = null;
+    this.mwTools = null;
+    this.tabs = [];
+    this.mode = 'equip';
     this.resetPending();
+  }
+
+  private setMode(m: 'equip' | 'mw'): void {
+    if (m === 'mw' && this.host.player().level < MW.UNLOCK_LEVEL) {
+      toast('Cần đạt cấp 50 mới có thể trang bị thần khí', true);
+      return;
+    }
+    this.mode = m;
+    this.render();
   }
 
   render(): void {
     if (!this.root || !this.stats) return;
     const p = this.host.player();
     const eq = this.host.equipped();
+    this.tabs.forEach((b, i) => b.classList.toggle('on', (i === 1) === (this.mode === 'mw')));
+    if (this.mwTools) this.mwTools.style.display = this.mode === 'mw' ? '' : 'none';
     for (const [sid, cell] of this.slots) {
+      const mw = sid >= MW.MAIN_POSITION && sid <= MW.SUB_LAST;
+      cell.style.display = mw === (this.mode === 'mw') ? '' : 'none';
       const it = eq.get(sid);
       cell.replaceChildren();
       cell.classList.remove('filled');
@@ -114,7 +167,7 @@ export class CharacterPanel {
       cell.ondblclick = null;
       cell.style.borderColor = '';
       if (!it) {
-        cell.title = LOCKED.has(sid) ? `${SLOTS[sid][0]} (chưa mở)` : SLOTS[sid][0];
+        cell.title = SLOTS[sid][0];
         continue;
       }
       fillItemCell(cell, it, itemTooltip(it, p.level, true), 'equip');

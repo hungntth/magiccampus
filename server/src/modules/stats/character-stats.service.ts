@@ -2,22 +2,17 @@
 // builds the stat-refresh onUPP payload. Depends only on models (no feature services) so character, inventory,
 // buff and quest modules can all inject it without DI cycles.
 
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { SlotType, type CharProperty, type PlayerUpdate } from '@mc/shared';
+import type { CharProperty, PlayerUpdate } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
 import type { Session } from '../../gateway/session';
-import { isActive } from '../buff/buff-mapping';
-import { buffBonuses } from '../buff/buff-stats';
-import { CharacterBuff } from '../buff/buff.schema';
 import { distributedOf, profileOf } from '../character/character-profile';
-import { assembleStats, mergeBonuses, toCharProperty } from '../character/character-stats';
+import { assembleStats, toCharProperty } from '../character/character-stats';
 import { Character } from '../character/character.schema';
-import { GameDataService, type Row } from '../gamedata/gamedata.service';
-import { equipBonusesOf, gemLinesOf, gemTemplateIds } from '../inventory/equip-stats';
-import { CharacterItem } from '../inventory/character-item.schema';
-import { GuildSkillBonusService } from './guild-skill-bonus.service';
+import { GameDataService } from '../gamedata/gamedata.service';
+import { collectBonuses, STAT_BONUS_PROVIDERS, type StatBonusProvider } from './stat-provider';
 
 export interface CharStats {
   property: CharProperty;
@@ -32,32 +27,19 @@ export interface CharStats {
 export class CharacterStatsService {
   constructor(
     @InjectModel(Character.name) private readonly chars: Model<Character>,
-    @InjectModel(CharacterItem.name) private readonly items: Model<CharacterItem>,
-    @InjectModel(CharacterBuff.name) private readonly buffs: Model<CharacterBuff>,
     private readonly gameData: GameDataService,
-    private readonly guildSkills: GuildSkillBonusService,
+    @Inject(STAT_BONUS_PROVIDERS) private readonly providers: readonly StatBonusProvider[],
   ) {}
 
-  /** Effective stats right now (base + equipped gear + active buffs). Nothing is cached or written. */
+  /** Effective stats right now (base + every StatBonusProvider: gear, buffs, guild skills, titles, ...). Nothing is cached or written. */
   async compute(characterId: number): Promise<CharStats> {
     const doc = await this.chars.findById(characterId).lean();
     if (!doc) throw RpcException.notFound('character not found');
-    const equipped = await this.items.find({ characterId, slotType: SlotType.EQUIP }).lean();
-    const tpls = await this.gameData.templatesByIds(19, [...new Set(equipped.map((e) => e.templateId))]);
-    const gems = await this.gameData.templatesByIds(29, [...new Set(equipped.flatMap((e) => gemTemplateIds(e.properties)))]);
-    const gear = equipBonusesOf(equipped.flatMap((e) => {
-      const tpl = tpls.get(e.templateId);
-      return tpl ? [{ tpl, props: e.properties, star: e.star, gems: gemLinesOf(e.properties, gems) }] : [];
-    }));
-    const now = Date.now();
-    const active = (await this.buffs.find({ characterId }).lean()).filter((b) => isActive(b, now));
-    const buffTpls = active.map((b) => this.gameData.getBuff(b.buffId)).filter((t): t is Row => t !== undefined);
-    buffTpls.push(...(await this.guildSkills.buffTemplates(characterId))); // guild skill passives ride the buff pipeline
-    const bonuses = mergeBonuses(gear, buffBonuses(buffTpls));
+    const bonuses = await collectBonuses(this.providers, characterId, doc);
     const final = assembleStats(profileOf(doc, this.gameData.getClass(doc.classId)), bonuses);
     const dist = distributedOf(doc);
     return {
-      property: toCharProperty(final, doc.attrPoints, dist),
+      property: { ...toCharProperty(final, doc.attrPoints, dist), spirituality: doc.currencies?.spirituality ?? 0 },
       maxHp: final.stats.maxHp,
       maxMp: final.stats.maxMp,
       rates: final.rates,

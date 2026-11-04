@@ -1,0 +1,7 @@
+/* Thần khí window: reuses the "Tu luyện" shell (.feature-window / .ft-*); only the weapon picker and width are specific. */
+.feature-window.mw-window { z-index: 5; left: calc(50% - 290px); width: 580px; }
+.mw-window .ft-tab { font-size: 11px; padding: 4px 0; }
+.mw-picker { display: flex; flex-wrap: wrap; gap: 4px; }
+.mw-picker .forge-cell { width: 38px; height: 38px; cursor: pointer; }
+.mw-picker .forge-cell.selected { box-shadow: 0 0 0 2px #ffe9a8; }
+.mw-window .ft-cols .ft-box { min-width: 0; }

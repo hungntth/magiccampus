@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { CharacterModule } from '../character/character.module';
 import { Counter, CounterSchema } from '../character/counter.schema';
 import { GuildModule } from '../guild/guild.module';
+import { AchievementEventsModule } from '../achievement/achievement-events.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { StatsModule } from '../stats/stats.module';
 import { ChaInfoService } from './cha-info.service';
@@ -14,6 +15,7 @@ import { SocialRpc } from './social.rpc';
 
 @Module({
   imports: [
+    AchievementEventsModule,
     CharacterModule,
     InventoryModule,
     GuildModule,

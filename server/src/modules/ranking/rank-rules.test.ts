@@ -5,8 +5,8 @@ import assert from 'node:assert/strict';
 import { RANK_TOP } from '@mc/shared';
 import { RankCache, emptyReply, isLive, toRows, topChars, type RankChar } from './rank-rules';
 
-const ch = (id: number, level: number, exp: number, money = 0, moneyBind = 0): RankChar =>
-  ({ id, name: `c${id}`, level, exp, money, moneyBind });
+const ch = (id: number, level: number, exp: number, money = 0, moneyBind = 0, achPoint = 0): RankChar =>
+  ({ id, name: `c${id}`, level, exp, money, moneyBind, achPoint });
 
 test('exp: level first, then exp, then lower id', () => {
   const chars = [ch(1, 10, 500), ch(2, 12, 100), ch(3, 10, 900), ch(4, 10, 900)];
@@ -29,12 +29,20 @@ test('limit and input immutability', () => {
 
 test('categories without a data source are empty', () => {
   const chars = [ch(1, 5, 5, 5)];
-  for (const c of ['expBattle', 'pop', 'popMonth', 'popWeek', 'totalBp', 'lastWeekBp', 'achPoint', 'treasureHunt'] as const) {
+  for (const c of ['expBattle', 'pop', 'popMonth', 'popWeek', 'totalBp', 'lastWeekBp', 'treasureHunt'] as const) {
     assert.equal(isLive(c), false);
     assert.deepEqual(topChars(c, chars), []);
     assert.deepEqual(emptyReply(c), { name: c, data: [] });
   }
   assert.equal(isLive('exp'), true);
+});
+
+test('achPoint: points descending, zero-point characters are not ranked, tie to lower id', () => {
+  const chars = [ch(1, 1, 0, 0, 0, 50), ch(2, 1, 0, 0, 0, 0), ch(3, 1, 0, 0, 0, 120), ch(4, 1, 0, 0, 0, 50)];
+  assert.equal(isLive('achPoint'), true);
+  const top = topChars('achPoint', chars);
+  assert.deepEqual(top.map((c) => c.id), [3, 1, 4]);
+  assert.deepEqual(toRows('achPoint', top, new Map()).map((r) => r.value), [120, 50, 50]);
 });
 
 test('guild name join: level value, empty string without a guild', () => {

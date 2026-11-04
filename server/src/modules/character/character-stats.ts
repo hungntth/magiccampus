@@ -91,7 +91,8 @@ export const BUFF_PROP: Readonly<Record<number, PropEntry>> = {
   43: rate('finalResiDizzy'), 44: rate('finalResiConfusion'), 45: rate('finalResiSleep'), 46: rate('finalResiPoison'),
   49: rate('finalResiLight'), 50: rate('finalResiRage'), 51: rate('finalResiCritical'),
   52: rate('finalConfusion'), 53: rate('finalDizzy'), 54: rate('finalPoison'), 55: rate('finalRage'),
-  56: rate('finalSleep'), 57: rate('finalLight'), 59: rate('finalReduceHurt1'), 60: rate('finalReduceHurt2'),
+  // 59/60 are finalPraDef / finalPraMagDef (Go CommonFeaturePropToStat); legacy ids 15/16 are the finalReduceHurt keys.
+  56: rate('finalSleep'), 57: rate('finalLight'), 59: rate('finalPraDef'), 60: rate('finalPraMagDef'),
   61: rate('finalResiDefy'), 62: rate('finalEnhPhyHurt'), 63: rate('finalEnhMagicHurt'),
   71: rate('finalCriticalDamage'), 72: rate('finalBreakReborn'),
 };
@@ -125,12 +126,15 @@ export interface FinalStats {
   rates: Record<string, number>;
 }
 
-/** Assembly order (server research 3.4): gear attrs -> formula -> other flats -> percents. */
+/** Truncates a float sum once; the epsilon absorbs accumulation noise (0.1 * 3 = 0.30000000000000004 stays 0). */
+const truncOnce = (v: number): number => trunc(v + (v >= 0 ? 1e-9 : -1e-9));
+
+/** Assembly order (server research 3.4): gear attrs -> formula -> other flats -> percents. Flats stay floats until here. */
 export function assembleStats(profile: StatProfile, bonuses: Bonuses): FinalStats {
   const attrs = { ...profile.attrs };
   for (const k of ATTR_KEYS) attrs[k] += bonuses.attr[k];
   const stats = buildBaseStats({ attrs, apt: profile.apt });
-  for (const [k, v] of Object.entries(bonuses.flat)) stats[k as StatKey] += v;
+  for (const [k, v] of Object.entries(bonuses.flat)) stats[k as StatKey] = truncOnce(stats[k as StatKey] + v);
   for (const [k, v] of Object.entries(bonuses.pct)) {
     const key = k as StatKey;
     stats[key] += trunc((stats[key] * v) / 100);

@@ -5,3 +5,4 @@
 - [Economy client map](economy_client_map.md) — bank/temp bags/repair/shops/forge; EquipFunc.as aborted, two distinct temp bags
 - [Multiplayer client map](multiplayer_client_map.md) — party/chat/IM/trade cluster; push bodies live in Group/ChatCanvas/IMPanel/TradePanel
 - [Guild/PK/rank client map](guild_pk_rank_client_map.md) — guild pushes in GuildPanel.as; no duel RPCs (PVPStartClient only); rankGet in ActivePanel
+- [Progression client map](progression_client_map.md) — titles/achievements/Than Khi/stars/astrology/heiyaoshi; HeiYaoShiPanel stub, null-responder pushes

@@ -4,6 +4,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { GameDataModule } from '../gamedata/gamedata.module';
+import { AchievementEventsModule } from '../achievement/achievement-events.module';
 import { Character, CharacterSchema } from '../character/character.schema';
 import { CharacterQuest, CharacterQuestSchema, QuestHistory, QuestHistorySchema } from './quest.schema';
 import { InventoryModule } from '../inventory/inventory.module';
@@ -21,6 +22,7 @@ import { QuestService } from './quest.service';
       { name: QuestHistory.name, schema: QuestHistorySchema },
       { name: Character.name, schema: CharacterSchema },
     ]),
+    AchievementEventsModule,
     GameDataModule,
     InventoryModule,
     PetModule,

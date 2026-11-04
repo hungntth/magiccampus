@@ -37,6 +37,7 @@ export interface CharProperty {
   finalHit: number; finalDodge: number; finalCritical: number; finalSpeed: number; finalCriticalDamage: number;
   finalStrength: number; finalAgility: number; finalStamina: number; finalIntelligence: number; finalEnergy: number;
   lastPoint: number; // free attribute points
+  spirituality?: number; // currencies.spirituality (Than Khi cost gates read it from the property)
   aptStrength: number; aptAgility: number; aptStamina: number; aptIntelligence: number; aptEnergy: number; // distributed
 }
 

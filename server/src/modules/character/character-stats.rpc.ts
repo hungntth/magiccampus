@@ -6,6 +6,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ATTR_POINTS_PER_LEVEL, type CharDetailData, type PlayerLevelUp, type PlayerUpdate } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
+import { AchievementEvents } from '../achievement/achievement-events.service';
 import { Rpc } from '../../gateway/rpc.decorator';
 import type { Session } from '../../gateway/session';
 import { CharacterStatsService } from '../stats/character-stats.service';
@@ -18,6 +19,7 @@ export class CharacterStatsRpc {
   constructor(
     private readonly stats: CharacterStatsService,
     @InjectModel(Character.name) private readonly chars: Model<Character>,
+    private readonly achievements: AchievementEvents,
   ) {}
 
   /** Returns the stat-refresh payload and pushes it as onUPP (legacy getCharAttributes). */
@@ -79,6 +81,7 @@ export class CharacterStatsRpc {
     const payload = await this.finishStatChange(session);
     const up: PlayerLevelUp = { id, level: payload.level ?? doc.level + 1, exp: payload.exp ?? doc.exp, lp: payload.attrPoints ?? 0 };
     session.callback('onPlayerLevelUp', up);
+    this.achievements.record(id, 'level', { value: up.level });
     return true;
   }
 

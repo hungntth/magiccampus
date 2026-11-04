@@ -7,6 +7,7 @@ import { CharacterModule } from '../character/character.module';
 import { CharacterService } from '../character/character.service';
 import { Counter, CounterSchema } from '../character/counter.schema';
 import { GameDataModule } from '../gamedata/gamedata.module';
+import { AchievementEventsModule } from '../achievement/achievement-events.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { StatsModule } from '../stats/stats.module';
 import { GuildBankService } from './guild-bank.service';
@@ -25,6 +26,7 @@ import { GuildService } from './guild.service';
 
 @Module({
   imports: [
+    AchievementEventsModule,
     CharacterModule,
     InventoryModule,
     GameDataModule,
