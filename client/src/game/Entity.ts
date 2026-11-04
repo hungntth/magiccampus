@@ -38,6 +38,8 @@ const QUEST_MARKERS: Record<number, { text: string; style: TextStyle }> = {
   104: { text: '?', style: markerStyle('#ffd23f') },
 };
 
+const MAX_SHEET_PX = 8192;
+
 export type EntityKind = 'self' | 'player' | 'npc';
 
 // Name colors: players CreatureView 0xFFFF00, NPCs NPCView 13434828 (0xCCFFCC).
@@ -68,6 +70,8 @@ export class Entity extends Container {
   private questMarker: Text | null = null;
   private leaderFlag: Text | null = null;
   private hovered = false;
+  private baseRes = '';
+  private baseIcon = '';
 
   constructor(
     readonly entityId: number,
@@ -106,7 +110,17 @@ export class Entity extends Container {
       this.on('pointerout', () => this.setHover(false));
     }
 
+    this.baseRes = resCode;
+    this.baseIcon = iconCode;
     void this.loadVisual(resCode, iconCode);
+  }
+
+  /** Mount swap (onMountOn / onMountOff): shows the sprite of `resCode`, or the original one when null. */
+  swapRes(resCode: string | null): void {
+    this.anim?.destroy();
+    this.anim = null;
+    this.fallback.visible = true;
+    void this.loadVisual(resCode ?? this.baseRes, this.baseIcon);
   }
 
   /**
@@ -208,8 +222,13 @@ export class Entity extends Container {
 
   private async loadVisual(resCode: string, iconCode: string): Promise<void> {
     const sheetName = sheetNameFromResCode(resCode);
-    const sheet = sheetName ? await loadSheet(sheetName) : null;
+    let sheet = sheetName ? await loadSheet(sheetName) : null;
     if (this.destroyed) return;
+    // Mount sheets are one 1600 x 31000 px atlas: over the GPU texture limit it renders as a black quad, so keep the base sprite.
+    if (sheet?.textures.some((t) => Math.max(t.source.height, t.source.width) > MAX_SHEET_PX)) {
+      if (resCode !== this.baseRes) return this.loadVisual(this.baseRes, iconCode);
+      sheet = null;
+    }
     if (sheet && Object.keys(sheet.data.anims).length > 0) {
       const anim = new SheetAnim(sheet);
       const { width, height, meta } = sheet.data;

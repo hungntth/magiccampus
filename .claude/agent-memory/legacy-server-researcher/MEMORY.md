@@ -4,4 +4,5 @@
 - [Go economy navigation](reference_go_economy_navigation.md) — shop/bank/craft/upgrade/rune code map, mock & unregistered RPCs, collisions, sid map
 - [Go guild/PK/rank navigation](reference_go_guild_pk_navigation.md) — guild leader-only authority, free buildings/skills, PvP via PVPStartClient only, rank stubs
 - [Go multiplayer navigation](reference_go_multiplayer_navigation.md) — chat/group/social/trade/group-battle code map, in-memory vs DB, quirks, stale claims
+- [Go activities navigation](reference_go_activities_navigation.md) — M8: mock vs live activity handlers, shadowed registrations, loop quests/PM/diary data traps
 - [Go progression navigation](reference_go_progression_navigation.md) — stat-feature foundation, dead-bonus traps, shadowed stubs, titles/achievements/MW/zodiac quirks

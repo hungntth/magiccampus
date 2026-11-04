@@ -12,6 +12,9 @@ import { FEATURE_KEYS, parseAwaken, parseCrystals, parseSoul, parseWsp } from '.
 import { computeBuff, heiyaoshiBonuses, parseHy } from '../feature/heiyaoshi-rules';
 import { parseStars, starBonuses } from '../feature/zodiac-rules';
 import { soulBonuses } from '../feature/soul-rules';
+import { mountTables } from '../mount/mount-data';
+import { MOUNT_FEATURE_KEY, mountBonuses, ownedDresses, parseMount } from '../mount/mount-rules';
+import { PRA_FEATURE_KEY, parsePraTracks, praBonuses } from '../prabuff/prabuff-rules';
 import { wspBonuses, wspTotals } from '../feature/warsprite-rules';
 import { GameDataService } from '../gamedata/gamedata.service';
 import { CharacterFeature } from '../progression/feature.schema';
@@ -109,5 +112,36 @@ export class ZodiacBonusProvider extends FeatureProvider {
   async bonuses(characterId: number): Promise<Bonuses> {
     const look = { byId: (id: number) => this.gameData.starTemplate(id), at: (t: number, l: number) => this.gameData.starTemplateAt(t, l) };
     return starBonuses(parseStars(await this.state(characterId)), look);
+  }
+}
+
+@Injectable()
+export class PrabuffBonusProvider extends FeatureProvider {
+  readonly key = 'prabuff';
+  protected readonly featureKey = PRA_FEATURE_KEY;
+  constructor(@InjectModel(CharacterFeature.name) features: Model<CharacterFeature>, gameData: GameDataService) {
+    super(features, gameData);
+  }
+
+  async bonuses(characterId: number): Promise<Bonuses> {
+    return praBonuses(parsePraTracks(await this.state(characterId)));
+  }
+}
+
+/** Mount percents of the evolution rank and the worn skin, only while riding (useDress set and still owned). */
+@Injectable()
+export class MountBonusProvider extends FeatureProvider {
+  readonly key = 'mount';
+  protected readonly featureKey = MOUNT_FEATURE_KEY;
+  constructor(@InjectModel(CharacterFeature.name) features: Model<CharacterFeature>, gameData: GameDataService) {
+    super(features, gameData);
+  }
+
+  async bonuses(characterId: number): Promise<Bonuses> {
+    const state = parseMount(await this.state(characterId));
+    if (state.useDress <= 0) return mountBonuses(undefined, undefined);
+    const t = await mountTables(this.gameData);
+    if (!ownedDresses(state, t.rows, Date.now()).has(state.useDress)) return mountBonuses(undefined, undefined);
+    return mountBonuses(t.rows.find((r) => r.type === 2 && r.level === state.upLv), t.dresses.get(state.useDress));
   }
 }

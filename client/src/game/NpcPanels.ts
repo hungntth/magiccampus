@@ -37,7 +37,9 @@ export class NpcPanels {
   onNpcFuncInit(data: NpcFuncInit): void {
     const npc = this.host.npc(data.npcId);
     if (!npc) return;
-    if (data.npcQuest.state <= 0 && data.npcType <= 0) {
+    const loopEntries = Object.entries(data.loopInfo.d ?? {});
+    for (const [id, l] of loopEntries) this.host.quest().loops.rememberName(Number(id), l.name);
+    if (data.npcQuest.state <= 0 && data.npcType <= 0 && loopEntries.length === 0) {
       // Legacy: talk-only NPCs show their greeting as a speech bubble instead of a panel.
       this.dialog.close();
       npc.say(data.onServiceText);
@@ -50,6 +52,10 @@ export class NpcPanels {
       // Shop and bank NPCs answer npcFuncClick (the bank's password argument is ignored by the server).
       if (npcType !== NpcType.SHOP && npcType !== NpcType.BANK) return toast('Tính năng đang phát triển');
       void this.host.client.call('npcFuncClick', data.npcId).catch((e) => toast((e as Error).message, true));
+    }, {
+      onTake: (lid) => this.host.quest().loops.take(lid, data.npcId),
+      onRepair: (lid) => this.host.quest().loops.repair(lid),
+      needsRepair: (lid) => this.host.quest().loops.needsRepair(lid),
     });
   }
 

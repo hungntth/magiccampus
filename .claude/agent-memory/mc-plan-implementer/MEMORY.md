@@ -3,3 +3,6 @@
 - [Achievements hooks](achievements_hooks.md) — AchievementEvents wiring, seed text quirks, dotted state, browser tab pitfalls
 - [Stat features (M7 C)](stat_features.md) — modules/feature layout, provider placement, feature keys, e2e/browser tips
 - [Magic weapon (M7 E)](magic_weapon.md) — magicweapon module, stone templates, artifact semantics, Vite css miss, browser flow
+- [Activities phase A (M8)](activities_phase_a.md) — strip, sign-in ledger, diary hooks, online gift, e2e tips
+- [VIP phase B (M8)](vip_phase_b.md) — vip module wiring, CAS rev, findback audit, e2e/browser selectors
+- [Activities phase D (M8)](activities_phase_d.md) — boss/offline/feast/lotto/prabuff/mount wiring, mount atlas black quad, e2e tips

@@ -5,13 +5,14 @@
 
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import {
-  GroupCantJoinCode, type GroupAfkPush, type GroupAfkReply, type GroupFlagPush, type GroupGiveLeaderPush, type GroupJoined,
+  DiaryTask, GroupCantJoinCode, type GroupAfkPush, type GroupAfkReply, type GroupFlagPush, type GroupGiveLeaderPush, type GroupJoined,
   type GroupLeavePush, type GroupMember, type SceneCharacter,
 } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
 import { GameGateway } from '../../gateway/game.gateway';
 import { SceneManager } from '../../gateway/scene.manager';
 import type { Session } from '../../gateway/session';
+import { DiaryEvents } from '../activity/diary-events.service';
 import { CharacterService } from '../character/character.service';
 import { PartyManager } from './party.manager';
 import { buildMList, withinAfkReturn, type LeaveResult, type Party } from './party-rules';
@@ -39,6 +40,7 @@ export class PartyService implements OnModuleInit {
     private readonly scenes: SceneManager,
     private readonly gateway: GameGateway,
     private readonly characters: CharacterService,
+    private readonly diary: DiaryEvents,
   ) {}
 
   onModuleInit(): void {
@@ -78,7 +80,10 @@ export class PartyService implements OnModuleInit {
     if (!r.ok) return this.joinFailed(session, r.reason, r.code);
     this.afterJoin(r.party, me);
     await this.refresh(r.party);
-    for (const cid of r.created ? [r.party.leaderId, me] : [me]) this.announce(cid);
+    for (const cid of r.created ? [r.party.leaderId, me] : [me]) {
+      this.announce(cid);
+      this.diary.record(cid, DiaryTask.PARTY); // diary task 34: create / join a party (capped at once a day)
+    }
   }
 
   async deny(session: Session, otherCid: number): Promise<void> {
@@ -121,6 +126,7 @@ export class PartyService implements OnModuleInit {
     this.afterJoin(r.party, applicantCid);
     await this.refresh(r.party);
     this.announce(applicantCid);
+    this.diary.record(applicantCid, DiaryTask.PARTY);
     return true;
   }
 

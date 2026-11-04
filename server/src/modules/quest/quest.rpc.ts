@@ -1,17 +1,19 @@
-// Quest RPCs: takeQuest, finishQuest, cancelQuest, initQuestManager.
+// Quest RPCs: takeQuest, finishQuest, cancelQuest, initQuestManager (+ `l`, the active loop states).
 // Pushes (self): onAddChaQuest, onCancelQuest, onSetNpcState, onAddMoney, onUPP, onPlayerLevelUp; finishQuest first sends
 // onDelCharactorSlot / onAddCharactorSlot for the collected items it consumed and ends with onAddItem +
-// onAddCharactorSlot for the award items; takeQuest sends the same pair for an accept-time item.
+// onAddCharactorSlot for the award items; takeQuest sends the same pair for an accept-time item. A finished loop round adds
+// onFinishLoopQuest {id, ft} and the next round's onAddChaQuest (+ its accept-time item) after the reward pushes.
 
 import { Injectable } from '@nestjs/common';
 import type {
-  CancelQuestResult, FinishQuestReply, InitQuestManagerReply, PlayerLevelUp, PlayerUpdate,
+  CancelQuestResult, FinishLoopQuestPush, FinishQuestReply, InitQuestManagerReply, PlayerLevelUp, PlayerUpdate,
 } from '@mc/shared';
 import { Rpc } from '../../gateway/rpc.decorator';
 import { RpcException } from '../../gateway/errors';
 import type { Session } from '../../gateway/session';
 import { GameDataService } from '../gamedata/gamedata.service';
 import { sendPushes } from '../inventory/pushes';
+import { LoopStateService } from '../loop/loop-state.service';
 import { CharacterStatsService } from '../stats/character-stats.service';
 import { QuestService } from './quest.service';
 
@@ -27,6 +29,7 @@ export class QuestRpc {
     private readonly quests: QuestService,
     private readonly gameData: GameDataService,
     private readonly stats: CharacterStatsService,
+    private readonly loops: LoopStateService,
   ) {}
 
   @Rpc('takeQuest', { requireCharacter: true })
@@ -70,6 +73,14 @@ export class QuestRpc {
       session.callback('onPlayerLevelUp', lv);
     }
     sendPushes(session, out.rewardPushes); // award items after exp / money (Go FinishQuest order)
+    if (out.loop) {
+      const fin: FinishLoopQuestPush = { id: out.loop.id, ft: out.loop.ft, num: out.loop.num, name: out.loop.name };
+      session.callback('onFinishLoopQuest', fin); // before the next round (Go lifecycle.go order)
+      if (out.loop.next) {
+        session.callback('onAddChaQuest', out.loop.next);
+        sendPushes(session, await this.quests.startPushes(id, out.loop.nextId));
+      }
+    }
     await this.pushNpcStates(session, this.gameData.npcsOnMap(session.mapId).map((r) => Number(r.id)));
     return { flag: true, qid: questId, qn: out.qn };
   }
@@ -89,7 +100,7 @@ export class QuestRpc {
   async initQuestManager(session: Session): Promise<InitQuestManagerReply> {
     const q: InitQuestManagerReply['q'] = {};
     for (const quest of await this.quests.active(session.characterId!)) q[String(quest.qid)] = quest;
-    return { q };
+    return { q, l: await this.loops.activeDtos(session.characterId!) };
   }
 
   /** onSetNpcState(npcId, state) for each distinct NPC that stands on the player's map. */

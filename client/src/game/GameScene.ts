@@ -16,6 +16,7 @@ import { PortalLayer, type Portal } from './PortalLayer';
 import { dirFromDelta } from './SheetAnim';
 import { findRoute, type RoutePoint } from './route';
 import { QuestController } from './QuestController';
+import { ActivityController } from './ActivityController';
 import { BagController } from './BagController';
 import { ForgeController } from './ForgeController';
 import { MallController } from './MallController';
@@ -80,6 +81,7 @@ export class GameScene {
   private readonly character: CharacterController;
   private readonly pet: PetController;
   private readonly ranking: RankingPanel;
+  private readonly activity: ActivityController;
   private readonly petLayer: PetLayer;
   private readonly battle: BattleController;
   private readonly offs: (() => void)[] = [];
@@ -120,7 +122,7 @@ export class GameScene {
       onGuild: () => this.guild.toggle(), onPk: () => this.social.pk.begin(),
       onShop: () => void this.mall.toggle(),
       onForge: (tab) => this.forge.open(tab),
-      onRank: () => this.ranking.toggle(), onAchieve: () => this.character.toggleAchievements(),
+      onRank: () => this.ranking.toggle(), onAchieve: () => this.character.toggleAchievements(), onDaily: () => this.activity.openDaily(), onVip: () => this.activity.openVip(),
       onPet: () => this.pet.toggle(),
       onLevelUp: () => this.character.levelUp(),
       onRecover: (kind) => this.bag.actions.recover(kind),
@@ -138,6 +140,7 @@ export class GameScene {
     this.mall = new MallController(client, this.bag);
     this.forge = new ForgeController(client, this.bag, () => player);
     this.ranking = new RankingPanel(client);
+    this.activity = new ActivityController({ client, player, refreshHud: () => this.updateHud(), entityOf, bagCount: (id) => this.bag.countOf(id) });
     this.trade = new TradeController({ client, player, bag: this.bag });
     this.character = new CharacterController({ client, player, bag: this.bag, entityOf });
     this.guild = new GuildController({ client, player, bagItems: () => this.bag.list(), entities: this.entityLayer });
@@ -176,7 +179,7 @@ export class GameScene {
     for (const off of this.offs) off();
     const { social, party, friends, guild, trade, quest, bag, character, pet, petLayer, battle, hud } = this;
     for (const c of [social, party, friends, guild, trade, quest, bag, character, pet, petLayer, battle, hud]) c.destroy();
-    for (const c of [this.mall, this.forge, this.ranking]) c.destroy();
+    for (const c of [this.mall, this.forge, this.ranking, this.activity]) c.destroy();
     this.panels.closeAll();
     this.pendingNpc = null;
     this.app.ticker.stop();

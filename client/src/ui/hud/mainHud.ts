@@ -25,6 +25,10 @@ export interface HudActions {
   onRank(): void;
   /** R key / HUD achievement button (achievement window). */
   onAchieve(): void;
+  /** HUD "Hoạt động hằng ngày" button (diary window). */
+  onDaily(): void;
+  /** HUD VIP button (VIP window). */
+  onVip(): void;
   /** A key / HUD PK button: arms the PK click mode. */
   onPk(): void;
   /** W key / HUD pet button / pet icon. */
@@ -48,7 +52,7 @@ export class MainHud {
     this.buffBar = new BuffBar(parent, client);
     this.miniMap = new MiniMapCanvas(parent, client, actions.onShop, actions.onForge, actions.onRank);
     new UserBar(parent);
-    this.systemBar = new SystemBar(parent, typing, actions.onBag, actions.onCharacter, actions.onFriend, actions.onPet, actions.onGuild, actions.onPk, actions.onAchieve);
+    this.systemBar = new SystemBar(parent, typing, actions.onBag, actions.onCharacter, actions.onFriend, actions.onPet, actions.onGuild, actions.onPk, actions.onAchieve, actions.onDaily);
   }
 
   destroy(): void {

@@ -24,6 +24,7 @@ export interface QuestTemplate {
   at: number; // QuestAwardMode: 1 all awards, 2 choose one, 3 own-class items
   startGrantItem: number; // 0 = none
   startGrantQty: number;
+  subType?: string; // "7-<lid>" for loop rounds
 }
 
 /** data_tbl_quest_require: kind 1 collect item (type 29 item / 19 equipment), 2 kill creature, 3 pet. */
@@ -93,6 +94,7 @@ export function toQuestTemplate(row: Row): QuestTemplate {
     at: n(row.at) || 1,
     startGrantItem: n(row.start_grant_item),
     startGrantQty: n(row.start_grant_qty),
+    subType: s(row.sub_type),
   };
 }
 

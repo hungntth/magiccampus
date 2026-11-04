@@ -4,11 +4,12 @@ import { CharacterModule } from '../character/character.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { PartyModule } from '../party/party.module';
 import { GuildModule } from '../guild/guild.module';
+import { VipCoreModule } from '../vip/vip-core.module';
 import { ChatRpc } from './chat.rpc';
 import { ChatService } from './chat.service';
 
 @Module({
-  imports: [CharacterModule, InventoryModule, PartyModule, GuildModule],
+  imports: [CharacterModule, InventoryModule, PartyModule, GuildModule, VipCoreModule],
   providers: [ChatService, ChatRpc],
   exports: [ChatService],
 })

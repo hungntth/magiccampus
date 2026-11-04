@@ -12,6 +12,7 @@ import { CharacterService } from '../character/character.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { PartyManager } from '../party/party.manager';
 import { GuildViewService } from '../guild/guild-view.service';
+import { PmStateService } from '../vip/pm-state.service';
 import { withCharLock } from '../inventory/char-lock';
 import { ChatRateLimiter, findOnlineByName, normalizeMessage, routeChannel, worldChatCost } from './chat-rules';
 
@@ -35,6 +36,7 @@ export class ChatService implements OnModuleInit {
     private readonly inventory: InventoryService,
     private readonly parties: PartyManager,
     private readonly guilds: GuildViewService,
+    private readonly vip: PmStateService,
   ) {}
 
   onModuleInit(): void {
@@ -51,7 +53,7 @@ export class ChatService implements OnModuleInit {
     const route = routeChannel(channelId);
     if (route === 'unsupported') throw RpcException.forbidden(UNSUPPORTED);
     this.acquire(session);
-    const payload = this.sayPayload(session, channelId, msg);
+    const payload = await this.sayPayload(session, channelId, msg);
     if (route === 'local') this.scenes.broadcast(session.mapId, 'onSay', [payload]);
     else if (route === 'team') this.sayTeam(session, payload);
     else if (route === 'guild') await this.sayGuild(session, payload);
@@ -94,9 +96,9 @@ export class ChatService implements OnModuleInit {
     if (!this.limiter.tryAcquire(session.characterId!, Date.now())) throw RpcException.forbidden(TOO_FAST);
   }
 
-  private sayPayload(session: Session, channelId: number, msg: string): SayPush {
+  private async sayPayload(session: Session, channelId: number, msg: string): Promise<SayPush> {
     const name = session.characterName ?? '?';
-    return { channelId, id: session.characterId!, type: SOURCE_ID_CHARACTER, name, cname: name, msg, pmLevel: 0 };
+    return { channelId, id: session.characterId!, type: SOURCE_ID_CHARACTER, name, cname: name, msg, pmLevel: await this.vip.levelOf(session.characterId!) };
   }
 
   /** Team channel: every online party member on any map; not in a party is refused. */

@@ -8,6 +8,7 @@ import { AchievementEventsModule } from '../achievement/achievement-events.modul
 import { Character, CharacterSchema } from '../character/character.schema';
 import { CharacterQuest, CharacterQuestSchema, QuestHistory, QuestHistorySchema } from './quest.schema';
 import { InventoryModule } from '../inventory/inventory.module';
+import { LoopCoreModule } from '../loop/loop-core.module';
 import { PetModule } from '../pet/pet.module';
 import { StatsModule } from '../stats/stats.module';
 import { QuestProgressService } from './quest-progress.service';
@@ -25,6 +26,7 @@ import { QuestService } from './quest.service';
     AchievementEventsModule,
     GameDataModule,
     InventoryModule,
+    LoopCoreModule,
     PetModule,
     StatsModule,
   ],

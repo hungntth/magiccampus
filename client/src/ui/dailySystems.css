@@ -1,0 +1,32 @@
+/* Phase D windows (boss, offline exp, feast, lotto, prabuff, mount): reuse the .act-win look, add the few extra widgets. */
+.ds-win { width: 520px; top: 5%; }
+.ds-list { max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; }
+.ds-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  background: rgba(8, 28, 48, 0.7);
+  border: 1px solid #2f648f;
+  border-radius: 4px;
+}
+.ds-row.off { opacity: 0.55; }
+.ds-row .n { font-weight: 700; }
+.ds-row .s { color: #b8d0e6; font-size: 11px; }
+.ds-actions { display: flex; gap: 4px; }
+.ds-bar { position: relative; height: 12px; background: rgba(8, 28, 48, 0.8); border: 1px solid #4f86b3; border-radius: 6px; overflow: hidden; }
+.ds-bar-fill { height: 100%; background: linear-gradient(180deg, #ffd96a, #c98a12); }
+.ds-bar-text { position: absolute; inset: 0; text-align: center; line-height: 12px; font-size: 10px; text-shadow: 0 0 2px #000; }
+.ds-modes { display: flex; gap: 4px; flex-wrap: wrap; }
+.ds-input { width: 70px; padding: 2px 4px; background: #0e2a45; color: #fff; border: 1px solid #4f86b3; border-radius: 3px; font: inherit; }
+.ds-note { color: #ffcf8a; }
+.ds-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.ds-cell { padding: 4px; text-align: center; background: rgba(8, 28, 48, 0.7); border: 1px solid #2f648f; border-radius: 4px; display: flex; flex-direction: column; gap: 3px; }
+.ds-cell.sel { border-color: #e8c46a; box-shadow: 0 0 6px #e8c46a; }
+.ds-cell.off { opacity: 0.5; }
+.ds-extra { position: absolute; right: 8px; bottom: 64px; display: flex; gap: 4px; pointer-events: none; font-family: Tahoma, Verdana, Arial, sans-serif; font-size: 11px; z-index: 20; }
+.ds-extra > * { pointer-events: auto; }
+.ds-extra .act-btn { position: relative; }
+.ds-extra .act-dot { top: -3px; right: -3px; }
+#stage:has(.battle-menu) .ds-extra { display: none; }

@@ -31,6 +31,16 @@ import { AchievementModule } from './modules/achievement/achievement.module';
 import { FeatureModule } from './modules/feature/feature.module';
 import { MagicWeaponModule } from './modules/magicweapon/magicweapon.module';
 import { RankingModule } from './modules/ranking/ranking.module';
+import { ActivityModule } from './modules/activity/activity.module';
+import { SignInModule } from './modules/signin/signin.module';
+import { VipModule } from './modules/vip/vip.module';
+import { LoopModule } from './modules/loop/loop.module';
+import { DailyBossModule } from './modules/dailyboss/dailyboss.module';
+import { FeastModule } from './modules/feast/feast.module';
+import { LottoModule } from './modules/lotto/lotto.module';
+import { MountModule } from './modules/mount/mount.module';
+import { OfflineModule } from './modules/offline/offline.module';
+import { PrabuffModule } from './modules/prabuff/prabuff.module';
 
 @Module({
   imports: [
@@ -63,6 +73,16 @@ import { RankingModule } from './modules/ranking/ranking.module';
     FeatureModule,
     MagicWeaponModule,
     RankingModule,
+    ActivityModule,
+    SignInModule,
+    VipModule,
+    LoopModule,
+    DailyBossModule,
+    FeastModule,
+    LottoModule,
+    MountModule,
+    OfflineModule,
+    PrabuffModule,
     SystemModule,
   ],
 })

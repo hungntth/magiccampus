@@ -9,9 +9,10 @@ import { PartyModule } from '../party/party.module';
 import { TradeModule } from '../trade/trade.module';
 import { PetModule } from '../pet/pet.module';
 import { TitleModule } from '../title/title.module';
+import { VipCoreModule } from '../vip/vip-core.module';
 
 @Module({
-  imports: [CharacterModule, GameDataModule, QuestModule, BuffModule, PartyModule, TradeModule, PetModule, TitleModule],
+  imports: [CharacterModule, GameDataModule, QuestModule, BuffModule, PartyModule, TradeModule, PetModule, TitleModule, VipCoreModule],
   providers: [SceneRpc, SceneTransportService],
   exports: [SceneTransportService],
 })

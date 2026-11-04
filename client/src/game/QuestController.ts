@@ -13,6 +13,7 @@ import { QuestPanel } from '../ui/questPanel';
 import { QuestTracker } from '../ui/questTracker';
 import { toast } from '../ui/screens';
 import type { Entity } from './Entity';
+import { LoopController } from './LoopController';
 
 const THROTTLE_MS = 1100;
 
@@ -32,6 +33,7 @@ export class QuestController {
   private readonly quests = new Map<number, ChaQuest>();
   private readonly panel = new QuestPanel();
   private readonly tracker: QuestTracker;
+  readonly loops: LoopController; // loop quests (M8 phase C): states, push messages, take / cancel / repair
   private readonly lastCall = new Map<string, number>();
   private readonly offs: (() => void)[] = [];
   private pendingMoney = ''; // onAddMoney arrives just before onUPP; reported together
@@ -39,6 +41,7 @@ export class QuestController {
   constructor(private readonly host: QuestHost, ui: HTMLElement) {
     this.tracker = new QuestTracker(ui, (q) => this.openFromTracker(q), (q) => this.find(q), (q) => this.progressOf(q));
     const c = host.client;
+    this.loops = new LoopController({ client: c, chat: host.chat, quests: () => this.quests.values() });
     this.offs.push(
       c.on('onAddChaQuest', (d) => this.onAdd(d as ChaQuest)),
       // The bag changes after this handler (BagController registers later): re-render once it has applied the push.
@@ -60,6 +63,7 @@ export class QuestController {
     for (const off of this.offs) off();
     this.panel.close();
     this.tracker.destroy();
+    this.loops.destroy();
   }
 
   closePanel(): void {
@@ -70,6 +74,7 @@ export class QuestController {
     const res = await this.host.client.call<InitQuestManagerReply>('initQuestManager');
     this.quests.clear();
     for (const q of Object.values(res.q)) this.quests.set(q.qid, q);
+    this.loops.load(res.l);
     this.tracker.render(this.quests.values());
   }
 
@@ -138,7 +143,7 @@ export class QuestController {
           return;
         }
         const p = this.host.player;
-        p.questLog = `${p.questLog || '|'}${view.qid}|`;
+        if (view.data.loopId === undefined) p.questLog = `${p.questLog || '|'}${view.qid}|`; // loop rounds write no history
         if (r.qn !== undefined) p.qn = r.qn;
         this.quests.delete(view.qid);
         this.tracker.render(this.quests.values());
@@ -150,6 +155,7 @@ export class QuestController {
   }
 
   private cancel(view: QuestView): void {
+    if (view.data.loopId !== undefined) return this.loops.cancel(view.data.loopId); // a loop round: give the whole loop up
     if (!this.throttle('cancel')) return;
     void this.host.client.call('cancelQuest', view.qid).catch((e) => toast((e as Error).message, true));
   }

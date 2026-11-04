@@ -6,9 +6,9 @@ import type { QuestPreRow, QuestRequireRow, QuestTemplate } from '../gamedata/qu
 
 const GENDER_ANY = 2;
 
-/** Quest types the H5 slice offers (newbie, main, world, growup). */
+/** Quest types the H5 slice offers (newbie, main, world, growup; loop rounds are granted by the loop module, never offered by an NPC). */
 export const SUPPORTED_QUEST_TYPES: ReadonlySet<number> = new Set([
-  QuestType.NEWHAND, QuestType.MAIN, QuestType.WORLD, QuestType.GROWUP,
+  QuestType.NEWHAND, QuestType.MAIN, QuestType.WORLD, QuestType.GROWUP, QuestType.LOOP,
 ]);
 
 export interface QuestChar {

@@ -9,6 +9,11 @@ import type { GuildSlot } from './guildBank.js';
 import type { Currencies, TitleView } from './progression.js';
 import type { AchieveReqProgress } from './achievement.js';
 import type { AwakenLogin } from './statFeatures.js';
+import type { ActivityLogin } from './activity.js';
+import type { LoopStateDTO, NpcLoopInfo } from './loop.js';
+import type { VipLogin } from './vip.js';
+import type { OfflineLogin } from './offline.js';
+import type { MountLogin } from './mount.js';
 import type { StarsData } from './zodiac.js';
 
 export type ClientMessage = { t: 'call'; id: number; m: string; a: unknown[] };
@@ -62,7 +67,7 @@ export interface ClassInfo {
   largeImgFemale: string;
 }
 
-export interface PlayerData extends PetLoginInfo, Partial<AwakenLogin> {
+export interface PlayerData extends PetLoginInfo, Partial<AwakenLogin>, Partial<ActivityLogin>, Partial<VipLogin>, Partial<OfflineLogin>, Partial<MountLogin> {
   id: number;
   name: string;
   classId: number;
@@ -146,6 +151,8 @@ export interface SceneCharacter {
   actT?: number;
   tv?: TitleView;
   atv?: TitleView;
+  /** VIP level 0..9 (M8 phase B); absent = 0. */
+  pmLevel?: number;
 }
 
 export interface SceneNpc {
@@ -222,7 +229,7 @@ export interface NpcFuncInit {
   npcName: string;
   npcType: number; // function type or 0
   npcQuest: { npcId: number; state: number; list: Record<string, QuestView> };
-  loopInfo: { d: unknown; flag: boolean };
+  loopInfo: NpcLoopInfo;
   // H5 extension: the Flash client read this from its static NPC table; we have no client copy.
   onServiceText: string;
 }
@@ -299,6 +306,8 @@ export interface QuestData {
   minLevel: number;
   color: number;
   at: number; // QuestAwardMode
+  /** H5 extension: loop id of a loop round (type 7), so the client can cancel / repair its loop. */
+  loopId?: number;
 }
 
 export interface QuestRequire {
@@ -373,6 +382,8 @@ export interface CancelQuestResult {
 
 export interface InitQuestManagerReply {
   q: Record<string, ChaQuest>;
+  /** active loop quest states by loop id (Flash player.loopList) */
+  l?: Record<string, LoopStateDTO>;
 }
 
 /** onUPP: partial player props after exp/money/level changes. */
@@ -381,7 +392,7 @@ export type PlayerUpdate = Partial<
     PlayerData,
     | 'level' | 'exp' | 'money' | 'moneyBind' | 'gold' | 'goldBind' | 'attrPoints' | 'currentHp' | 'currentMp' | 'maxHp'
     | 'maxMp' | 'attStrength' | 'attAgility' | 'attStamina' | 'attIntelligence' | 'attEnergy' | 'property' | 'petMaxNum' | 'bagSlotNum'
-    | 'bankSlotNum' | 'selectedMoneyType' | 'selectedGoldType' | 'name' | 'currencies'
+    | 'bankSlotNum' | 'selectedMoneyType' | 'selectedGoldType' | 'name' | 'currencies' | 'pmLevel'
   >
 >;
 

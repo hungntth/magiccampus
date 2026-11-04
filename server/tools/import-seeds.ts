@@ -30,7 +30,8 @@ const KNOWN_COLUMNS: Record<string, string[]> = {
 
 function parseFile(sql: string): ParsedInsert[] {
   const out: ParsedInsert[] = [];
-  const re = /INSERT INTO\s+"?(\w+)"?\."?(\w+)"?\s*(?:\(([^)]*)\)\s*)?VALUES\s*/g;
+  // Case-insensitive: data_tbl_schedule_boss.sql uses lowercase `insert into` (and one INSERT per row).
+  const re = /INSERT INTO\s+"?(\w+)"?\."?(\w+)"?\s*(?:\(([^)]*)\)\s*)?VALUES\s*/gi;
   let m: RegExpExecArray | null;
   while ((m = re.exec(sql)) !== null) {
     const table = m[2];

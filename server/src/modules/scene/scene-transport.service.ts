@@ -11,6 +11,7 @@ import { GameDataService } from '../gamedata/gamedata.service';
 import { PartyService } from '../party/party.service';
 import { PetFollowService } from '../pet/pet-follow.service';
 import { TradeService } from '../trade/trade.service';
+import { PmStateService } from '../vip/pm-state.service';
 
 @Injectable()
 export class SceneTransportService {
@@ -21,6 +22,7 @@ export class SceneTransportService {
     private readonly party: PartyService,
     private readonly trades: TradeService,
     private readonly petFollow: PetFollowService,
+    private readonly vip: PmStateService,
   ) {}
 
   /** Caller must have checked that `mapId` exists. `follow` is false for the follower hops themselves. */
@@ -46,7 +48,7 @@ export class SceneTransportService {
     doc.posX = x;
     doc.posY = y;
     doc.dir = dir;
-    const self = await this.petFollow.decorate(this.party.decorate(this.characters.toSceneCharacter(doc)));
+    const self = await this.vip.decorate(await this.petFollow.decorate(this.party.decorate(this.characters.toSceneCharacter(doc))));
     this.scenes.broadcast(mapId, 'onScenePlayerEntered', [self], session);
     return { mapId, map: this.gameData.toMapInfo(mapRow), self };
   }

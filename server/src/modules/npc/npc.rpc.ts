@@ -8,6 +8,7 @@ import { RpcException } from '../../gateway/errors';
 import type { Session } from '../../gateway/session';
 import { QuestBattleService } from '../combat/quest-battle.service';
 import { GameDataService, type Row } from '../gamedata/gamedata.service';
+import { LoopService } from '../loop/loop.service';
 import { QuestService } from '../quest/quest.service';
 import { SceneTransportService } from '../scene/scene-transport.service';
 import { ShopService } from '../shop/shop.service';
@@ -23,6 +24,7 @@ export class NpcRpc {
     private readonly gameData: GameDataService,
     private readonly npcs: NpcService,
     private readonly quests: QuestService,
+    private readonly loops: LoopService,
     private readonly shops: ShopService,
     private readonly transport: SceneTransportService,
     private readonly questBattle: QuestBattleService,
@@ -38,12 +40,13 @@ export class NpcRpc {
     }
     if (await this.questBattle.tryStart(session, npc)) return null; // onBattleStart replaces the dialog
     const quests = await this.quests.listForNpc(session.characterId!, Number(npc.id));
-    // Legacy npc_click.go: a shop NPC without quests opens the shop directly, no npcFuncInit.
-    if (this.shopIdOf(npc) > 0 && Object.keys(quests.list).length === 0) {
+    // Legacy npc_click.go: a shop NPC without quests (or takeable loops) opens the shop directly, no npcFuncInit.
+    const loopInfo = await this.loops.infoForNpc(session.characterId!, Number(npc.id));
+    if (this.shopIdOf(npc) > 0 && Object.keys(quests.list).length === 0 && !Object.values(loopInfo.d ?? {}).some((l) => l.canTake)) {
       await this.openShop(session, npc);
       return null;
     }
-    session.callback('npcFuncInit', this.npcs.buildFuncInit(npc, quests));
+    session.callback('npcFuncInit', this.npcs.buildFuncInit(npc, quests, loopInfo));
     return null;
   }
 

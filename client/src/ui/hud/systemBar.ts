@@ -15,11 +15,13 @@ interface MenuButton {
   skin: SkinStates;
   tip: string;
   key?: string;
+  /** Opens the daily activity window instead of a keyed action. */
+  daily?: boolean;
 }
 
 const BUTTONS: MenuButton[] = [
   { x: -46, y: 0, skin: { up: 'MainStage_SystemBarButtons2/richang1', over: 'MainStage_SystemBarButtons2/richang2',
-    down: 'MainStage_SystemBarButtons2/richang3' }, tip: 'Hoạt động hằng ngày' },
+    down: 'MainStage_SystemBarButtons2/richang3' }, tip: 'Hoạt động hằng ngày', daily: true },
   { x: -1, y: 0, skin: mc('Achievement'), tip: 'Thành tựu (Phím tắt R)', key: 'r' },
   { x: 45, y: 0, skin: mc('Contest'), tip: 'PK (Phím tắt A)', key: 'a' },
   { x: 87, y: 0, skin: mc('person'), tip: 'Giao diện nhân vật (Phím tắt C)', key: 'c' },
@@ -37,11 +39,11 @@ export class SystemBar {
 
   /** `typing()` tells whether a text field has focus, so letters go to it instead of the shortcuts. */
   constructor(parent: HTMLElement, private readonly typing: () => boolean, onBag: () => void, onCharacter: () => void,
-    onFriend: () => void, onPet: () => void, onGuild: () => void, onPk: () => void, onAchieve: () => void) {
+    onFriend: () => void, onPet: () => void, onGuild: () => void, onPk: () => void, onAchieve: () => void, onDaily: () => void) {
     const bar = div('hud-sysbar', parent);
     const actions = new Map<string, () => void>();
     for (const b of BUTTONS) {
-      const act = b.key === 'b' ? onBag : b.key === 'c' ? onCharacter : b.key === 'k' ? onFriend : b.key === 'w' ? onPet : b.key === 'e' ? onGuild : b.key === 'a' ? onPk : b.key === 'r' ? onAchieve : notReady;
+      const act = b.daily ? onDaily : b.key === 'b' ? onBag : b.key === 'c' ? onCharacter : b.key === 'k' ? onFriend : b.key === 'w' ? onPet : b.key === 'e' ? onGuild : b.key === 'a' ? onPk : b.key === 'r' ? onAchieve : notReady;
       skinButton(b.skin, bar, b.x, b.y, b.tip, act);
       if (b.key) actions.set(b.key, act);
     }

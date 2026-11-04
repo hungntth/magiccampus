@@ -29,6 +29,9 @@ Legacy (Go/Flash) knowledge: `D:\mcgame\docs\PROJECT_KNOWLEDGE_BASE.md`.
 - [Progression foundation, titles, achievements](memory/progression.md) — stat provider registry, currencies, character_features, gmGrant, titles with buffs, achievement hooks and claims.
 - [Stat-feature panels](memory/stat-features.md) — train soul, awakening, war sprite, magic crystal, heiyaoshi, zodiac stars (Tu luyện window).
 - [Magic weapon](memory/magic-weapon.md) — Thần Khí slots 15-20, data_tbl_artifact upgrades, repair/resolve/transfer/reset.
+- [Activities](memory/activities.md) — UTC+7 day keys, activity strip, sign-in, diary + DiaryEvents, online/offline exp, festivals, daily boss, lotto, prabuff, mount.
+- [VIP](memory/vip.md) — PM packages and levels, daily rights (mark-first), findback, VIP shop rotation.
+- [Loop quests](memory/loop-quest.md) — TBL_QUEST_LOOP take/cancel/repair, playable round pools, round rewards, [Vòng] NPC entries.
 - [Pets](memory/pets.md) — pets collection, growth-scale stats, quest award, panel, map follow, battle pet at slot+5, catch, kind-3 objectives, pet skills/equipment/slots.
 - [Trade](memory/trade.md) — newTrade/tradeLock/tradeConfirm/stopTrade, saga swap under two char locks.
 - [Map portals](memory/portal.md) — transport gates: createSceneItems, legacy sceneChange(gateId) + onSceneEnter, destination/landing rules, swfanim gate art.

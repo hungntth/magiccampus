@@ -5,7 +5,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { MAX_QUEST_NUM, MoneyType, QuestState } from '@mc/shared';
+import { loopIdOfSubType, loopRoundReward, MAX_QUEST_NUM, MoneyType, QuestState, QuestType } from '@mc/shared';
 import type { ChaQuest, MoneyKey, QuestRequire, QuestView } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
 import { AchievementEvents } from '../achievement/achievement-events.service';
@@ -13,6 +13,7 @@ import { Character } from '../character/character.schema';
 import { GameDataService } from '../gamedata/gamedata.service';
 import type { QuestTemplate } from '../gamedata/quest-data';
 import { withCharLock } from '../inventory/char-lock';
+import { LoopStateService } from '../loop/loop-state.service';
 import type { Push } from '../inventory/pushes';
 import { allMet, creditKills, initialObjectives, questKillOf } from './quest-progress';
 import { QuestProgressService } from './quest-progress.service';
@@ -43,6 +44,8 @@ export interface FinishOutcome {
   money: { key: CreditedMoney; amount: number; total: number } | null;
   pushes: Push[]; // bag changes from consuming the collected items (sent before the rewards)
   rewardPushes: Push[]; // onAddItem + onAddCharactorSlot for the award items (sent after exp / money)
+  /** Set when the finished quest was a loop round: `onFinishLoopQuest {id, ft}` then the next round (if any). */
+  loop?: { id: number; ft: number; num: number; name: string; next: ChaQuest | null; nextId: number };
 }
 
 export interface TakeOutcome {
@@ -78,6 +81,7 @@ export class QuestService {
     private readonly progress: QuestProgressService,
     private readonly rewards: QuestRewardService,
     private readonly achievements: AchievementEvents,
+    private readonly loops: LoopStateService,
   ) {}
 
   async loadCtx(characterId: number): Promise<QuestCtx> {
@@ -175,13 +179,25 @@ export class QuestService {
     if (!(await this.rewards.canFit(characterId, awards))) throw RpcException.forbidden('Túi không đủ chỗ trống!');
     // Go CompleteQuest: the collected items are taken out of the bag before the quest is completed and rewarded.
     const pushes = await this.progress.consumeCollected(characterId, tpl, objectives);
+    const lid = tpl.type === QuestType.LOOP ? loopIdOfSubType(tpl.subType ?? '') : 0;
+    const loopFt = lid > 0 ? (await this.loops.requireActiveRound(characterId, lid, questId)).ft : 0;
     const del = await this.quests.deleteOne({ _id: row._id });
     if (del.deletedCount !== 1) throw RpcException.forbidden('Chưa nhận nhiệm vụ này');
-    await this.history.create({ characterId, questId }).catch((e: unknown) => {
-      if (!isDupKey(e)) throw e;
-    });
+    // Loop rounds write no quest_history and pay the Go class-quest formula (the data holds no loop rewards); the loop state
+    // advances (ft + 1, next round granted) before anything is credited.
+    let advanced: Awaited<ReturnType<LoopStateService['advance']>> | null = null;
+    let reward = tpl;
+    if (lid > 0) {
+      const r = loopRoundReward(doc.level, loopFt);
+      reward = { ...tpl, awardExp: r.exp, moneyNum: r.silver, moneyType: MoneyType.MONEY_BIND };
+      advanced = await this.loops.advance(characterId, lid, questId, doc.level);
+    } else {
+      await this.history.create({ characterId, questId }).catch((e: unknown) => {
+        if (!isDupKey(e)) throw e;
+      });
+    }
 
-    const exp = applyExp({ level: doc.level, exp: doc.exp, attrPoints: doc.attrPoints }, tpl.awardExp);
+    const exp = applyExp({ level: doc.level, exp: doc.exp, attrPoints: doc.attrPoints }, reward.awardExp);
     doc.level = exp.level;
     doc.exp = exp.exp;
     doc.attrPoints = exp.attrPoints;
@@ -193,10 +209,10 @@ export class QuestService {
       doc.energy += exp.statGain;
     }
     let money: FinishOutcome['money'] = null;
-    const field = MONEY_FIELD[tpl.moneyType];
-    if (field && tpl.moneyNum > 0) {
-      doc[field] = (doc[field] ?? 0) + tpl.moneyNum;
-      money = { key: field, amount: tpl.moneyNum, total: doc[field] };
+    const field = MONEY_FIELD[reward.moneyType];
+    if (field && reward.moneyNum > 0) {
+      doc[field] = (doc[field] ?? 0) + reward.moneyNum;
+      money = { key: field, amount: reward.moneyNum, total: doc[field] };
     }
     await doc.save();
     this.achievements.record(characterId, 'questsFinished');
@@ -204,9 +220,30 @@ export class QuestService {
     if (money) this.achievements.record(characterId, money.key === 'gold' ? 'gold' : 'silver', { value: money.key === 'gold' ? doc.gold + doc.goldBind : doc.money + doc.moneyBind });
     const granted = await this.rewards.grant(characterId, awards);
     const petPushes = await this.rewards.grantPets(characterId, tpl, doc.classId, selectId); // after the item awards
-    const petExp = await this.rewards.grantPetExp(characterId, tpl.awardExp); // the active pet gets the full quest exp
+    const petExp = await this.rewards.grantPetExp(characterId, reward.awardExp); // the active pet gets the full quest exp
     const qn = await this.quests.countDocuments({ characterId });
-    return { tpl, qn, exp, money, pushes, rewardPushes: [...granted.pushes, ...petPushes, ...petExp] };
+    const out: FinishOutcome = { tpl, qn, exp, money, pushes, rewardPushes: [...granted.pushes, ...petPushes, ...petExp] };
+    if (advanced) {
+      const nextTpl = advanced.next ? this.gameData.getQuest(advanced.next.questId) : undefined;
+      const next = advanced.next && nextTpl ? await this.toChaQuest(nextTpl, advanced.next) : null;
+      out.loop = { id: advanced.def.id, ft: advanced.ft, num: advanced.done ? advanced.ft : advanced.def.num, name: advanced.def.name, next, nextId: advanced.next?.questId ?? 0 };
+    }
+    return out;
+  }
+
+  /** Accept-time item pushes of a granted loop round (called outside the character lock). */
+  startPushes(characterId: number, questId: number): Promise<Push[]> {
+    const tpl = this.gameData.getQuest(questId);
+    return tpl ? this.rewards.grantStart(characterId, tpl) : Promise.resolve([]);
+  }
+
+  /** The active quest `questId` as an onAddChaQuest payload (null when the character does not hold it). */
+  async chaQuest(characterId: number, questId: number): Promise<ChaQuest | null> {
+    const tpl = this.gameData.getQuest(questId);
+    const row = tpl ? await this.quests.findOne({ characterId, questId }).lean() : null;
+    if (!tpl || !row) return null;
+    const [synced] = await this.progress.syncRows(characterId, [row]);
+    return this.toChaQuest(tpl, synced);
   }
 
   async cancel(characterId: number, questId: number): Promise<{ flag: boolean; qn: number; info?: string; tpl?: QuestTemplate }> {
@@ -214,6 +251,7 @@ export class QuestService {
     const qn = await this.quests.countDocuments({ characterId });
     if (!tpl) return { flag: false, qn, info: 'Nhiệm vụ không tồn tại' };
     if (tpl.type === 1) return { flag: false, qn, info: 'Không thể hủy nhiệm vụ này', tpl };
+    if (tpl.type === QuestType.LOOP) return { flag: false, qn, info: 'Hãy hủy cả vòng nhiệm vụ', tpl };
     const del = await this.quests.deleteOne({ characterId, questId });
     if (del.deletedCount !== 1) return { flag: false, qn, info: 'Chưa nhận nhiệm vụ này', tpl };
     return { flag: true, qn: qn - 1, tpl };
@@ -281,6 +319,7 @@ export class QuestService {
         id: tpl.id, name: tpl.name, info: tpl.info, type: tpl.type, startText: tpl.startText,
         completeText: tpl.completeText, awardExp: tpl.awardExp, moneyNum: tpl.moneyNum, moneyType: tpl.moneyType,
         startNpc: tpl.startNpc, finishNpc: tpl.finishNpc, minLevel: tpl.minLevel, color: tpl.color, at: tpl.at,
+        ...(tpl.type === QuestType.LOOP ? { loopId: loopIdOfSubType(tpl.subType ?? '') } : {}),
       },
       require,
       award: await this.rewards.views(tpl.id),

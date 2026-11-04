@@ -3,7 +3,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { NpcType } from '@mc/shared';
-import type { NpcFuncInit, QuestView } from '@mc/shared';
+import type { NpcFuncInit, NpcLoopInfo, QuestView } from '@mc/shared';
 import type { Row } from '../gamedata/gamedata.service';
 
 // NPC row types that expose a function button (legacy npc_interaction.go).
@@ -19,7 +19,11 @@ export const NPC_FUNC_TYPES: ReadonlySet<number> = new Set([
 
 @Injectable()
 export class NpcService {
-  buildFuncInit(npc: Row, quests: { state: number; list: Record<string, QuestView> } = { state: -1, list: {} }): NpcFuncInit {
+  buildFuncInit(
+    npc: Row,
+    quests: { state: number; list: Record<string, QuestView> } = { state: -1, list: {} },
+    loopInfo: NpcLoopInfo = { d: null, flag: false },
+  ): NpcFuncInit {
     const id = Number(npc.id);
     const type = Number(npc.type ?? 0);
     return {
@@ -28,7 +32,7 @@ export class NpcService {
       // Legacy npc_interaction.go: any NPC with a shop shows the Shop function button.
       npcType: Number(npc.shop_id ?? 0) > 0 ? NpcType.SHOP : NPC_FUNC_TYPES.has(type) ? type : 0,
       npcQuest: { npcId: id, state: quests.state, list: quests.list },
-      loopInfo: { d: null, flag: false },
+      loopInfo,
       onServiceText: String(npc.on_service_text ?? ''),
     };
   }

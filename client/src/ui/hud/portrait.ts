@@ -35,6 +35,7 @@ export class PortraitCanvas {
   private readonly sp: Bar;
   private readonly exp: Bar;
   private readonly lvUp: HTMLDivElement;
+  private readonly vip: HTMLDivElement;
 
   constructor(parent: HTMLElement, actions: HudActions) {
     this.root = place(div('hud-portrait', parent), 2, 5, 192, 57) as HTMLDivElement;
@@ -61,14 +62,16 @@ export class PortraitCanvas {
     skinButton(std('MainStage_CharInfo/ItemBag'), this.root, 173, 3, 'Vật phẩm nhân vật sử dụng', notReady);
     // "Up" sits outside the body and only shows when the exp bar is full (manual level-up from Lv 20).
     this.lvUp = skinButton(std('MainStage_CharInfo/LevelUp'), this.root, 198, 0, 'Thăng cấp', actions.onLevelUp);
-    const vip = place(div('hud-vip', this.root, 'VIP'), 198, 30, 46, 22);
-    vip.title = 'VIP';
-    vip.onclick = notReady;
+    this.vip = place(div('hud-vip off', this.root, 'VIP'), 198, 30, 46, 22) as HTMLDivElement;
+    this.vip.title = 'VIP';
+    this.vip.onclick = actions.onVip;
   }
 
   update(p: PlayerData): void {
     this.head.src = iconUrl(p.iconCode);
     this.level.textContent = String(p.level);
+    this.vip.textContent = p.pmLevel ? `VIP${p.pmLevel}` : 'VIP';
+    this.vip.classList.toggle('off', !p.pmLevel);
     this.name.textContent = p.name;
     // Max HP/MP come from property (gear and buffs applied); maxHp/maxMp are only the base cache.
     const maxHp = p.property?.finalHp ?? p.maxHp;
