@@ -46,6 +46,9 @@ export class ChatBox {
   private readonly log: HTMLElement;
   private readonly input: HTMLInputElement;
   private readonly channelBtn: HTMLElement;
+  private readonly rail: HTMLElement;
+  private readonly railFill: HTMLElement;
+  private readonly tip: HTMLElement;
   private readonly lines: { kind: Kind; el: HTMLElement }[] = [];
   private tab = 0;
   private sendChannel = 0;
@@ -58,6 +61,16 @@ export class ChatBox {
   ) {
     this.root = div('hud-chat', parent);
     this.log = div('hud-chat-log', this.root);
+    // The log is click-through (map clicks pass), so its own scrollbar can't be grabbed: a clickable rail mirrors it.
+    this.rail = div('hud-chat-rail', this.root);
+    this.railFill = div('hud-chat-rail-fill', this.rail);
+    this.rail.onscroll = () => (this.log.scrollTop = this.rail.scrollTop);
+    this.log.onscroll = () => (this.rail.scrollTop = this.log.scrollTop);
+    this.tip = div('hud-chat-tip', this.root);
+    this.tip.hidden = true;
+    document.addEventListener('pointerdown', (e) => {
+      if (!this.tip.hidden && !(e.target instanceof Node && this.tip.contains(e.target))) this.tip.hidden = true;
+    });
     const tools = div('hud-chat-tools', this.root);
     chatButton(tools, '✕', 'Xóa ghi chép chat', () => this.clear());
     chatButton(tools, '+', 'Mở rộng khung chat', () => this.resize(H_STEP));
@@ -161,6 +174,29 @@ export class ChatBox {
     this.append('notice', div('line notice', undefined, `[Thông báo] ${text}`));
   }
 
+  /** "[Thông báo] Nhận: [name] xN" with a clickable item tag; `info` gives the tooltip text at click time. */
+  noticeItem(name: string, count: number, info: () => string): void {
+    const line = div('line notice', undefined, '[Thông báo] Nhận: ');
+    const tag = document.createElement('span');
+    tag.className = 'item';
+    tag.textContent = `[${name}]`;
+    tag.onclick = (e) => {
+      e.stopPropagation();
+      this.showTip(info(), tag);
+    };
+    line.append(tag, ` x${count}`);
+    this.append('notice', line);
+  }
+
+  private showTip(text: string, anchor: HTMLElement): void {
+    this.tip.textContent = text;
+    this.tip.hidden = false;
+    const box = this.root.getBoundingClientRect();
+    const at = anchor.getBoundingClientRect();
+    this.tip.style.left = `${Math.max(0, at.left - box.left)}px`;
+    this.tip.style.bottom = `${box.bottom - at.top + 2}px`;
+  }
+
   /** ChatCanvas.showRedMsg: server announcements (onSystemMidMsgOrNote / onRedMsg / onBlueMsg) as red "[Sự kiện] ...". */
   event(text: string): void {
     if (text) this.append('event', div('line event', undefined, `[Sự kiện] ${text}`));
@@ -195,6 +231,12 @@ export class ChatBox {
     el.hidden = !this.visible(kind);
     this.log.appendChild(el);
     if (!this.locked) this.log.scrollTop = this.log.scrollHeight;
+    this.syncRail();
+  }
+
+  private syncRail(): void {
+    this.railFill.style.height = `${this.log.scrollHeight}px`;
+    this.rail.scrollTop = this.log.scrollTop;
   }
 
   private visible(kind: Kind): boolean {
@@ -205,16 +247,19 @@ export class ChatBox {
   private refilter(): void {
     for (const l of this.lines) l.el.hidden = !this.visible(l.kind);
     this.log.scrollTop = this.log.scrollHeight;
+    this.syncRail();
   }
 
   private clear(): void {
     for (const l of this.lines) l.el.remove();
     this.lines.length = 0;
+    this.syncRail();
   }
 
   private resize(delta: number): void {
     this.height = Math.max(MIN_H, Math.min(MAX_H, this.height + delta));
     this.root.style.height = `${this.height}px`;
+    this.syncRail();
   }
 }
 

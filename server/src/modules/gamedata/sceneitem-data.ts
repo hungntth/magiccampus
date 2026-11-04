@@ -28,6 +28,13 @@ export interface SceneItemTables {
   gates: SceneItemRow[];
 }
 
+/**
+ * Seed rows whose pos_map_id points at a map that does not exist. 731 "Vân Đài" sits on "map 200" in the seeds; it is the
+ * Xuất Vân Thôn (map 1) gate to Vân Đài (1723,604 is walkable there). Without it, Vân Đài's gate 757 "Xuất Vân Thôn"
+ * dropped players at the map 1 safe point and map 1 had no way back.
+ */
+export const GATE_MAP_FIXES: Readonly<Record<number, number>> = { 731: 1 };
+
 const n = (v: unknown): number => {
   const x = Number(v ?? 0);
   return Number.isFinite(x) ? x : 0;
@@ -44,7 +51,7 @@ export function buildSceneItemTables(instances: Row[], templates: Row[]): SceneI
       tid: n(row.tid),
       type: n(template?.type),
       name: row.name === null || row.name === undefined ? '' : String(row.name),
-      mapId: n(row.pos_map_id),
+      mapId: GATE_MAP_FIXES[n(row.id)] ?? n(row.pos_map_id),
       posX: n(row.pos_x),
       posY: n(row.pos_y),
       posDir: n(row.pos_dir),

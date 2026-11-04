@@ -122,7 +122,7 @@ export class GameScene {
       onGuild: () => this.guild.toggle(), onPk: () => this.social.pk.begin(),
       onShop: () => void this.mall.toggle(),
       onForge: (tab) => this.forge.open(tab),
-      onRank: () => this.ranking.toggle(), onAchieve: () => this.character.toggleAchievements(), onDaily: () => this.activity.openDaily(), onVip: () => this.activity.openVip(),
+      onRank: () => this.ranking.toggle(), onAchieve: () => this.character.toggleAchievements(), onDaily: () => this.activity.openDaily(), onVip: () => this.activity.openVip(), onOffline: () => this.activity.openOffline(),
       onPet: () => this.pet.toggle(),
       onLevelUp: () => this.character.levelUp(),
       onRecover: (kind) => this.bag.actions.recover(kind),
@@ -137,12 +137,12 @@ export class GameScene {
       bagCount: (id) => this.bag.countOf(id),
     }, ui);
     this.bag = new BagController({ client, chat: this.chat, player, shop: this.panels.shop });
-    this.mall = new MallController(client, this.bag);
+    this.mall = new MallController(client, this.bag, player);
     this.forge = new ForgeController(client, this.bag, () => player);
     this.ranking = new RankingPanel(client);
     this.activity = new ActivityController({ client, player, refreshHud: () => this.updateHud(), entityOf, bagCount: (id) => this.bag.countOf(id) });
     this.trade = new TradeController({ client, player, bag: this.bag });
-    this.character = new CharacterController({ client, player, bag: this.bag, entityOf });
+    this.character = new CharacterController({ client, player, bag: this.bag, entityOf, onMount: () => this.activity.openMount() });
     this.guild = new GuildController({ client, player, bagItems: () => this.bag.list(), entities: this.entityLayer });
     this.pet = new PetController({ client, player, chat: this.chat, bag: this.bag, setBattlePet: (p) => this.hud.setBattlePet(p) });
     this.battle = new BattleController({

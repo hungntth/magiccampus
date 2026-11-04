@@ -7,7 +7,7 @@ import {
 } from '@mc/shared';
 import type { BagActions } from '../game/bagActions';
 import { TabStrip } from './bagTabs';
-import { dragging, endDrag, fillItemCell, itemTooltip } from './itemCell';
+import { dragging, endDrag, fillItemCell } from './itemCell';
 import { closeOnEscape, makeDraggable } from './panelBehavior';
 import { toast } from './screens';
 import { stageEl } from './stage';
@@ -79,7 +79,7 @@ export class BankPanel {
 
     stageEl().appendChild(root);
     this.root = root;
-    this.offs.push(makeDraggable(root, header), closeOnEscape(() => this.host.onClose()));
+    this.offs.push(makeDraggable(root, header, 'bankPanel'), closeOnEscape(() => this.host.onClose()));
     this.render();
   }
 
@@ -116,7 +116,7 @@ export class BankPanel {
       this.onDrop(sid, item, e.shiftKey);
     };
     if (!item) return c;
-    fillItemCell(c, item, itemTooltip(item, this.host.player().level, false), 'bag');
+    fillItemCell(c, item, { level: this.host.player().level }, 'bag');
     c.ondblclick = () => this.host.actions.moveToPage(item, PageType.BAG, this.host.bagPage());
     return c;
   }

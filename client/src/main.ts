@@ -2,7 +2,8 @@
 
 import { Application } from 'pixi.js';
 import { GameClient, defaultWsUrl } from './net/client';
-import { showCharSelect, showLogin, toast } from './ui/screens';
+import { showCharSelect } from './ui/charSelect';
+import { showLogin, toast } from './ui/screens';
 import { GameScene } from './game/GameScene';
 import { loadSkins } from './ui/hud/skin';
 import { initStage } from './ui/stage';
@@ -30,8 +31,11 @@ async function main(): Promise<void> {
 
     try {
       await client.connect();
-      await showLogin(client);
-      const player = await showCharSelect(client);
+      let player = null;
+      while (!player) {
+        await showLogin(client);
+        player = await showCharSelect(client); // null = "Quay lại" (logged out, same socket)
+      }
       scene = new GameScene(app, client, player);
       await scene.enter();
       await closedPromise;

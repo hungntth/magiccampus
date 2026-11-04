@@ -23,7 +23,8 @@
 #stage > .battle-side {
   position: absolute;
   right: 36px;
-  top: 100px;
+  top: 50%;
+  transform: translateY(-50%);
   width: 83px;
   pointer-events: none;
 }
@@ -110,7 +111,7 @@
 
 .battle-info-btn {
   display: block;
-  margin: 5px 0 0 5px;
+  margin: 5px auto 0;
 }
 
 /* Kỹ năng / Vật phẩm lists open to the left of the column. */

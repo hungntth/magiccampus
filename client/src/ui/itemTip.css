@@ -1,0 +1,62 @@
+/* Item hover tooltip (legacy TipItem in a BasicToolTip frame): dark translucent box, 5 px padding, 32 px icon,
+   quality-coloured name, green bind line, light-yellow description (TipItem colour 16773307), grey "Không thể bán". */
+
+.item-tip {
+  position: absolute;
+  z-index: 1000;
+  box-sizing: border-box;
+  width: 210px;
+  padding: 5px 7px 6px;
+  border: 1px solid #5d7f8c;
+  border-radius: 4px;
+  background: rgba(8, 14, 20, 0.88);
+  box-shadow: inset 0 0 0 1px rgba(150, 210, 230, 0.18), 0 2px 6px rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-family: Tahoma, Verdana, Arial, sans-serif;
+  font-size: 12px;
+  line-height: 18px;
+  pointer-events: none;
+  text-shadow: 0 1px 1px #000;
+}
+
+.item-tip[hidden] { display: none; }
+
+.item-tip .it-head {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  column-gap: 8px;
+  margin-bottom: 4px;
+}
+
+.item-tip .it-icon {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #3b5560;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.item-tip .it-icon img {
+  display: block;
+  width: 32px;
+  height: 32px;
+}
+
+.item-tip .it-name {
+  align-self: start;
+  padding-top: 2px;
+  font-size: 13px;
+  font-weight: bold;
+  word-break: break-word;
+}
+
+.item-tip .it-bind {
+  grid-column: 1 / -1;
+  margin-top: 2px;
+  color: #3cff00;
+}
+
+.item-tip .it-info { color: #ffefbb; white-space: pre-line; margin-bottom: 2px; }
+.item-tip .it-prop { color: #00ff00; }
+.item-tip .it-bad { color: #ff4040; }
+.item-tip .it-nosell { color: #c8c8c8; margin-top: 4px; }
+.item-tip .it-hint { color: #c8c8c8; }

@@ -204,6 +204,7 @@ export class CharacterService {
       moneyBind: doc.moneyBind ?? 0,
       gold: doc.gold,
       goldBind: doc.goldBind ?? 0,
+      exPoint: doc.exPoint ?? 0,
       bagSlotNum: openBagPages(doc.bagSlotNum ?? 1),
       bankSlotNum: openBankPages(doc.bankSlotNum ?? 1),
       selectedMoneyType: doc.selectedMoneyType ?? DEFAULT_PAYMENT.selectedMoneyType,

@@ -40,7 +40,7 @@ VIP is in `vip.md`; loop quests are in `loop-quest.md`.
   - Riding broadcasts `onMountOn` / `onMountOff` to the map. `mountInfo` is sent at login. Stats come through a stat provider. Level 50 gate.
   - **The mounted sprite does not render**: the mount atlases are about 1600×31000 px, past the GPU texture limit. `Entity.swapRes` keeps the normal sprite for oversized sheets.
     Showing the rider needs a `tools/swf` change that splits tall atlases.
-- Client: `DailySystemsController`, `StoreSystemsController`, the strip icons, and the "Ủy thác / Thú cưỡi" button bar.
+- Client: `DailySystemsController`, `StoreSystemsController`, the strip icons; "Ủy thác" opens from the minimap red function column and "Thú cưỡi" from the character panel (Trang bị tab, legacy CharactorPanel.showMount) — no separate HUD button bar.
 
 ## Deferred
 Gift codes, nine boss, consume/recharge/guild-war events, quiz and maze, marriage, pet arena, pet PVE tower, dress gacha and runes, farm and estate, life skills,

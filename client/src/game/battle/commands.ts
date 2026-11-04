@@ -6,10 +6,13 @@ import type { PlaybackEnd } from './playback';
 
 export const skillCmd = (sk: LearnedSkill, tid: number): BattleCommand => ({ tid, action: BattleAction.SKILL, id: sk.sid, level: sk.level });
 
-/** BattleStage.as ColorTransform: normal (1, 1.1, 1), boss (1.1, 1, 1). */
+// Map brightness behind the battle: dimmed so the combatants stand out.
+const DIM = 0.62;
+
+/** BattleStage.as ColorTransform hue (normal: green 1.1, boss: red 1.1), scaled down by DIM. */
 export function tintWorld(world: Container, boss: boolean): void {
   const f = new ColorMatrixFilter();
-  const [r, g, b] = boss ? [1.1, 1, 1] : [1, 1.1, 1];
+  const [r, g, b] = (boss ? [1.1, 1, 1] : [1, 1.1, 1]).map((c) => c * DIM);
   f.matrix = [r, 0, 0, 0, 0, 0, g, 0, 0, 0, 0, 0, b, 0, 0, 0, 0, 0, 1, 0];
   world.filters = [f];
 }

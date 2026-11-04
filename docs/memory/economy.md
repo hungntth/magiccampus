@@ -46,3 +46,12 @@ Research: `docs/research/2026-11-04_09_ECONOMY_CLIENT_RESEARCH.md`, `..._10_ECON
 ## Deferred
 VIP shop (M8, with VIP), credit / exchange / limit-time / mystery shops, point currencies, temp bags, durability wear, `bankSort`, money lock,
 `useRedBag` / radar / seek / track, the "buy and use" gold panel, the bad-word list. Quiet the new RPCs after the user confirms.
+- Mall UI (2026-11-04, `client/src/ui/mallPanel.ts` + `mallWallet.ts`): legacy SystemShopPanel layout, 566 px. Left
+  vertical st tabs Hot / Sale / New / Limit / Dò tìm (default Hot), category tabs on top, 4x4 grid (16 per page) with an
+  st ribbon per cell, search box (accent-insensitive name match) + Dò tìm / Nạp (not ready) / Mua, kim phiếu note, and
+  the wallet column (original icons GoldBinded / 1663 / ExchangePoint from /ui/Panels_BagPanel; Kim phiếu / Vàng
+  with the changeMoneyType 3 / 4 checkboxes, điểm thưởng = PlayerData.exPoint (Character.exPoint, default 0) with a
+  not-ready "Đổi điểm thưởng" link; figures are plain text, refreshed on onUPP / onAddMoney). Shop, mall and VIP shop cells use the bag-style hover box (`itemTip.renderSlotTip`); `ShopSlotView`
+  carries `tplType` (Loại line, 0 for equipment) and `reqLevel` for it.
+- `Panels_BagPanel/ExchangePoint.png` was rendered with `swfui -match ExchangePoint` into a scratch dir and its index
+  entry merged into `client/public/ui/index.json` by hand (swfui rewrites index.json with only what it rendered).

@@ -73,22 +73,20 @@ export class NpcDialog {
     root.appendChild(el('div', 'npc-text', data.onServiceText || '…'));
 
     const views = Object.values(data.npcQuest.list).sort((a, b) => b.state - a.state || a.qid - b.qid);
-    if (views.length > 0) {
-      root.appendChild(el('div', 'npc-label', 'Nhiệm vụ'));
-      const list = el('div', 'npc-quests');
-      for (const v of views) {
-        const row = el('button', `npc-quest s${v.state}`);
-        const [mark, tip] = QUEST_MARK[v.state] ?? ['•', ''];
-        row.title = tip;
-        row.appendChild(el('span', 'npc-mark', mark));
-        row.appendChild(el('span', 'npc-qname', v.data.name));
-        row.onclick = () => onQuest(v);
-        list.appendChild(row);
-      }
-      root.appendChild(list);
+    // Fixed-height box (quests + loop entries) so the dialog keeps its size; long lists scroll.
+    root.appendChild(el('div', 'npc-label', 'Nhiệm vụ'));
+    const list = el('div', 'npc-quests');
+    for (const v of views) {
+      const row = el('button', `npc-quest s${v.state}`);
+      const [mark, tip] = QUEST_MARK[v.state] ?? ['•', ''];
+      row.title = tip;
+      row.appendChild(el('span', 'npc-mark', mark));
+      row.appendChild(el('span', 'npc-qname', v.data.name));
+      row.onclick = () => onQuest(v);
+      list.appendChild(row);
     }
-
-    this.addLoopEntries(root, data, loops);
+    this.addLoopEntries(list, data, loops);
+    root.appendChild(list);
 
     const leave = el('button', 'npc-leave', 'Rời khỏi');
     leave.onclick = () => this.close();
@@ -97,17 +95,16 @@ export class NpcDialog {
     stageEl().appendChild(root);
     this.root = root;
     this.current = data.npcId;
-    this.offs.push(makeDraggable(root, header), closeOnEscape(() => this.close()));
+    this.offs.push(makeDraggable(root, header, 'npcDialog'), closeOnEscape(() => this.close()));
   }
 
-  private addLoopEntries(root: HTMLElement, data: NpcFuncInit, loops?: LoopEntries): void {
+  private addLoopEntries(list: HTMLElement, data: NpcFuncInit, loops?: LoopEntries): void {
     const rows: [number, string, boolean][] = Object.entries(data.loopInfo.d ?? {}).flatMap(([id, l]) => {
       const lid = Number(id);
       if (l.canTake) return [[lid, `${l.name}[Vòng]`, false] as [number, string, boolean]];
       return loops?.needsRepair(lid) ? [[lid, `${l.name}[Vòng] - Khôi phục`, true] as [number, string, boolean]] : [];
     });
     if (!loops || rows.length === 0) return;
-    const list = el('div', 'npc-quests npc-loops');
     for (const [lid, text, repair] of rows) {
       const row = el('button', 'npc-quest s102');
       row.title = repair ? 'Nhiệm vụ vòng bị lỗi: nhận lại nhiệm vụ hiện tại' : 'Có thể nhận';
@@ -120,7 +117,6 @@ export class NpcDialog {
       };
       list.appendChild(row);
     }
-    root.appendChild(list);
   }
 
   close(): void {

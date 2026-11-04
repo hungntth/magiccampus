@@ -8,6 +8,7 @@ import type { AddItemNotice, BagItem, GetInitSlotReply, ItemSortEntry, PlayerDat
 import type { GameClient } from '../net/client';
 import { BagPanel } from '../ui/bagPanel';
 import { BankPanel } from '../ui/bankPanel';
+import { itemTooltip } from '../ui/itemCell';
 import { PaymentControl } from './payment';
 import type { ChatBox } from '../ui/chat';
 import { toast } from '../ui/screens';
@@ -63,6 +64,7 @@ export class BagController {
     });
     host.shop.onBuy = (slotId, amount) => this.buy(slotId, amount);
     host.shop.payment = this.payment;
+    host.shop.playerLevel = () => host.player.level;
     host.shop.onRepairTool = () => this.panel.armRepair(2);
     host.shop.onRepairAll = () => this.actions.repairAll(2);
     const c = host.client;
@@ -76,7 +78,10 @@ export class BagController {
       c.on('onStackItemInto', (_from, _to, src, dest, n) => this.stackInto(Number(src), Number(dest), Number(n))),
       c.on('onMoveItemNum', (_from, id, left) => this.setStack(Number(id), Number(left))),
       c.on('onItemSort', (list) => this.sorted(list as ItemSortEntry[])),
-      c.on('onAddItem', (d) => this.host.chat.notice(`Nhận: ${(d as AddItemNotice).n} x${(d as AddItemNotice).q}`)),
+      c.on('onAddItem', (d) => {
+        const n = d as AddItemNotice;
+        this.host.chat.noticeItem(n.n, n.q, () => this.itemInfo(n.i, n.n));
+      }),
       // Server text pushes: popup + red [Sự kiện] chat line (legacy Core.sysMidMsg shows mid msg and showRedMsg).
       c.on('onSystemMidMsgOrNote', (text) => this.announce(String(text))),
       c.on('onBlueMsg', (text) => this.announce(String(text))),
@@ -124,6 +129,15 @@ export class BagController {
       if ((it.slotType === SlotType.BAG || it.slotType === SlotType.QUEST_BAG) && it.tid === templateId) n += it.stackNum;
     }
     return n;
+  }
+
+  /** Chat item tag click: tooltip of a held copy of the template (the gain just landed in the bag), else the bare name. */
+  private itemInfo(templateId: number, name: string): string {
+    for (const it of this.items.values()) {
+      if (it.tid !== templateId) continue;
+      return itemTooltip(it, this.host.player.level, false).split('\n').filter((l) => !l.startsWith('Nhấp đôi')).join('\n');
+    }
+    return `${name}\n(Vật phẩm không còn trong túi)`;
   }
 
   /** Equipped items by equipment sid (1..22). */

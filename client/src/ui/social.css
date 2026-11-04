@@ -51,6 +51,48 @@
   cursor: default;
 }
 
+/* Shorter equipment box (no figure, no magic weapons) and a flowing two-column list of "label [box]" rows below it. */
+.cha-info .char-equip {
+  top: 40px;
+  height: 200px;
+}
+
+.cha-info .char-stats {
+  left: 13px;
+  top: 248px;
+  width: 285px;
+  height: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px 8px;
+}
+
+.cha-info .char-stats > * {
+  position: static;
+}
+
+.cha-info .char-name {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-weight: 700;
+  color: var(--char-gold);
+}
+
+.cha-info .char-row {
+  display: flex;
+  gap: 3px;
+  min-width: 0;
+}
+
+.cha-info .char-label {
+  flex: 0 0 62px;
+}
+
+.cha-info .char-value {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 .pchat {
   position: absolute;
   z-index: 45;

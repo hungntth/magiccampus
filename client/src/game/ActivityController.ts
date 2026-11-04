@@ -9,7 +9,6 @@ import {
 import type { GameClient } from '../net/client';
 import { DailyActPanel } from '../ui/dailyActPanel';
 import { ActivityStrip } from '../ui/hud/activityStrip';
-import { ExtraBar } from '../ui/hud/extraBar';
 import { DailySystemsController } from './DailySystemsController';
 import { StoreSystemsController } from './StoreSystemsController';
 import type { Entity } from './Entity';
@@ -35,7 +34,6 @@ export class ActivityController {
   private readonly vip: VipController;
   private readonly daily2: DailySystemsController;
   private readonly stores: StoreSystemsController;
-  private readonly extra: ExtraBar;
   private readonly offs: (() => void)[] = [];
   private catalog: DiaryEntry[] = [];
   private diary: DiaryData | null = null;
@@ -58,14 +56,6 @@ export class ActivityController {
     this.vip = new VipController({ client, player, refreshHud: host.refreshHud });
     this.daily2 = new DailySystemsController({ client, player });
     this.stores = new StoreSystemsController({ client, player, entityOf: host.entityOf, bagCount: host.bagCount });
-    this.extra = new ExtraBar({
-      offlineSeconds: () => this.daily2.offlineSeconds(),
-      onOffline: () => {
-        this.daily2.openOffline();
-        this.extra.refresh();
-      },
-      onMount: () => this.stores.openMount(),
-    });
     this.strip.setList(player.startedActList ?? {});
     this.daily = new DailyActPanel({
       catalog: () => this.catalog, data: () => this.diary, online: () => this.online,
@@ -108,7 +98,6 @@ export class ActivityController {
     this.vip.destroy();
     this.daily2.destroy();
     this.stores.destroy();
-    this.extra.destroy();
   }
 
   /** Strip icon dispatch (phase D ids: 21 wish tree, 24 magic array, 25 festival, 49 daily boss). */
@@ -123,6 +112,16 @@ export class ActivityController {
   }
 
   /** HUD VIP button (tab vip) and strip icon 19 (VIP shop tab). */
+  /** Minimap red function column "Ủy thác" (offline exp window). */
+  openOffline(): void {
+    this.daily2.openOffline();
+  }
+
+  /** Character panel "Thú cưỡi" button (mount window, legacy CharactorPanel.showMount). */
+  openMount(): void {
+    this.stores.openMount();
+  }
+
   openVip(tab: 'vip' | 'shop' = 'vip'): void {
     this.vip.open(tab);
   }

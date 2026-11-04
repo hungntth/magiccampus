@@ -1,22 +1,190 @@
-/* Mall window tabs and the "Trả bằng" payment radios shared with the NPC shop. */
+/* Mall window (legacy SystemShopPanel: 566 wide, vertical st tabs, category tabs, 4x4 grid, footer + wallet) and the
+   "Trả bằng" payment radios shared with the NPC shop. */
+.shop-panel.mall-panel { width: 566px; }
+
+.mall-body {
+  display: flex;
+  gap: 4px;
+}
+
+/* Left st column: narrow tabs with stacked letters (Hot / Sale / New / Limit / Dò tìm). */
+.mall-side {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 20px;
+  padding-top: 26px;
+}
+
+.mall-side-tab {
+  padding: 4px 0;
+  background: linear-gradient(90deg, #1d4a72, #14385a);
+  border: 1px solid #4f86b3;
+  border-radius: 4px 0 0 4px;
+  color: #ffd84a;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 12px;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  letter-spacing: -1px;
+}
+
+.mall-side-tab:hover { border-color: #7fb4dd; }
+.mall-side-tab.selected { background: linear-gradient(90deg, #f0a83a, #d6892b); border-color: #e8c46a; color: #fff; }
+
+.mall-main {
+  flex: 1;
+  min-width: 0;
+}
+
 .mall-tabs {
   display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-  margin-bottom: 5px;
+  gap: 2px;
+  margin-bottom: 3px;
 }
 
 .mall-tab {
-  padding: 2px 8px;
-  background: #14385a;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 2px 3px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  background: linear-gradient(180deg, #2b6a98, #14385a);
   border: 1px solid #4f86b3;
-  border-radius: 4px;
-  color: #cfe6ff;
+  border-radius: 4px 4px 0 0;
+  color: #fff;
   font-size: 12px;
 }
 
 .mall-tab:hover { border-color: #7fb4dd; }
-.mall-tab.selected { background: #d6892b; border-color: #e8c46a; color: #fff; font-weight: 700; }
+.mall-tab.selected { background: linear-gradient(180deg, #f0a83a, #d6892b); border-color: #e8c46a; font-weight: 700; }
+
+.mall-grid {
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 44px;
+  min-height: calc(4 * 44px + 3 * 4px);
+  align-content: start;
+}
+
+.mall-grid .shop-cell { position: relative; overflow: hidden; }
+
+/* HOT / SALE / NEW / LIMIT ribbon on the cell's bottom-right corner instead of the icon badge. */
+.mall-grid .shop-icon { position: static; }
+
+.mall-grid .shop-st {
+  top: auto;
+  left: auto;
+  right: -14px;
+  bottom: 3px;
+  width: 52px;
+  padding: 0;
+  text-align: center;
+  text-transform: uppercase;
+  font-style: italic;
+  transform: rotate(-35deg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.mall-empty {
+  grid-column: 1 / -1;
+  align-self: center;
+  padding: 40px 0;
+  text-align: center;
+  color: #9fc9ea;
+}
+
+.mall-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.mall-foot-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mall-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mall-search {
+  width: 150px;
+  height: 22px;
+  box-sizing: border-box;
+  padding: 0 6px;
+  background: #081a2c;
+  border: 1px solid #e8c46a;
+  border-radius: 4px;
+  color: #fff;
+  font: inherit;
+}
+
+.mall-note {
+  color: #fff;
+  text-shadow: 0 1px 1px #000;
+}
+
+.mall-wallet {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mall-wallet-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mall-wallet-icon {
+  flex: none;
+  width: 22px;
+  height: 18px;
+  background: center / contain no-repeat;
+}
+
+/* Read-only figure (legacy BoxLabel): bold gold text, no box, so it does not read as an input field. */
+.mall-wallet-num {
+  min-width: 58px;
+  color: #ffe28a;
+  font-weight: 700;
+  text-align: left;
+  text-shadow: 0 1px 1px #000;
+  white-space: nowrap;
+}
+
+.mall-wallet-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  width: 64px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mall-wallet-pick input { margin: 0; cursor: pointer; }
+.mall-wallet-pick input:disabled { cursor: wait; }
+
+/* "Đổi điểm thưởng" text button (BasicTxtButton, colour 16776365). */
+.mall-wallet-link {
+  padding: 0;
+  background: none;
+  border: 0;
+  color: #ffffad;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+.mall-wallet-link:hover { color: #fff; }
 
 .pay-row {
   display: flex;
@@ -40,3 +208,7 @@
 .pay-radio input:disabled { cursor: wait; }
 
 .shop-panel > .pay-row { margin: 4px 0 6px; }
+
+/* Mall + bag pair (566 + 6 + 270 px) centred together; the NPC shop pair uses .shop-panel.with-bag / .beside-shop. */
+.shop-panel.mall-panel.with-bag { left: calc(50% - 138px); }
+#stage:has(.mall-panel.with-bag) .bag-panel.beside-shop { left: calc(50% + 151px); }

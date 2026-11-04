@@ -38,7 +38,7 @@ export function openActWindow(title: string, cls: string, onClose: () => void): 
   const body = el('act-body');
   root.append(head, x, body);
   stageEl().appendChild(root);
-  const offs = [makeDraggable(root, head), closeOnEscape(onClose)];
+  const offs = [makeDraggable(root, head, `act.${cls}`), closeOnEscape(onClose)];
   return {
     root, body,
     dispose: () => {

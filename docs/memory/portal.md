@@ -52,3 +52,7 @@ Minimap gate icons, loading modal/fade on map change, dungeon gate guard, follow
 `onCreateNpcs`-style push names. Quiet `sceneChange` / `createSceneItems` / `gmGoMap` only after the user confirms the feature works.
 Known pre-existing issue seen while testing: after a socket drop the old `GameScene` ticker listener keeps ticking destroyed entities
 (console TypeError in `Entity.tick`).
+- Seed fix (2026-11-04): gate 731 "Vân Đài" has `pos_map_id` 200 (no such map). `GATE_MAP_FIXES` in
+  `gamedata/sceneitem-data.ts` moves it onto Xuất Vân Thôn (map 1, 1723,604 walkable), so Vân Đài gate 757 lands beside
+  it instead of at the map 1 safe point, and map 1 gets its gate back to Vân Đài. Its formula landing (1565,690) is a
+  wall, so `GATE_LANDING_POINTS` has an H5 entry 731 -> (1700, 660) (63 entries: 62 from Go + this one).

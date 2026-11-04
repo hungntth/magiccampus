@@ -106,6 +106,10 @@ export class Character {
   @Prop({ default: 0 })
   goldBind: number;
 
+  /** Điểm thưởng (legacy Charactor.ExPoint): spent by mall point rows, credited by the Vcoin exchange (not ported). */
+  @Prop({ default: 0 })
+  exPoint: number;
+
   // Payment preference (legacy ChangeMoneyType): 1 moneyBind / 2 money, 3 goldBind / 4 gold. No UI yet.
   @Prop({ default: 1 })
   selectedMoneyType: number;

@@ -1,6 +1,6 @@
 // M8 phase D on the client (part 1): the daily boss window (bossDailyGetData / bossDailyBattle / bossDailyFinishByCard, push
 // onOpenBossDailyPanel), the offline delegation window (getOfflineExp / getPetOfflineExp, login `offlineTime`) and the festival window
-// (getCurrentFeast / takeFeastGift). Owned by ActivityController; strip icons 49 / 25 and the "Ủy thác" button open them.
+// (getCurrentFeast / takeFeastGift). Owned by ActivityController; strip icons 49 / 25 and the minimap "Ủy thác" button open them.
 
 import { PetState, type BossDailyData, type CurrentFeast, type PlayerData } from '@mc/shared';
 import type { GameClient } from '../net/client';
@@ -55,11 +55,6 @@ export class DailySystemsController {
     this.boss.close();
     this.offline.close();
     this.feast.close();
-  }
-
-  /** Banked offline seconds still unclaimed (the "Ủy thác" button dot). */
-  offlineSeconds(): number {
-    return this.host.player.offlineTime ?? 0;
   }
 
   openBoss(): void {

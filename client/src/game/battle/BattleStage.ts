@@ -7,6 +7,7 @@ import { Container, Graphics, Sprite, Text, TextStyle } from 'pixi.js';
 import type { BattleStart } from '@mc/shared';
 import { loadSheet } from '../SheetAnim';
 import { BattleUnit } from './BattleUnit';
+import { UnitTip } from './unitTip';
 import { BATTLE_H, BATTLE_W } from './slots';
 
 interface Popup {
@@ -24,6 +25,8 @@ export class BattleStage extends Container {
   /** Legacy bgImg (BattleStage.as startBattle): DEFAULT_IMG_BATTLE at alpha 0.6, the 900x570 stage art. */
   private readonly arena = new Container();
   private readonly popups: Popup[] = [];
+  /** Enemy hover card (level, HP / MP figures). */
+  private readonly tip = new UnitTip();
   private shakeLeft = 0;
   private picking = false;
   onPick: ((slot: number) => void) | null = null;
@@ -34,13 +37,13 @@ export class BattleStage extends Container {
     const catcher = new Graphics().rect(-4000, -4000, 8000, 8000).fill({ color: 0x000000, alpha: 0.001 });
     catcher.eventMode = 'static';
     this.layer.sortableChildren = true;
-    this.addChild(catcher, this.arena, this.layer);
+    this.addChild(catcher, this.arena, this.layer, this.tip);
     void this.loadArena();
     for (const p of Object.values(start.cList)) {
       const unit = new BattleUnit(p, selfId, start.guest);
       this.units.set(p.battleId, unit);
       this.layer.addChild(unit);
-      if (unit.enemy) this.makePickable(unit);
+      this.makeInteractive(unit);
     }
   }
 
@@ -57,16 +60,25 @@ export class BattleStage extends Container {
     this.arena.addChild(bg);
   }
 
-  private makePickable(unit: BattleUnit): void {
+  /** Every living unit shows the info card on hover; only enemies are clickable targets, and only while picking. */
+  private makeInteractive(unit: BattleUnit): void {
     unit.eventMode = 'static';
-    unit.cursor = 'crosshair';
-    unit.hitArea = { contains: (x: number, y: number): boolean => this.picking && unit.hp > 0 && Math.abs(x) < 40 && y > unit.headY - 20 && y < 28 };
+    unit.cursor = 'default';
+    unit.hitArea = { contains: (x: number, y: number): boolean => unit.hp > 0 && Math.abs(x) < 40 && y > unit.headY - 20 && y < 28 };
     unit.on('pointertap', (e) => {
       e.stopPropagation();
-      if (this.picking && unit.hp > 0) this.onPick?.(unit.slot);
+      if (unit.enemy && this.picking && unit.hp > 0) this.onPick?.(unit.slot);
     });
-    unit.on('pointerover', () => this.picking && unit.hp > 0 && (unit.tint = 0xff9999));
-    unit.on('pointerout', () => (unit.tint = 0xffffff));
+    unit.on('pointerover', () => {
+      const pick = unit.enemy && this.picking;
+      unit.cursor = pick ? 'crosshair' : 'default';
+      if (pick) unit.tint = 0xff9999;
+      this.tip.show(unit);
+    });
+    unit.on('pointerout', () => {
+      unit.tint = 0xffffff;
+      this.tip.hide(unit);
+    });
   }
 
   /** New round (group battle): a wait icon over every living player character; cleared by onCmdReady(slot) or the playlist. */
@@ -104,6 +116,7 @@ export class BattleStage extends Container {
 
   tick(dt: number): void {
     for (const u of this.units.values()) u.tick(dt);
+    this.tip.refresh();
     const frames = dt * 24;
     for (let i = this.popups.length - 1; i >= 0; i--) {
       const p = this.popups[i];

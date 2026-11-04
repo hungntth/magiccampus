@@ -104,6 +104,6 @@ test('unknown gate, unknown destination and blank name give null', () => {
   assert.equal(resolveGate(921, data), null);
 });
 
-test('landing table is the full ported Go table (62 gates)', () => {
-  assert.equal(Object.keys(GATE_LANDING_POINTS).length, 62);
+test('landing table is the full ported Go table (62 gates) plus the H5 gate 731', () => {
+  assert.equal(Object.keys(GATE_LANDING_POINTS).length, 63);
 });

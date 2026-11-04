@@ -91,3 +91,14 @@ sale delete the item is lost (no transaction); acceptable for now. Quiet the RPC
 
 ## M5 (2026-11-04)
 Bank, bag pages, repair, payment radios and the mall are in `economy.md`; crafting and upgrades in `forge.md`.
+
+## Item hover tooltip (2026-11-04)
+- `ui/itemTip.ts` + `itemTip.css`: one floating `.item-tip` box in #stage, shown on pointerenter of a filled slot (beside the
+  cell, flipped left at the stage edge), hidden on leave / pointerdown / drag / keydown or when the cell leaves the DOM.
+  Layout follows Flash `TipItem.as`: 32 px icon + name in `NAME_COLORS[color]` (quality), bind line green #3CFF00
+  ("Đã khóa"/"Chưa khóa", TIPITEM_S[22/23]), description #FFEFBB, `Loại: <ITEM_TYPE_NAME[tplType]>` for items
+  (`ui/itemTypeNames.ts`, generated from GamePredef/Language; unknown → "Khác"), stat lines, "Giá bán ra" or grey
+  "Không thể bán" (TIPITEM_S[25]).
+- `fillItemCell(cell, item, { level, equipped?, hint? }, from)` attaches it (bag, bank, character, trade, chaInfo).
+  `itemTooltip()` stays as the plain-text version for chat item links.
+- Equipment has no "Loại" line yet: the bag DTO sends `tplType = 0` for equipment (page gate relies on it).

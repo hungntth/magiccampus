@@ -86,6 +86,7 @@ export interface PlayerData extends PetLoginInfo, Partial<AwakenLogin>, Partial<
   moneyBind: number;
   gold: number;
   goldBind: number;
+  exPoint: number; // điểm thưởng (legacy player.exPoint): mall point price rows, the mall wallet
   bagSlotNum: number; // opened general bag pages (1..7)
   bankSlotNum: number; // opened bank pages (1..5)
   selectedMoneyType: number; // payment preference: 1 moneyBind / 2 money (changeMoneyType)
@@ -262,6 +263,8 @@ export interface ShopSlotView {
   iconCode: string; // template icon_code, '0' if none
   color: number; // palette index 0..8
   info: string; // template info / description for the tooltip ('' if none)
+  tplType: number; // item template type for the tooltip 'Loại' line, 0 for equipment
+  reqLevel: number; // template req_level, 0 if none
   amount: number; // -1 unlimited
   stackMax: number; // NumPanel max for the amount dialog (template stack_max; 1 when single_flag)
   st: number; // 1 Hot, 2 Sale, 3 Limit, 4 New, else none
@@ -390,8 +393,8 @@ export interface InitQuestManagerReply {
 export type PlayerUpdate = Partial<
   Pick<
     PlayerData,
-    | 'level' | 'exp' | 'money' | 'moneyBind' | 'gold' | 'goldBind' | 'attrPoints' | 'currentHp' | 'currentMp' | 'maxHp'
-    | 'maxMp' | 'attStrength' | 'attAgility' | 'attStamina' | 'attIntelligence' | 'attEnergy' | 'property' | 'petMaxNum' | 'bagSlotNum'
+    | 'level' | 'exp' | 'money' | 'moneyBind' | 'gold' | 'goldBind' | 'exPoint' | 'attrPoints' | 'currentHp' | 'currentMp'
+    | 'maxHp' | 'maxMp' | 'attStrength' | 'attAgility' | 'attStamina' | 'attIntelligence' | 'attEnergy' | 'property' | 'petMaxNum' | 'bagSlotNum'
     | 'bankSlotNum' | 'selectedMoneyType' | 'selectedGoldType' | 'name' | 'currencies' | 'pmLevel'
   >
 >;

@@ -90,3 +90,6 @@ Solo behaviour is unchanged.
 
 ## PvP (M6)
 PvP battles reuse BattleManager with two player sides; see `pk.md`.
+- Enemy hover card (2026-11-04, `client/src/game/battle/unitTip.ts`): hovering any living unit (enemy, self, ally, pet) at any time (not only while
+  picking a target) shows under its feet "Cấp: N" (+ red "Boss" for bossFlag 1) and HP / MP bars with current/max; refreshed every
+  tick by BattleStage. Picking tint / click-to-target still only while picking.

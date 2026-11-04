@@ -1,12 +1,12 @@
 // Shared item slot rendering for the bag and the character panel: quality border, icon, stack count, lock mark,
-// tooltip and the drag payload exchanged between the two windows (native HTML5 drag and drop).
+// hover tooltip (itemTip.ts) and the drag payload exchanged between the two windows (native HTML5 drag and drop).
 
-import { ELEMENT_NAMES, EQUIP_PROP_LABELS, PREFIX_NAMES } from '@mc/shared';
-import type { BagItem, EquipLines } from '@mc/shared';
+import { ELEMENT_NAMES, PREFIX_NAMES } from '@mc/shared';
+import type { BagItem } from '@mc/shared';
 import { iconUrl } from '../assets';
+import { attachItemTip, NAME_COLORS, propLabel, rolledLines, type ItemTipContext } from './itemTip';
 
-// GamePredef.as:757 name palette, indices 0..8 (same as the shop).
-export const NAME_COLORS = ['#FFFFFF', '#00FF00', '#0066FF', '#FF33FF', '#FA5B05', '#FF0000', '#33CCAA', '#33CCAA', '#FFAE17'];
+export { NAME_COLORS };
 
 export interface DragPayload {
   from: 'bag' | 'equip';
@@ -32,22 +32,7 @@ export function endDrag(): void {
   current = null;
 }
 
-/** Rolled stat lines of a crafted piece (instance values only; plain template lines are not repeated). */
-const propLabel = (prop: number): string => EQUIP_PROP_LABELS[prop] ?? `#${prop}`;
-
-function rolledLines(l: EquipLines): string[] {
-  const out: string[] = [];
-  for (const n of [1, 2] as const) {
-    const prop = l[`mainProp${n}`];
-    if (prop) out.push(`${propLabel(prop)}: +${l[`mainPropNum${n}`] ?? 0}${l[`bindMainPropNum${n}`] ? ` (+${l[`bindMainPropNum${n}`]})` : ''}`);
-  }
-  for (const n of [1, 2] as const) {
-    const prop = l[`prop${n}`];
-    if (prop) out.push(`${propLabel(prop)}: +${l[`propNum${n}`] ?? 0}`);
-  }
-  return out;
-}
-
+/** Plain-text tooltip (chat item links); slots use the rich hover box from itemTip.ts. */
 export function itemTooltip(item: BagItem, playerLevel: number, equipped: boolean): string {
   const prefix = item.prefix ? PREFIX_NAMES[item.prefix] : '';
   const lines = [prefix ? `${prefix} ${item.name}` : item.name];
@@ -67,11 +52,12 @@ export function itemTooltip(item: BagItem, playerLevel: number, equipped: boolea
   return lines.join('\n');
 }
 
-/** Fills `cell` (already empty) with the item visuals. */
-export function fillItemCell(cell: HTMLElement, item: BagItem, tip: string, from: DragPayload['from']): void {
+/** Fills `cell` (already empty) with the item visuals and the hover tooltip. */
+export function fillItemCell(cell: HTMLElement, item: BagItem, tip: ItemTipContext, from: DragPayload['from']): void {
   cell.classList.add('filled');
   if (item.color > 0) cell.style.borderColor = NAME_COLORS[item.color] ?? '';
-  cell.title = tip;
+  cell.removeAttribute('title');
+  attachItemTip(cell, item, tip);
   if (item.iconCode && item.iconCode !== '0') {
     const img = document.createElement('img');
     img.src = iconUrl(item.iconCode);

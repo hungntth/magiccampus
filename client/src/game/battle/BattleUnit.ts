@@ -33,6 +33,8 @@ export class BattleUnit extends Container {
   readonly enemy: boolean;
   readonly isPet: boolean;
   readonly level: number;
+  /** 1 boss (red name), 2 elite (green name). */
+  readonly bossFlag: number;
   readonly homeX: number;
   readonly homeY: number;
   hp: number;
@@ -61,6 +63,7 @@ export class BattleUnit extends Container {
     this.enemy = isEnemySlot(this.viewSlot);
     this.isPet = p.type === BattleParticipantType.PET;
     this.level = p.level;
+    this.bossFlag = p.bossFlag;
     // The local character shows HP/MP/SP, its pet HP/MP (teammates and their pets: HP only).
     this.isSelf = selfId === undefined || (this.isPet ? p.cid === selfId : p.type === BattleParticipantType.CHARACTER && p.id === selfId);
     const home = SLOT_POS[this.viewSlot] ?? { x: 450, y: 285 };

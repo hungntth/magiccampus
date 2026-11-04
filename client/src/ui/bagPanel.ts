@@ -12,7 +12,7 @@ import {
 import type { BagActions } from '../game/bagActions';
 import { BagWallet } from './bagWallet';
 import { TabStrip, type TabDef } from './bagTabs';
-import { endDrag, dragging, fillItemCell, itemTooltip } from './itemCell';
+import { endDrag, dragging, fillItemCell } from './itemCell';
 import { closeOnEscape, makeDraggable } from './panelBehavior';
 import { toast } from './screens';
 import { stageEl } from './stage';
@@ -129,7 +129,7 @@ export class BagPanel {
     root.appendChild(this.wallet.element);
     stageEl().appendChild(root);
     this.root = root;
-    this.offs.push(makeDraggable(root, header), closeOnEscape(() => this.host.onClose()));
+    this.offs.push(makeDraggable(root, header, 'bagPanel'), closeOnEscape(() => this.host.onClose()));
     this.render();
   }
 
@@ -237,7 +237,7 @@ export class BagPanel {
       this.onDrop(sid, item, e.shiftKey);
     };
     if (!item) return c;
-    fillItemCell(c, item, itemTooltip(item, this.host.player().level, false), 'bag');
+    fillItemCell(c, item, { level: this.host.player().level, hint: true }, 'bag');
     c.onclick = () => this.onToolClick(item);
     c.ondblclick = (e) => {
       if (this.mode || this.host.interceptUse?.(item)) return;

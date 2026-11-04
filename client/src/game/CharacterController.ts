@@ -20,6 +20,8 @@ export interface CharacterHost {
   player: PlayerData;
   bag: BagController;
   entityOf(id: number): Entity | undefined;
+  /** "Thú cưỡi" button: mount window (owned by ActivityController). */
+  onMount(): void;
 }
 
 export class CharacterController {
@@ -49,6 +51,7 @@ export class CharacterController {
       onFeatures: () => this.features.toggle(),
       onMagicWeapon: () => this.magicWeapon.toggle(),
       onRepairMagicWeapons: () => this.magicWeapon.repairWorn(),
+      onMount: () => host.onMount(),
       onClose: () => this.panel.close(),
     });
     bag.onChange = () => {

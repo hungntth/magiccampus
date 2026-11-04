@@ -72,7 +72,7 @@ export class PetPanel {
     root.append(this.list, this.detail);
     stageEl().appendChild(root);
     this.root = root;
-    this.offs.push(makeDraggable(root, header), closeOnEscape(() => this.host.onClose()));
+    this.offs.push(makeDraggable(root, header, 'petPanel'), closeOnEscape(() => this.host.onClose()));
     this.render();
   }
 

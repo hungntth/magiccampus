@@ -46,7 +46,7 @@ export class DailyActPanel {
     root.append(head, x, el('act-body'));
     stageEl().appendChild(root);
     this.root = root;
-    this.offs.push(makeDraggable(root, head), closeOnEscape(() => this.host.onClose()));
+    this.offs.push(makeDraggable(root, head, 'dailyActPanel'), closeOnEscape(() => this.host.onClose()));
     this.render();
   }
 

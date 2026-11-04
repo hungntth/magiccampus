@@ -28,3 +28,9 @@ Updated 2026-11-04 (M3 phase A, plan `docs/plans/2026-11-04_04_MULTIPLAYER.md`).
 
 ## Guild channel (M6)
 Channel 2 is live: `say(2, msg)` reaches online guild members (`guild.md`).
+- Safety (2026-11-04): the client renders every chat string as text nodes / `textContent`, never `innerHTML`.
+  Server `normalizeMessage` (chat-rules.ts) strips Cc/Cf chars (newlines, zero-width, bidi overrides), collapses
+  whitespace, trims and caps by code point (`ChatLimits.MAX_MSG_LEN` 500 = Flash `MSG_CHAT_INPUT_MAX`; p2p 55).
+- Log UI: the log is click-through (map clicks pass), so `.hud-chat-rail` is a clickable mirror scrollbar synced
+  with it. `onAddItem` lines are "[Thông báo] Nhận: [name] xN" with a clickable tag; the tooltip is `itemTooltip` of
+  a held copy of the template (BagController.itemInfo), else just the name.

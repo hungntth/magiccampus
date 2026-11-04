@@ -13,6 +13,8 @@ const DELAY_LIMITS = [50, 100, 300, 500];
 const PING_INTERVAL_MS = 10_000;
 
 // funCanvas buttons, top to bottom (MINIMAPCANVAS_U labels), 28 px apart from y 6.
+// Centred column top: max(135px, 50% - half its 262 px height); the quest tracker uses the same top (style.css).
+const FUN_TOP = 'max(135px, calc(50% - 131px))';
 const FUNCTIONS = ['Nạp', 'Chế tạo', 'Luyện', 'Sản xuất', 'Auto', 'Ủy thác', 'Trang Viên', 'Đấu Pet', 'Bay'];
 
 export class MiniMapCanvas {
@@ -26,7 +28,7 @@ export class MiniMapCanvas {
   private pkBtn: HTMLElement | null = null;
 
   constructor(parent: HTMLElement, private readonly client: GameClient, onShop: () => void, onForge: (tab?: string) => void,
-    onRank: () => void = notReady) {
+    onRank: () => void = notReady, onOffline: () => void = notReady) {
     const root = div('hud-minimap', parent);
 
     const titleStrip = skinImage('MainStage_LocationBar/LocationIndicator', root, 59, 0);
@@ -69,9 +71,11 @@ export class MiniMapCanvas {
     });
 
     const fun = place(div('hud-fun', root), 135, 135, 85, 262);
+    fun.style.top = FUN_TOP; // vertically centred on the stage (below the tray on short screens)
     FUNCTIONS.forEach((label, i) => {
       const b = place(div('hud-red-btn', fun, label), 6, 6 + i * 28, 73, 24);
-      b.onclick = label === 'Chế tạo' ? () => onForge() : label === 'Luyện' ? () => onForge('star') : notReady;
+      b.onclick = label === 'Chế tạo' ? () => onForge() : label === 'Luyện' ? () => onForge('star')
+        : label === 'Ủy thác' ? () => onOffline() : notReady;
     });
     const hideFun: SkinStates = std(`${TRAY}/RightButtonsHide`);
     const showFun: SkinStates = std(`${TRAY}/RightButtonsShow`);
@@ -80,6 +84,8 @@ export class MiniMapCanvas {
       setStates(funToggle, fun.hidden ? showFun : hideFun);
       funToggle.style.left = fun.hidden ? '208px' : '124px';
     });
+
+    funToggle.style.top = `calc(${FUN_TOP} + 125px)`;
 
     this.timer = window.setInterval(() => void this.ping(), PING_INTERVAL_MS);
     void this.ping();

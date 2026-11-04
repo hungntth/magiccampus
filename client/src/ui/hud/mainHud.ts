@@ -23,6 +23,8 @@ export interface HudActions {
   onForge(tab?: string): void;
   /** HUD btnRank (ranking window, legacy PANEL_ACTIVE). */
   onRank(): void;
+  /** HUD red function column "Ủy thác" (offline exp window). */
+  onOffline(): void;
   /** R key / HUD achievement button (achievement window). */
   onAchieve(): void;
   /** HUD "Hoạt động hằng ngày" button (diary window). */
@@ -50,7 +52,7 @@ export class MainHud {
     this.portrait = new PortraitCanvas(parent, actions);
     this.petCanvas = new PetCanvas(parent, actions.onPet);
     this.buffBar = new BuffBar(parent, client);
-    this.miniMap = new MiniMapCanvas(parent, client, actions.onShop, actions.onForge, actions.onRank);
+    this.miniMap = new MiniMapCanvas(parent, client, actions.onShop, actions.onForge, actions.onRank, actions.onOffline);
     new UserBar(parent);
     this.systemBar = new SystemBar(parent, typing, actions.onBag, actions.onCharacter, actions.onFriend, actions.onPet, actions.onGuild, actions.onPk, actions.onAchieve, actions.onDaily);
   }

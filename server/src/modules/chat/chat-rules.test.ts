@@ -63,6 +63,17 @@ describe('normalizeMessage', () => {
     assert.equal(normalizeMessage(5, 500), null);
     assert.equal(normalizeMessage(undefined, 500), null);
   });
+
+  it('strips control / invisible characters and collapses whitespace', () => {
+    assert.equal(normalizeMessage('a\n\r\tb', 500), 'a b');
+    assert.equal(normalizeMessage('x\u202Eevil\u200B\u0000y', 500), 'x evil y');
+    assert.equal(normalizeMessage('\u200B\u200B', 500), null);
+    assert.equal(normalizeMessage('<script>alert(1)</script>', 500), '<script>alert(1)</script>');
+  });
+
+  it('caps by code point without splitting emoji', () => {
+    assert.equal(normalizeMessage('😀😀😀', 2), '😀😀');
+  });
 });
 
 describe('findOnlineByName', () => {

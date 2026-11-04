@@ -53,6 +53,7 @@ export const GATE_ID_TARGETS: Readonly<Record<number, number>> = {
 
 /** teleport_landing.go gateLandingPoints: fixed walkable arrival point [x, y] per gate id (overrides the formula). */
 export const GATE_LANDING_POINTS: Readonly<Record<number, readonly [number, number]>> = {
+  731: [1700, 660], // H5: Xuất Vân Thôn gate to Vân Đài (GATE_MAP_FIXES); the formula point 1565,690 is a wall
   743: [1598, 1392],
   748: [227, 1368],
   756: [2756, 575],

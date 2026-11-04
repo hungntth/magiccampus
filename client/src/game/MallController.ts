@@ -1,7 +1,7 @@
 // Mall flow: the HUD "Shop" button toggles the mall window (getSystemShop once per open), buying calls
 // buySystemItemClient (fire-and-forget like Flash: results and failures arrive as onBlueMsg / onRedMsg pushes handled by BagController).
 
-import type { OpenMall } from '@mc/shared';
+import type { OpenMall, PlayerData } from '@mc/shared';
 import type { GameClient } from '../net/client';
 import { MallPanel } from '../ui/mallPanel';
 import { toast } from '../ui/screens';
@@ -10,11 +10,14 @@ import type { BagController } from './BagController';
 export class MallController {
   private readonly panel = new MallPanel();
   private opening = false;
+  private readonly offs: (() => void)[];
 
-  constructor(private readonly client: GameClient, private readonly bag: BagController) {
+  constructor(private readonly client: GameClient, private readonly bag: BagController, private readonly player: PlayerData) {
     this.panel.onBuy = (slotId, amount) => {
       void this.client.call('buySystemItemClient', slotId, amount).catch(() => undefined);
     };
+    // Wallet column: the player object is updated by QuestController's onUPP handler first.
+    this.offs = [client.on('onUPP', () => this.panel.refreshWallet()), client.on('onAddMoney', () => this.panel.refreshWallet())];
   }
 
   /** HUD Shop button. */
@@ -24,7 +27,7 @@ export class MallController {
     this.opening = true;
     try {
       const mall = await this.client.call<OpenMall>('getSystemShop');
-      this.panel.show(mall, this.bag.payment);
+      this.panel.show(mall, this.bag.payment, () => this.player);
       this.bag.showBesideShop();
     } catch (e) {
       toast((e as Error).message, true);
@@ -34,6 +37,7 @@ export class MallController {
   }
 
   destroy(): void {
+    for (const off of this.offs) off();
     this.panel.close();
   }
 }

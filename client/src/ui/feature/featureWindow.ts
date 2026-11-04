@@ -60,7 +60,7 @@ export class FeatureWindow {
     root.append(tabs, this.body);
     stageEl().appendChild(root);
     this.root = root;
-    this.offs.push(makeDraggable(root, header), closeOnEscape(() => this.host.onClose()));
+    this.offs.push(makeDraggable(root, header, 'featureWindow'), closeOnEscape(() => this.host.onClose()));
     this.host.onTab(this.tab);
     this.render();
   }

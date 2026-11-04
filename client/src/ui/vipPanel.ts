@@ -69,7 +69,7 @@ export class VipPanel {
       root.append(head, x, el('act-tabs vip-tabs'), el('act-body vip-body'));
       stageEl().appendChild(root);
       this.root = root;
-      this.offs.push(makeDraggable(root, head), closeOnEscape(() => this.host.onClose()));
+      this.offs.push(makeDraggable(root, head, 'vipPanel'), closeOnEscape(() => this.host.onClose()));
     }
     this.render();
   }

@@ -68,6 +68,8 @@ export function toShopSlotView(slot: ShopRow, tpl: ShopRow | undefined, shopType
     iconCode: tpl?.icon_code ? String(tpl.icon_code) : '0',
     color: slotColor(num(slot.quality), tplColor),
     info: String(tpl?.info || tpl?.description || ''),
+    tplType: num(slot.type) === SLOT_TYPE_EQUIP ? 0 : num(tpl?.type),
+    reqLevel: num(tpl?.req_level),
     amount: slot.amount === undefined || slot.amount === null ? -1 : num(slot.amount),
     stackMax: maxStack(tpl),
     st: num(slot.st),

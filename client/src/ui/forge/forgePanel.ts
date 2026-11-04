@@ -41,7 +41,7 @@ export class ForgePanel {
     root.append(this.tabRow, this.body);
     stageEl().appendChild(root);
     this.root = root;
-    this.offs.push(makeDraggable(root, header), closeOnEscape(() => this.close()));
+    this.offs.push(makeDraggable(root, header, 'forgePanel'), closeOnEscape(() => this.close()));
     this.select(tabId);
   }
 

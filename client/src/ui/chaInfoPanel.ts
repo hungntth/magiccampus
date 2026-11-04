@@ -2,7 +2,7 @@
 // panel) plus final stats. One window at a time; a new showChaInfo replaces it.
 
 import { EQUIP_SLOT_COUNT, type BagItem, type ChaInfo, type CharProperty } from '@mc/shared';
-import { fillItemCell, itemTooltip } from './itemCell';
+import { fillItemCell } from './itemCell';
 import { EQUIP_SLOTS, LOCKED_EQUIP_SLOTS } from './characterPanel';
 import { closeOnEscape, makeDraggable } from './panelBehavior';
 import { stageEl } from './stage';
@@ -34,16 +34,16 @@ export class ChaInfoPanel {
     const equip = el('div', 'char-equip');
     const byPos = new Map<number, BagItem>(info.equiptList.map((it) => [it.sid, it]));
     for (let sid = 1; sid <= EQUIP_SLOT_COUNT; sid++) {
+      if (LOCKED_EQUIP_SLOTS.has(sid)) continue; // magic weapons sit on their own tab in the own panel
       const [label, sx, sy] = EQUIP_SLOTS[sid];
-      const cell = el('div', `char-slot${LOCKED_EQUIP_SLOTS.has(sid) ? ' locked' : ''}`);
+      const cell = el('div', 'char-slot');
       cell.style.left = `${sx}px`;
       cell.style.top = `${sy}px`;
       cell.title = label;
       const item = byPos.get(sid);
       if (item) {
         // View-only: no drag payload (it would point at the other player's item ids) and no equip tooltip hint.
-        const tip = itemTooltip(item, viewerLevel, false).split('\n').filter((l) => !l.startsWith('Nhấp đôi')).join('\n');
-        fillItemCell(cell, item, tip, 'equip');
+        fillItemCell(cell, item, { level: viewerLevel }, 'equip');
         cell.draggable = false;
         cell.ondragstart = null;
         cell.ondragend = null;
@@ -60,7 +60,7 @@ export class ChaInfoPanel {
 
     stageEl().appendChild(root);
     this.root = root;
-    this.offs = [makeDraggable(root, header), closeOnEscape(() => this.close())];
+    this.offs = [makeDraggable(root, header, 'chaInfoPanel'), closeOnEscape(() => this.close())];
   }
 
   close(): void {

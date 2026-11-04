@@ -1,8 +1,9 @@
 // On-screen quest tracker (legacy QuestGuide.as): active quests by take date, one progress line per requirement
 // (kills from questKill, items from the bag) and a "• Tìm[NPC]" link when the quest can be turned in. Plain CSS
-// look of the Flash guide (outlined text, no panel); × folds the list.
+// look of the Flash guide (outlined text, no panel); × folds the list. Dragged by its title row; the position is remembered.
 
 import { progressText, type ChaQuest, type RequireProgress } from '@mc/shared';
+import { makeDraggable } from './panelBehavior';
 
 // QUESTGUIDE_S prefixes by quest type (used by the quest panel title).
 export const TYPE_PREFIX: Record<number, string> = {
@@ -12,6 +13,7 @@ export const TYPE_PREFIX: Record<number, string> = {
 export class QuestTracker {
   private readonly root: HTMLElement;
   private readonly list: HTMLElement;
+  private readonly offDrag: () => void;
 
   constructor(
     parent: HTMLElement,
@@ -34,6 +36,7 @@ export class QuestTracker {
     this.root.append(head, this.list);
     this.root.hidden = true;
     parent.appendChild(this.root);
+    this.offDrag = makeDraggable(this.root, head, 'questTracker');
   }
 
   render(quests: Iterable<ChaQuest>): void {
@@ -65,6 +68,7 @@ export class QuestTracker {
   }
 
   destroy(): void {
+    this.offDrag();
     this.root.remove();
   }
 }

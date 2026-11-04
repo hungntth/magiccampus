@@ -49,7 +49,7 @@ export class GuildPanel {
       root.append(header, el('div', 'guild-tabs'), el('div', 'guild-body'));
       stageEl().appendChild(root);
       this.root = root;
-      this.offs = [makeDraggable(root, header), closeOnEscape(() => this.close())];
+      this.offs = [makeDraggable(root, header, 'guildPanel'), closeOnEscape(() => this.close())];
       this.onOpen();
     }
     this.render();

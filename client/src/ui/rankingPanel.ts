@@ -41,7 +41,7 @@ export class RankingPanel {
     stageEl().appendChild(root);
     this.root = root;
     this.replies.clear();
-    this.offs = [makeDraggable(root, header), closeOnEscape(() => this.close())];
+    this.offs = [makeDraggable(root, header, 'rankingPanel'), closeOnEscape(() => this.close())];
     this.select(this.tab);
   }
 

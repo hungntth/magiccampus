@@ -1,98 +1,185 @@
-/* "Nhân vật" window; same visual language as .bag-panel (navy panel, gold frame, banner title). */
+/* "Nhân vật" window, legacy CharactorPanel geometry (315x460): teal frame + banner title, tab strip at (24, 40), the
+   285x385 equipment box at (15, 59) holding the slots, the element figure and the property canvas at (5, 204).
+   Only the figure uses converted SWF art (charFigure.ts); everything else is CSS. Also styles "Thông tin" (.cha-info). */
 .char-panel {
-  --char-gold: #e8c46a;
+  --char-gold: #ffe9a8;
+  --char-edge: #9fe3ff;
+  --char-box-edge: #5fb6de;
   position: absolute;
-  left: calc(50% - 256px);
-  top: 8%;
-  width: 512px;
-  height: 364px;
-  padding: 32px 12px 10px;
+  left: calc(50% - 157px);
+  top: 5%;
+  width: 315px;
+  height: 460px;
   box-sizing: border-box;
-  background: linear-gradient(180deg, #1d4a72 0%, #123553 40%, #0e2a45 100%);
-  border: 2px solid var(--char-gold);
-  border-radius: 10px;
-  box-shadow: 0 0 0 1px #3a2a08, inset 0 0 0 1px #6fa3cf, 0 6px 18px rgba(0, 0, 0, 0.55);
+  background: linear-gradient(180deg, #3fa3c8 0%, #2581ab 16%, #1b6b93 60%, #165a7e 100%);
+  border: 2px solid var(--char-edge);
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px #0b3550, inset 0 0 0 1px #0f4c70, inset 0 2px 8px rgba(255, 255, 255, 0.25),
+    0 6px 18px rgba(0, 0, 0, 0.55);
   font-family: Tahoma, Verdana, Arial, sans-serif;
   font-size: 12px;
   color: #fff;
   pointer-events: auto;
 }
 
+/* Drag handle across the top strip; the banner sits centred on it. */
 .char-header {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 30px;
+  height: 34px;
+  cursor: move;
 }
 
 .char-title {
   position: absolute;
-  top: -2px;
+  top: 4px;
   left: 50%;
   transform: translateX(-50%);
-  min-width: 100px;
-  padding: 3px 18px 4px;
-  background: linear-gradient(180deg, #3e7fb5 0%, #1c4c7a 100%);
-  border: 2px solid var(--char-gold);
-  border-top: 0;
-  border-radius: 0 0 12px 12px;
+  min-width: 112px;
+  padding: 3px 22px 4px;
+  background: linear-gradient(180deg, #0f4c75 0%, #0a3556 100%);
+  border: 1px solid var(--char-edge);
+  border-radius: 10px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 0 6px rgba(159, 227, 255, 0.6);
   text-align: center;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
-  color: #ffe9a8;
-  text-shadow: 0 1px 0 #3a2a08, 0 0 3px #000;
+  letter-spacing: 1px;
+  color: var(--char-gold);
+  text-shadow: -1px 0 #5a3a00, 1px 0 #5a3a00, 0 -1px #5a3a00, 0 1px #5a3a00;
 }
 
 .char-close {
-  z-index: 1;
+  z-index: 2;
   position: absolute;
-  top: 4px;
+  top: 5px;
   right: 6px;
-  width: 20px;
-  height: 20px;
+  width: 21px;
+  height: 21px;
   padding: 0;
-  border: 1px solid #ffd0d0;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #ff7a7a, #c41818 70%);
+  border: 1px solid #ffe0e0;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #ff8a7a 0%, #e0301e 50%, #a8140a 100%);
+  box-shadow: 0 0 0 1px #5a0a04;
   color: #fff;
   font: inherit;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
-  line-height: 16px;
+  line-height: 17px;
+  text-shadow: 0 1px 0 #5a0a04;
   cursor: pointer;
 }
 
+/* Tab strip: 45x20 tabs 2px apart (legacy x 14, 61, 108, 155, 203); the active one is gold. */
+.char-tabs {
+  position: absolute;
+  left: 24px;
+  top: 40px;
+  display: flex;
+  gap: 2px;
+}
+
+.char-tab {
+  width: 45px;
+  height: 20px;
+  padding: 0 2px;
+  overflow: hidden;
+  border: 1px solid #8fd2f2;
+  border-bottom: 0;
+  border-radius: 5px 5px 0 0;
+  background: linear-gradient(180deg, #4ba6d2 0%, #1f6f9c 55%, #155a85 100%);
+  color: #fff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  text-shadow: 0 1px 0 #0a2a40;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.char-tab:hover {
+  filter: brightness(1.15);
+}
+
+.char-tab.on {
+  border-color: #fff3c0;
+  background: linear-gradient(180deg, #fff2b0 0%, #ffcf5a 45%, #e8a43a 100%);
+  color: #5a2e00;
+  text-shadow: none;
+}
+
+/* Equipment box (legacy CanvasBorder ViewStack): slots keep the descriptor coordinates (inline left/top). */
 .char-equip {
   position: absolute;
-  left: 12px;
-  top: 54px;
-  width: 276px;
-  height: 298px;
-  background: #0d2d4a;
-  border: 1px solid #4f86b3;
-  border-radius: 8px;
-  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.6);
+  left: 13px;
+  top: 59px;
+  width: 285px;
+  height: 385px;
+  background: radial-gradient(ellipse 70% 40% at 50% 26%, #1d6390 0%, #0f3b5e 55%, #0b2f4d 100%);
+  border: 1px solid var(--char-box-edge);
+  border-radius: 6px;
+  box-shadow: inset 0 1px 6px rgba(0, 0, 0, 0.7);
+}
+
+/* Element figure: TOTEM_CHARACTER circle (horizontally centred, y 10) and the element clip at (100, 16). */
+.char-figure {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 210px;
+  pointer-events: auto;
+}
+
+.char-totem {
+  position: absolute;
+  left: 47px;
+  top: 10px;
+  width: 191px;
+  height: 191px;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.char-figure-body {
+  position: absolute;
+  left: 105px;
+  top: 16px;
+  width: 74px;
+  height: 161px;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.35));
+}
+
+.char-fig-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 74px;
+  height: 161px;
+  pointer-events: none;
 }
 
 .char-slot {
+  z-index: 1;
   position: absolute;
   width: 34px;
   height: 34px;
   box-sizing: border-box;
-  background: #050f1a;
-  border: 2px solid #25506f;
-  border-radius: 4px;
+  background: linear-gradient(180deg, #0f2f4a 0%, #071a2b 100%);
+  border: 2px solid #3d7ea6;
+  border-radius: 5px;
+  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.8);
   user-select: none;
 }
 
 .char-slot.locked {
   opacity: 0.4;
-  background: repeating-linear-gradient(45deg, #050f1a, #050f1a 4px, #10283c 4px, #10283c 8px);
+  background: repeating-linear-gradient(45deg, #071a2b, #071a2b 4px, #10283c 4px, #10283c 8px);
 }
 
 .char-slot.filled:hover {
-  box-shadow: 0 0 0 1px #fff2c4;
+  box-shadow: 0 0 0 1px #fff2c4, 0 0 6px #fff2c4;
 }
 
 .char-slot img {
@@ -102,123 +189,132 @@
   object-fit: contain;
 }
 
-.char-stats {
+/* Thần khí tab: spirituality + repair / function buttons under the pentagon of slots. */
+.char-mwtools {
+  z-index: 1;
   position: absolute;
-  left: 296px;
-  top: 32px;
-  width: 204px;
-  line-height: 15px;
-}
-
-.char-name {
-  font-weight: 700;
-  color: #ffe9a8;
-}
-
-.char-exp {
-  margin-bottom: 3px;
-  color: #bcd6ec;
-}
-
-.char-row {
+  left: 163px;
+  top: 166px;
   display: flex;
-  align-items: center;
   gap: 4px;
 }
 
-.char-label {
-  flex: 0 0 84px;
+.char-mwtools .char-ok {
+  padding: 0 5px;
+}
+
+.char-spirit {
+  position: absolute;
+  left: -146px; /* box x 17, legacy spirituality label */
+  top: 3px;
   white-space: nowrap;
-  color: #bcd6ec;
+  color: var(--char-gold);
+  text-shadow: 0 1px 0 #000;
+}
+
+/* Property canvas: every label / box / button is absolutely placed by characterPanel.ts. */
+.char-stats {
+  position: absolute;
+  left: 5px;
+  top: 204px;
+  width: 275px;
+  height: 181px;
+}
+
+.char-stats > * {
+  position: absolute;
+}
+
+.char-label {
+  width: 37px;
+  height: 18px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  line-height: 18px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: -1px 0 #0a2a40, 1px 0 #0a2a40, 0 -1px #0a2a40, 0 1px #0a2a40;
 }
 
 .char-value {
-  flex: 0 0 46px;
-  text-align: right;
+  height: 18px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  background: linear-gradient(180deg, #06182a 0%, #0c2a45 100%);
+  border: 1px solid var(--char-box-edge);
+  border-radius: 3px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8);
+  line-height: 16px;
+  color: #fff;
+}
+
+.char-value.char-points {
+  color: var(--char-gold);
 }
 
 .char-add {
-  flex: 0 0 26px;
+  margin-left: 3px;
   color: #7dff7d;
 }
 
 .char-pm {
-  width: 16px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   padding: 0;
-  font: inherit;
-  font-weight: 700;
-  line-height: 12px;
-  color: #fff;
-  cursor: pointer;
-  border: 1px solid #7fb4de;
+  border: 1px solid #e6ffd0;
   border-radius: 3px;
-  background: linear-gradient(180deg, #3e7fb5 0%, #1c4c7a 100%);
+  background: linear-gradient(180deg, #b6f27a 0%, #5cbf2a 50%, #2f8a12 100%);
+  box-shadow: 0 0 0 1px #1d5208;
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 15px;
+  text-shadow: 0 1px 0 #1d5208;
+  cursor: pointer;
 }
 
 .char-pm:disabled,
 .char-ok:disabled {
-  opacity: 0.4;
+  opacity: 0.45;
   cursor: default;
 }
 
-.char-sep {
-  height: 1px;
-  margin: 4px 0;
-  background: #4f86b3;
-}
-
-.char-points .char-value {
-  color: #ffe9a8;
-}
-
-.char-foot {
+.char-step {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-top: 3px;
+  height: 18px;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.char-step input {
+  width: 12px;
+  height: 12px;
+  margin: 0 1px 0 0;
 }
 
 .char-ok {
-  padding: 1px 16px 2px;
-  font: inherit;
-  font-weight: 700;
-  color: #fff;
-  cursor: pointer;
+  height: 19px;
+  padding: 0 8px;
   border: 1px solid #fff2c4;
   border-radius: 4px;
-  background: linear-gradient(180deg, #ffc65a 0%, #f08a1c 55%, #d96a0a 100%);
-}
-
-.char-titles.char-features { left: 84px; }
-
-.char-titles {
-  z-index: 1;
-  position: absolute;
-  top: 4px;
-  left: 8px;
-  height: 20px;
-  padding: 0 8px;
-  border: 1px solid var(--char-gold);
-  border-radius: 4px;
-  background: linear-gradient(180deg, #3e7fb5 0%, #1c4c7a 100%);
+  background: linear-gradient(180deg, #ffd27a 0%, #f59a2a 55%, #d96a0a 100%);
+  box-shadow: 0 0 0 1px #6a3000;
   color: #fff;
   font: inherit;
+  font-weight: 700;
+  line-height: 16px;
+  text-shadow: 0 1px 0 #6a3000;
+  white-space: nowrap;
   cursor: pointer;
 }
 
-/* Equipment / Thần khí tabs and the magic weapon tool buttons */
-.char-tabs { position: absolute; left: 12px; top: 32px; width: 276px; display: flex; gap: 4px; }
-.char-tab {
-  flex: 1;
-  height: 20px;
+.char-stats .char-ok {
   padding: 0;
-  border: 1px solid #4f86b3;
-  border-radius: 4px 4px 0 0;
-  background: #0d2d4a;
-  color: #bcd6ea;
-  font: inherit;
-  cursor: pointer;
 }
-.char-tab.on { background: #2a6aa0; color: #ffe9a8; border-color: var(--char-gold); }
-.char-mwtools { position: absolute; left: 0; right: 0; bottom: 8px; display: flex; justify-content: center; gap: 10px; }

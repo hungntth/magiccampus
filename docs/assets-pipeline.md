@@ -46,6 +46,7 @@ handY, totalWidth, totalHeight`. The Flash client positions every resource at `(
 | `swfhit`    | Extracts walkability masks → `client/public/sheets/scene/SCENE_FOLDER_xxxxxx/hit.{bin,json,png}`. |
 | `swfui`     | Renders named UI skin symbols (vector + bitmap) of one SWF to one PNG each + `index.json`. |
 | `swfanim`   | Renders a vector SWF with nested animated sprites frame by frame into one sheet (`vector-anim`). |
+| `swfelement` | Exports the character-panel element figure (silhouette, glow rim, per-element ColorMatrix filters). |
 
 `resmap.json` (md5 → logical path) is produced by `pnpm --filter @mc/server exec tsx tools/resmap.ts`:
 it decodes every 13-digit resource code found in the `data_tbl_*` collections, tries the known path
@@ -121,6 +122,19 @@ item position. `meta.localizerY` is the y of the child instance named `localizer
 sorting). SWFs with a `GameResInst` class (vector-drawn NPCs such as `creature/NPC_FUNC_000094`, the Vân Đài
 transport NPC) also get its anchor metrics (`midX`, `footY`, …) in `meta`, so `Entity` anchors them like bitmap sheets. With `-manifest` + `-key` the entry is upserted (category `vector-anim`, file line endings kept).
 Existing `swf2sheet` / `swfbatch` / `swfui` output is unchanged (`swfui` still writes 226 `MainStage_*` symbols).
+
+## Character element figure (`swfelement`)
+
+```powershell
+pnpm --filter @mc/swf-tools swfelement -out client/public/ui/CharactorPanel -xor 1,2,0 E:/mcgame/frontend/s/6a41a5ba5c0006ab4e0c1321a2b05027.orig
+```
+
+The Flash clip `CharactorInfoPanel_element` (same art as `CharactorPanel_element`) has 7 frames, frame = 1 + ee. Its base
+layer is the silhouette with an inner, knockout GlowFilter (rendered by the tool into `rim.png`, since the renderer has no
+filters); `maskMC` (13 frames, en) reveals a recoloured copy (`silhouette.png`) from the feet up; `maxMc` is the MAX overlay.
+`element.json` keeps per frame each layer's alpha and ColorMatrix (20 values, offsets in 0..255) plus `maskTop[en]`; the client
+applies the matrices as SVG `feColorMatrix` (offsets / 255). `totem.png` is `TOTEM_CHARACTER` from
+`resource/ui/SkinMagicTotem.swf` (md5 `23f3ea313efa74374c7d825430d35a4f`), rendered with `swfui -match .`.
 
 ## Not covered yet
 

@@ -3,7 +3,7 @@
 // normal -> lock -> confirm; items and money are editable only in `normal`. Pure view: TradeController owns the RPCs and pushes.
 
 import { TRADE_MAX_ITEMS, type BagItem, type PlayerData, type TargetLock, type TradeOffer } from '@mc/shared';
-import { endDrag, dragging, fillItemCell, itemTooltip } from './itemCell';
+import { endDrag, dragging, fillItemCell } from './itemCell';
 import { closeOnEscape, makeDraggable } from './panelBehavior';
 import { stageEl } from './stage';
 import './bag.css';
@@ -66,7 +66,7 @@ export class TradePanel {
     root.append(header, cols, el('div', 'trade-hint', 'Nhấp đôi vào vật phẩm trong túi đồ để thêm, nhấp đôi vào khung để xóa'), this.buttons());
     stageEl().appendChild(root);
     this.root = root;
-    this.offs = [makeDraggable(root, header), closeOnEscape(() => this.host.onCancel())];
+    this.offs = [makeDraggable(root, header, 'tradePanel'), closeOnEscape(() => this.host.onCancel())];
     this.render();
   }
 
@@ -193,7 +193,7 @@ export class TradePanel {
       const c = el('div', 'bag-cell trade-cell');
       const item = items[i];
       if (item) {
-        fillItemCell(c, item, itemTooltip(item, level, false), 'bag');
+        fillItemCell(c, item, { level }, 'bag');
         c.draggable = false;
         if (removable) {
           c.ondblclick = () => {

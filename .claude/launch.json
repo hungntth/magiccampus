@@ -2,6 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     { "name": "server", "runtimeExecutable": "pnpm", "runtimeArgs": ["dev:server"], "port": 4000 },
-    { "name": "client", "runtimeExecutable": "pnpm", "runtimeArgs": ["dev:client"], "port": 5173 }
+    { "name": "client", "runtimeExecutable": "pnpm", "runtimeArgs": ["dev:client"], "port": 5173 },
+    {
+      "name": "client-alt",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@mc/client", "exec", "vite", "--port", "5174", "--strictPort"],
+      "port": 5174
+    }
   ]
 }

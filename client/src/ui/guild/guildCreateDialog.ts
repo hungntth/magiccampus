@@ -51,7 +51,7 @@ export function openCreateDialog(env: CreateEnv): () => void {
   body.appendChild(bar);
   root.append(header, body);
   stageEl().appendChild(root);
-  const off = makeDraggable(root, header);
+  const off = makeDraggable(root, header, 'guildCreateDialog');
   name.focus();
   return close;
 }

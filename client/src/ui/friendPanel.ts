@@ -69,7 +69,7 @@ export class FriendPanel {
     root.appendChild(add);
     stageEl().appendChild(root);
     this.root = root;
-    this.offs = [makeDraggable(root, header), closeOnEscape(() => this.close())];
+    this.offs = [makeDraggable(root, header, 'friendPanel'), closeOnEscape(() => this.close())];
     this.render();
     this.actions.refresh();
   }

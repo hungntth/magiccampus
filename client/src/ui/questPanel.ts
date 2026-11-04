@@ -71,7 +71,7 @@ export class QuestPanel {
     this.root = root;
     this.qid = view.qid;
     this.shown = { view, opts };
-    this.offs.push(makeDraggable(root, header), closeOnEscape(() => this.close()));
+    this.offs.push(makeDraggable(root, header, 'questPanel'), closeOnEscape(() => this.close()));
   }
 
   close(): void {

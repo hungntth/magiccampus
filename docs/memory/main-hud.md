@@ -52,3 +52,21 @@ Legacy now lives at E:/mcgame. Newer seed dumps:  uses  (imported as the import 
 - Legacy now lives at E:/mcgame (`ASSET_DIR` / `SEED_DIR` in server/.env). Newer seed dumps: `game_tuning_crosscontention`
   uses `now()` (imported as the import time); `data_tbl_quest` has no column list (KNOWN_COLUMNS from the baseline
   migration). Verified: 5530 quests, quest 1 = 240 -> 231.
+
+## Layout and remembered positions (2026-11-04)
+- The minimap funCanvas column (Nạp … Bay) is vertically centred on the stage: `top: max(135px, 50% - 131px)`
+  (`FUN_TOP` in `hud/miniMap.ts`; `.hud-minimap` is full stage height). The quest tracker's default top matches it
+  (`style.css` `.quest-tracker`).
+- `makeDraggable(panel, handle, key)` (`ui/panelBehavior.ts`): with a key the last dropped position is saved in
+  localStorage `mc.pos.<key>` and applied when the panel opens (clamped to the current stage). Every window passes its
+  file name as the key; `openActWindow` uses `act.<cls>`; private chat windows are not remembered (several at once).
+  The quest tracker drags by its "Nhiệm vụ" title row (key `questTracker`).
+
+## Character select screen (2026-11-04)
+- `ui/charSelect.ts` + `charSelect.css` port Flash `compFore/CharSelectCanvas` (research
+  `docs/research/2026-11-04_19_CHAR_SELECT_CLIENT_RESEARCH.md`): 900x570 frame scaled to fit over `/img/login-bg.jpg`
+  (copied from legacy `h5/public/img`), class preview = `ClassInfo.largeImg*` (static PNG, not a sprite), 3 slot cards per
+  page with arrows past 3, buttons Vào game / Xóa nhân vật (always disabled, as in Flash) / Tạo nhân vật (< 3 chars) /
+  Quay lại (`logout`, back to login on the same socket), "Tạo lại pass" = toast (setDeletePass not ported).
+- Skins: `client/public/ui/LoginStage_LoginStage/*` extracted with `swfui -match '_embed_css_.*LoginStage_'` into a scratch
+  dir, folder copied and its entries appended to `ui/index.json` (swfui rewrites index.json, never point it at public/ui).

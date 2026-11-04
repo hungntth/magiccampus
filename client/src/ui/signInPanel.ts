@@ -63,7 +63,7 @@ export class SignInPanel {
       root.append(head, x, el('act-tabs'), el('act-content'));
       stageEl().appendChild(root);
       this.root = root;
-      this.offs.push(makeDraggable(root, head), closeOnEscape(() => this.host.onClose()));
+      this.offs.push(makeDraggable(root, head, 'signInPanel'), closeOnEscape(() => this.host.onClose()));
     }
     this.render();
   }

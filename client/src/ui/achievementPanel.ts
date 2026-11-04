@@ -44,7 +44,7 @@ export class AchievementPanel {
     root.append(header, x);
     stageEl().appendChild(root);
     this.root = root;
-    this.offs.push(makeDraggable(root, header), closeOnEscape(() => this.host.onClose()));
+    this.offs.push(makeDraggable(root, header, 'achievementPanel'), closeOnEscape(() => this.host.onClose()));
     this.render();
   }
 

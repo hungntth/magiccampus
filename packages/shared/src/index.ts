@@ -38,4 +38,5 @@ export * from './offline.js';
 export * from './feast.js';
 export * from './lotto.js';
 export * from './prabuff.js';
+export * from './charElement.js';
 export * from './mount.js';

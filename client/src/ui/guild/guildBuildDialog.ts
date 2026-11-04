@@ -37,7 +37,7 @@ function frame(title: string): { root: HTMLElement; body: HTMLElement } {
   const body = el('div', 'guild-body');
   root.append(header, body);
   stageEl().appendChild(root);
-  const offs = [makeDraggable(root, header), closeOnEscape(closeBuildDialog)];
+  const offs = [makeDraggable(root, header, 'guildBuildDialog'), closeOnEscape(closeBuildDialog)];
   open = { root, dispose: () => { for (const off of offs) off(); root.remove(); } };
   return { root, body };
 }

@@ -45,6 +45,12 @@ Bag operations are in `inventory.md`.
 
 ## Client
 - `game/CharacterController.ts` owns `player.property`; `ui/characterPanel.ts` + `.css` opens with C or the HUD button.
+  Layout follows the CharactorPanel descriptor (315x460, tabs Tr.bị / Th.khí / D.hiệu / T.luyện / Thú cưỡi at x 14+47n, equipment box
+  285x385, property canvas at (5, 204), magic weapon pentagon). Only the centre figure is SWF art (`ui/charFigure.ts`, assets from
+  `swfelement` in `client/public/ui/CharactorPanel`); tabs, boxes and buttons are CSS.
+- Element figure: `charElementOf` (`@mc/shared` charElement.ts) computes ee/en from the worn pieces client-side (Go
+  `ApplyCharacterElementState`); frame ee picks the ColorMatrix set, en (0..12) raises the fill. ef is always false (soul
+  activation not ported); ee 0 shows a dim neutral silhouette instead of the legacy empty frame.
   - 22-slot grid; double-click unequips, drag to the bag unequips into that slot.
   - + / − buttons with an x10 step, OK sends `changeProperty`.
 - `ui/hud/portrait.ts`: clicking the HP/MP bar sends recover with potions from the bag; it shows a level-up button from level 20.
@@ -54,7 +60,7 @@ Bag operations are in `inventory.md`.
 
 ## Deferred
 - Avatar appearance for weapon, dress, wing and flyer (`onEquipOn`/`onWingOn` broadcast).
-- Stars, gems, soul, suits, random properties, element `ee/en/ef`.
+- Stars, gems, soul, suits, random properties, element `ef` (MAX glow) and ee/en on the server property.
 - `getFinalPraDef` / `finalPraMagDef`, `useMultiItem`.
 - Pet targets and other item types.
 - NPC healer.

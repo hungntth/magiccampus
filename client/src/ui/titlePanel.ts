@@ -40,7 +40,7 @@ export class TitlePanel {
     root.append(header, x);
     stageEl().appendChild(root);
     this.root = root;
-    this.offs.push(makeDraggable(root, header), closeOnEscape(() => this.host.onClose()));
+    this.offs.push(makeDraggable(root, header, 'titlePanel'), closeOnEscape(() => this.host.onClose()));
     this.render();
   }
 

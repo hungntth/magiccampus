@@ -4,6 +4,7 @@ import type { ShopPrice, ShopSlotView } from '@mc/shared';
 import { ShopCurrency } from '@mc/shared';
 import { iconUrl } from '../assets';
 import { NAME_COLORS } from './bagPanel';
+import { attachTip, renderSlotTip } from './itemTip';
 
 const ST_LABELS: Record<number, string> = { 1: 'Hot', 2: 'Sale', 3: 'Limit', 4: 'New' };
 
@@ -32,11 +33,13 @@ export function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, t
   return e;
 }
 
-/** One slot cell; `onSelect` runs on click (the caller moves the highlight), `onBuy` on double-click. */
-export function shopCell(slot: ShopSlotView, selected: boolean, onSelect: (cell: HTMLElement) => void, onBuy: () => void): HTMLElement {
+/** One slot cell with the bag-style hover tooltip; `onSelect` runs on click (the caller moves the highlight),
+ * `onBuy` on double-click. */
+export function shopCell(slot: ShopSlotView, selected: boolean, onSelect: (cell: HTMLElement) => void, onBuy: () => void,
+  level?: number): HTMLElement {
   const c = el('div', 'shop-cell');
   if (selected) c.classList.add('selected');
-  c.title = slot.info ? `${slot.name}\n${slot.info}` : slot.name;
+  attachTip(c, () => renderSlotTip(slot, level));
   const icon = el('div', 'shop-icon');
   if (slot.iconCode && slot.iconCode !== '0') {
     const img = document.createElement('img');

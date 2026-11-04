@@ -382,12 +382,14 @@ body {
 .npc-dialog .npc-quests {
   display: flex;
   flex-direction: column;
-  max-height: 126px;
+  height: 126px;
+  box-sizing: border-box;
   padding: 3px 0;
   margin-bottom: 8px;
 }
 
 .npc-dialog .npc-quest {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -454,7 +456,7 @@ body {
 /* Quest tracker (right side): legacy QuestGuide look in plain CSS — no panel, outlined text, names cut with "…" */
 .quest-tracker {
   position: absolute;
-  top: 140px;
+  top: max(140px, calc(50% - 126px)); /* level with the vertically centred function column (.hud-fun) */
   right: 92px;
   width: 128px;
   font-family: Tahoma, Verdana, Arial, sans-serif;

@@ -41,6 +41,8 @@ export class ShopPanel {
   onBuy: ((slotId: number, amount: number) => void) | null = null;
   /** Set by BagController: payment preference (radios Ngân phiếu / Bạc / Kim phiếu / Vàng). */
   payment: PaymentControl | null = null;
+  /** Set by BagController: viewer level (tooltip requirement colouring). */
+  playerLevel: () => number = () => 0;
   private radios: PaymentRadios | null = null;
 
   get npcId(): number | null {
@@ -100,7 +102,7 @@ export class ShopPanel {
 
     stageEl().appendChild(root);
     this.root = root;
-    this.offs.push(makeDraggable(root, header), closeOnEscape(() => this.close()));
+    this.offs.push(makeDraggable(root, header, 'shopPanel'), closeOnEscape(() => this.close()));
     this.render();
   }
 
@@ -182,6 +184,6 @@ export class ShopPanel {
       this.selected = slot.slotId;
       this.grid?.querySelectorAll('.shop-cell.selected').forEach((n) => n.classList.remove('selected'));
       c.classList.add('selected');
-    }, () => this.buy(slot));
+    }, () => this.buy(slot), this.playerLevel());
   }
 }

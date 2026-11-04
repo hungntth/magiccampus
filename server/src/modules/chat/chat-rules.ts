@@ -51,10 +51,15 @@ export class ChatRateLimiter {
   }
 }
 
-/** Trims and caps a client string; null when it is not a string or ends up empty. */
+// Control (Cc) and format (Cf: zero-width, bidi overrides) characters: newlines, invisible text and right-to-left spoofing
+// in chat. Rendering is text-only on the client, so this is about display abuse, not markup.
+const HIDDEN_CHARS = /[\p{Cc}\p{Cf}]/gu;
+
+/** Strips hidden characters, collapses whitespace, trims and caps (in code points); null when not a string or empty. */
 export function normalizeMessage(raw: unknown, max: number): string | null {
   if (typeof raw !== 'string') return null;
-  const text = raw.trim().slice(0, max);
+  const clean = raw.slice(0, max * 4).replace(HIDDEN_CHARS, ' ').replace(/\s+/g, ' ').trim();
+  const text = Array.from(clean).slice(0, max).join('').trim();
   return text ? text : null;
 }
 
