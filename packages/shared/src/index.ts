@@ -9,3 +9,6 @@ export * from './questProgress.js';
 export * from './social.js';
 export * from './party.js';
 export * from './trade.js';
+export * from './pet.js';
+export * from './petCatch.js';
+export * from './petGear.js';

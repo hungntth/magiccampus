@@ -1,6 +1,7 @@
 // Quest item rewards (Go applyRewards / lifecycle.go grantQuestStartItems): the Quà slot views, the finish-time award
 // plan (data_tbl_quest_award, bound, equipment colour from quality) and the accept-time start_grant_item.
-// Pet (kind 2) and skill (kind 3) awards are shown but not granted: H5 has no pet / skill-book system yet.
+// Pet awards (kind 2 / type 12) are granted through PetService (growRate = q / 10, bound); skill awards (kind 3) are
+// shown but not granted yet.
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ItemKind, QuestAwardKind, type AddItemNotice, type BagItem, type QuestAward } from '@mc/shared';
@@ -10,6 +11,8 @@ import type { QuestAwardRow, QuestTemplate } from '../gamedata/quest-data';
 import { maxStack, type AddSpec } from '../inventory/bag-rules';
 import { withCharLock } from '../inventory/char-lock';
 import { InventoryService } from '../inventory/inventory.service';
+import { PetBattleService } from '../pet/pet-battle.service';
+import { PetService } from '../pet/pet.service';
 import { push, type Push } from '../inventory/pushes';
 import { awardColor, awardName, EQUIP_TABLE, PET_TABLE, pickAwards } from './quest-award';
 
@@ -34,6 +37,8 @@ export class QuestRewardService {
   constructor(
     private readonly gameData: GameDataService,
     private readonly inventory: InventoryService,
+    private readonly pets: PetService,
+    private readonly petBattle: PetBattleService,
   ) {}
 
   /** Quà slot views for the quest panel (every row; the client filters CLASS mode by its own class like QuestCanvas). */
@@ -103,6 +108,23 @@ export class QuestRewardService {
       }
     }
     return { pushes: [...notices, ...changed.map((item) => push('onAddCharactorSlot', item))], changed };
+  }
+
+  /** Pet awards of a finish (call under the character lock, after grant): onAddPet per pet, or a red note when full. */
+  async grantPets(characterId: number, tpl: QuestTemplate, classId: number, selectId: number): Promise<Push[]> {
+    const picked = pickAwards(tpl.at, this.gameData.questAwards(tpl.id), selectId, classId, () => '') ?? [];
+    const rows = picked.filter((r) => r.kind === QuestAwardKind.PET && r.type === PET_TABLE && r.num > 0);
+    return rows.length > 0 ? this.pets.awardFromQuest(characterId, rows) : [];
+  }
+
+  /** The active (state 1) pet gets the full quest exp (Go service.go:1389): onUpdatePet exp / level, onRefreshPetProp. Under the lock. */
+  async grantPetExp(characterId: number, exp: number): Promise<Push[]> {
+    try {
+      return await this.petBattle.grantQuestExp(characterId, exp);
+    } catch (e) {
+      this.logger.error(`pet quest exp failed for character ${characterId}: ${(e as Error).message}`);
+      return [];
+    }
   }
 
   /** Accept-time item (data_tbl_quest.start_grant_item, unbound). A full bag skips it with a warning, like Go. */

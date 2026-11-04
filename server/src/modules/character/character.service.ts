@@ -4,7 +4,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { CharState, type CharListEntry, type MoneyKey, type PlayerData, type SceneCharacter } from '@mc/shared';
+import {
+  CharState, type CharListEntry, type MoneyKey, type PetLoginInfo, type PlayerData, type SceneCharacter,
+} from '@mc/shared';
 import { Character, type CharacterDocument } from './character.schema';
 import { Counter } from './counter.schema';
 import { classStartAttrs, profileOf } from './character-profile';
@@ -147,8 +149,11 @@ export class CharacterService {
   }
 
   /** Login payload; `stats` supplies the effective max HP/MP, base+gear attributes and `property`. */
-  toPlayerData(doc: CharacterDocument, quests: { questLog: string; qn: number }, stats: CharStats): PlayerData {
+  toPlayerData(
+    doc: CharacterDocument, quests: { questLog: string; qn: number }, stats: CharStats, pets: PetLoginInfo,
+  ): PlayerData {
     return {
+      ...pets,
       id: doc._id,
       name: doc.name,
       classId: doc.classId,

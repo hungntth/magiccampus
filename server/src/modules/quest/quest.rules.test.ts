@@ -57,7 +57,9 @@ test('isSupported', () => {
   const granted = tpl({ id: 160, startGrantItem: 335, startGrantQty: 1 });
   assert.equal(isSupported(granted, [{ qid: 160, kind: 1, type: 29, itemId: 335, num: 1, q: -1 }]), true);
   assert.equal(isSupported(granted, [{ qid: 160, kind: 1, type: 29, itemId: 336, num: 1, q: -1 }]), true); // plain collect
-  assert.equal(isSupported(tpl(), [{ qid: 1, kind: 3, type: 12, itemId: 5, num: 1, q: -1 }]), false); // pet objective
+  assert.equal(isSupported(tpl(), [{ qid: 1, kind: 3, type: 12, itemId: 5, num: 1, q: 16 }]), true); // pet turn-in (phase D)
+  assert.equal(isSupported(tpl(), [{ qid: 1, kind: 3, type: 12, itemId: 5, num: 0, q: 16 }]), false);
+  assert.equal(isSupported(tpl(), [{ qid: 1, kind: 3, type: 29, itemId: 5, num: 1, q: 16 }]), false);
   assert.equal(isSupported(tpl(), [{ qid: 1, kind: 1, type: 19, itemId: 5, num: 1, q: -1 }]), false); // equipment
   assert.equal(isSupported(tpl(), [{ qid: 1, kind: 1, type: 29, itemId: 5, num: 1, q: 2 }]), false); // quality filter
 });

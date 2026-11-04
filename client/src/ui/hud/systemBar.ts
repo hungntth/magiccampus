@@ -1,5 +1,5 @@
 // Bottom-right menu buttons of SystemBarCanvas (sysBtnBar right0/bottom-8, 40x45 icons) and their keyboard
-// shortcuts from the SYSTEMBARCANVAS_S tooltips. Character (C), bag (B) and friends (K) open panels so far; the rest toast "not ready".
+// shortcuts from the SYSTEMBARCANVAS_S tooltips. Character (C), bag (B), pets (W) and friends (K) open panels so far; the rest toast "not ready".
 
 import { div, notReady, skinButton, type SkinStates } from './skin';
 
@@ -37,11 +37,11 @@ export class SystemBar {
 
   /** `typing()` tells whether a text field has focus, so letters go to it instead of the shortcuts. */
   constructor(parent: HTMLElement, private readonly typing: () => boolean, onBag: () => void, onCharacter: () => void,
-    onFriend: () => void) {
+    onFriend: () => void, onPet: () => void) {
     const bar = div('hud-sysbar', parent);
     const actions = new Map<string, () => void>();
     for (const b of BUTTONS) {
-      const act = b.key === 'b' ? onBag : b.key === 'c' ? onCharacter : b.key === 'k' ? onFriend : notReady;
+      const act = b.key === 'b' ? onBag : b.key === 'c' ? onCharacter : b.key === 'k' ? onFriend : b.key === 'w' ? onPet : notReady;
       skinButton(b.skin, bar, b.x, b.y, b.tip, act);
       if (b.key) actions.set(b.key, act);
     }

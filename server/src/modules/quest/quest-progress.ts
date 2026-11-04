@@ -3,13 +3,14 @@
 // Objectives that equal the quest's accept-time grant item are met at accept and never counted from the bag (the item is
 // granted into the bag on accept; rows taken before that have none). On finish it is taken back if the bag still holds it.
 
-import type { QuestKill } from '@mc/shared';
+import { countMatchingPets, type PetObjectiveFacts, type QuestKill } from '@mc/shared';
 import type { QuestRequireRow, QuestTemplate } from '../gamedata/quest-data';
 import type { LootNeed } from '../combat/loot';
 import type { QuestObjective } from './quest.schema';
 
 export const KIND_COLLECT = 1;
 export const KIND_KILL = 2;
+export const KIND_PET = 3;
 
 export const isGrantObjective = (tpl: Pick<QuestTemplate, 'startGrantItem'>, o: Pick<QuestObjective, 'kind' | 'itemId'>): boolean =>
   o.kind === KIND_COLLECT && tpl.startGrantItem > 0 && o.itemId === tpl.startGrantItem;
@@ -72,6 +73,29 @@ export function creditKills(
     }
   }
   return { objectives: next, changed };
+}
+
+/** The require row behind objective i (objectives are built one per require row, in order); its q is the pet quality field. */
+const petQ = (requires: readonly QuestRequireRow[], i: number, o: QuestObjective): number =>
+  requires[i]?.kind === KIND_PET && requires[i].itemId === o.itemId ? requires[i].q : 0;
+
+/** Pet objectives take min(matching pets, required) (Go syncSubmitPetObjectives); other objectives are untouched. */
+export function syncPets(
+  objectives: readonly QuestObjective[], requires: readonly QuestRequireRow[], pets: readonly PetObjectiveFacts[],
+  nameOf: (creatureId: number) => string,
+): QuestObjective[] {
+  return objectives.map((o, i) =>
+    o.kind === KIND_PET
+      ? { ...o, current: Math.min(countMatchingPets(pets, o.itemId, petQ(requires, i, o), nameOf(o.itemId)), o.required) }
+      : { ...o },
+  );
+}
+
+/** The pet objectives a finish pays with pets: creature, quality field and count. */
+export function petNeeds(
+  objectives: readonly QuestObjective[], requires: readonly QuestRequireRow[],
+): { creatureId: number; q: number; required: number }[] {
+  return objectives.flatMap((o, i) => (o.kind === KIND_PET ? [{ creatureId: o.itemId, q: petQ(requires, i, o), required: o.required }] : []));
 }
 
 /** questKill list for onAddChaQuest: num = REMAINING kills (required - current, never below 0). */

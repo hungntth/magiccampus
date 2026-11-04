@@ -3,7 +3,7 @@
 // Pure apart from mutating the fighters (hp / alive / mp); builds the onBattlePlayList groups. A SKILL cast (cmd.skill) spends
 // MP first; melee skills use the attack sequence, ranged / magic cast in place (bid 7), heals target the caster.
 
-import { BattleAction, BattleBehavior, BattleResult, type BattlePlayList, type BattleStep } from '@mc/shared';
+import { BattleAction, BattleBehavior, BattleResult, catchRate, type BattlePlayList, type BattleStep } from '@mc/shared';
 import type { Fighter, PlayerCommand, Rng, SkillCast } from './battle.types';
 import {
   BASIC_ATTACK, COUNTER_ATTACK, comboAttack, comboChance, counterChance, healAmount, resolveHit, type SkillSpec,
@@ -118,6 +118,33 @@ function playerStrike(ctx: Ctx, p: Fighter, cmd: PlayerCommand): void {
   if (first) first.sSObj = { skill: cast.name, uMp: p.mp };
 }
 
+/**
+ * CATCH (-70, Go buildCatchActions): the rate comes from the target's HP now and the gates baked into the command. Success: the
+ * creature dies with behaviour 10160 and is marked caught (it still counts as killed; the pet is created at settle). Failure: a
+ * cast step whose sSObj.catchF tells the catcher the rate. A target that already died is a cast at nothing.
+ */
+function catchAct(ctx: Ctx, p: Fighter, cmd: PlayerCommand): void {
+  const t = ctx.fighters.get(cmd.targetSlot);
+  if (!t || !t.alive || t.side !== 'enemy' || p.kind !== 'character') {
+    ctx.groups.push([step(p.slot, -1, B.MAGIC, 400, { tSObj: {} })], [step(p.slot, p.slot, B.TURNBACK, 300)]);
+    return;
+  }
+  const rate = catchRate({
+    catchable: cmd.catch?.catchable ?? 0, room: cmd.catch?.room ?? 0, ownerLevel: p.level, creatureLevel: t.level, hp: t.hp, hpMax: t.hpMax,
+  });
+  const caught = rate > 0 && Math.floor(ctx.rng() * 100) < rate;
+  ctx.groups.push([step(p.slot, t.slot, B.TURNTO, 100)]);
+  if (caught) {
+    t.hp = 0;
+    t.alive = false;
+    t.caughtBy = p.slot;
+    ctx.groups.push([step(p.slot, t.slot, B.MAGIC, 400)], [step(t.slot, p.slot, B.CATCHED, 400)]);
+  } else {
+    ctx.groups.push([step(p.slot, t.slot, B.MAGIC, 500, { sSObj: { catchF: { cid: p.refId, rate, selfCatch: p.level } } })]);
+  }
+  ctx.groups.push([step(p.slot, p.slot, B.TURNBACK, 300)]);
+}
+
 /** The player's own action; returns true when it ends the battle (flee). A queued leave (disconnect) runs away and drops out instead. */
 function playerAct(ctx: Ctx, p: Fighter, cmd: PlayerCommand): boolean {
   switch (cmd.action) {
@@ -136,6 +163,9 @@ function playerAct(ctx: Ctx, p: Fighter, cmd: PlayerCommand): boolean {
       ctx.groups.push([step(p.slot, p.slot, B.MAGIC, 300, { tSObj: { rHp: p.hp, rMp: p.mp } })]);
       return false;
     }
+    case BattleAction.CATCH:
+      catchAct(ctx, p, cmd);
+      return false;
     case BattleAction.DEFENCE:
     case BattleAction.TIMEOUT:
       // Defend and timeout look the same; only DEFENCE is added to ctx.defending (damage halving).
@@ -149,17 +179,29 @@ function playerAct(ctx: Ctx, p: Fighter, cmd: PlayerCommand): boolean {
 
 const MISSING: PlayerCommand = { action: BattleAction.TIMEOUT, targetSlot: -1 };
 
+/** A pet without a command attacks a random living enemy (Go: front line); with no target left it just stands. */
+export function petFallbackCommand(fighters: Iterable<Fighter>, rng: Rng): PlayerCommand {
+  const enemies = alive(fighters, 'enemy');
+  if (enemies.length === 0) return MISSING;
+  return { action: BattleAction.ATTACK, targetSlot: enemies[Math.min(enemies.length - 1, Math.floor(rng() * enemies.length))].slot };
+}
+
 /**
  * Resolves the round: mutates the fighters and returns the playlist (with the end marker when the battle ended).
  * `cmds` is one command for the solo player, or the submitted commands by player slot (a missing one counts as a timeout).
- * Any member fleeing ends the battle for everyone (result FLED).
+ * Any member fleeing ends the battle for everyone (result FLED). A pet (kind 'pet') with no entry in the map acts on the
+ * fallback command above; pets fight, can be targeted and count for the victory check like any player-side fighter.
  */
 export function resolveRound(
   fighters: Map<number, Fighter>, cmds: PlayerCommand | ReadonlyMap<number, PlayerCommand>, round: number, rng: Rng,
 ): RoundOutcome {
-  const cmdOf = (slot: number): PlayerCommand => (cmds instanceof Map ? cmds.get(slot) ?? MISSING : (cmds as PlayerCommand));
-  const defending = new Set<number>();
   const players = alive(fighters.values(), 'player');
+  const auto = new Map<number, PlayerCommand>();
+  for (const p of players) {
+    if (p.kind === 'pet' && !(cmds instanceof Map && cmds.has(p.slot))) auto.set(p.slot, petFallbackCommand(fighters.values(), rng));
+  }
+  const cmdOf = (slot: number): PlayerCommand => auto.get(slot) ?? (cmds instanceof Map ? cmds.get(slot) ?? MISSING : (cmds as PlayerCommand));
+  const defending = new Set<number>();
   for (const p of players) if (cmdOf(p.slot).action === BattleAction.DEFENCE) defending.add(p.slot);
   const ctx: Ctx = { fighters, rng, defending, groups: [] };
 

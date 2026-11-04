@@ -18,15 +18,17 @@ export type BaseStats = Record<StatKey, number>;
 
 export const ATTR_KEYS: readonly AttrKey[] = ['str', 'agi', 'sta', 'int', 'eng'];
 const trunc = Math.trunc;
-const eff = (v: number, aptPerMille: number): number => (v + (v * aptPerMille) / 1000) * 0.8;
+/** Growth scale of characters; pets pass growRate + growRateAdd instead. */
+export const CHARACTER_GROWTH_SCALE = 0.8;
+const eff = (v: number, aptPerMille: number, scale: number): number => (v + (v * aptPerMille) / 1000) * scale;
 
 /** Base stats of one attribute set (constants from profile.go:7-25; every int() truncates toward zero). */
-export function buildBaseStats(p: StatProfile): BaseStats {
-  const S = eff(p.attrs.str, p.apt.str);
-  const A = eff(p.attrs.agi, p.apt.agi);
-  const T = eff(p.attrs.sta, p.apt.sta);
-  const I = eff(p.attrs.int, p.apt.int);
-  const E = eff(p.attrs.eng, p.apt.eng);
+export function buildBaseStats(p: StatProfile, scale: number = CHARACTER_GROWTH_SCALE): BaseStats {
+  const S = eff(p.attrs.str, p.apt.str, scale);
+  const A = eff(p.attrs.agi, p.apt.agi, scale);
+  const T = eff(p.attrs.sta, p.apt.sta, scale);
+  const I = eff(p.attrs.int, p.apt.int, scale);
+  const E = eff(p.attrs.eng, p.apt.eng, scale);
   return {
     maxHp: 20 + trunc(T * 8.5),
     maxMp: 5 + trunc(I * 4.07) + trunc(E * 5.75),

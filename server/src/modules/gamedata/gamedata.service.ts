@@ -11,7 +11,8 @@ import { buildSceneItemTables, type SceneItemRow, type SceneItemTables } from '.
 import {
   buildCombatTables, type CombatTables, type CreatureTemplate, type LootRow, type MapCreatureRow,
 } from './combat-data';
-import { buildSkillTable, type SkillTemplate } from './skill-data';
+import { buildPetTables, type PetTables, type PetTemplate } from './pet-data';
+import { buildSkillTable, skillsByName, type SkillTemplate } from './skill-data';
 import {
   buildQuestTables, type QuestAwardRow, type QuestPreRow, type QuestRequireRow, type QuestTables, type QuestTemplate,
 } from './quest-data';
@@ -25,7 +26,7 @@ const TEMPLATE_FIELDS = {
   // character core: use / equip gates, potion amounts (i1/i2 for food) and equipment stat lines
   type: 1, use_type: 1, req_level: 1, req_class: 1, i1: 1, i2: 1, position: 1, kind: 1, bind_type: 1,
   main_prop1: 1, main_prop2: 1, main_prop_num1: 1, main_prop_num2: 1, prop1: 1, prop2: 1, prop_num1: 1, prop_num2: 1,
-  bind_prop_num: 1,
+  bind_prop_num: 1, req_class_id: 1, skill_id: 1,
 };
 
 @Injectable()
@@ -43,6 +44,8 @@ export class GameDataService implements OnModuleInit {
   private buffs = new Map<number, Row>();
   private combat: CombatTables = buildCombatTables([], []);
   private skills = new Map<number, SkillTemplate>();
+  private skillsByName = new Map<string, SkillTemplate[]>(); // pet skill books resolve skills by exact name
+  private pets: PetTables = buildPetTables([], []);
 
   constructor(@InjectConnection() private readonly conn: Connection) {}
 
@@ -90,7 +93,9 @@ export class GameDataService implements OnModuleInit {
       this.rows('data_tbl_map_creature'), this.rows('data_tbl_creature'), this.rows('data_tbl_creature_loot'),
     ]);
     this.combat = buildCombatTables(mapCreatures, creatures, loot);
+    this.pets = buildPetTables(creatures, await this.rows('data_tbl_creature_skill'));
     this.skills = buildSkillTable(await this.rows('data_tbl_skill'));
+    this.skillsByName = skillsByName(this.skills);
     this.logger.log(
       `Loaded ${this.maps.size} maps, ${this.classes.size} classes, ${npcs.length} npcs, ` +
         `${quests.length} quests (${requires.length} require, ${pres.length} pre, ${awards.length} award), ` +
@@ -208,9 +213,24 @@ export class GameDataService implements OnModuleInit {
     return this.combat.creatures.get(id);
   }
 
+  /** Creature as a pet template (catch / class / quality / icon columns), cached at startup. */
+  petTemplate(id: number): PetTemplate | undefined {
+    return this.pets.templates.get(id);
+  }
+
+  /** Default skill ids of a creature (data_tbl_creature_skill), ordered by position then id. */
+  creatureSkillIds(cid: number): readonly number[] {
+    return this.pets.creatureSkills.get(cid) ?? [];
+  }
+
   /** Skill template (data_tbl_skill), cached at startup. */
   skill(id: number): SkillTemplate | undefined {
     return this.skills.get(id);
+  }
+
+  /** Skills with exactly this name, lowest level first (pet skill books). */
+  skillsNamed(name: string): readonly SkillTemplate[] {
+    return this.skillsByName.get(name) ?? [];
   }
 
   /** Loot rows of a creature (data_tbl_creature_loot), cached at startup. */

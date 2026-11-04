@@ -2,7 +2,11 @@
 // All calls are fire-and-forget: failures arrive as onSystemMidMsgOrNote pushes, so rejections are ignored.
 
 import { EQUIP_SLOT_COUNT, ItemKind, type BagItem, type PlayerData, type RecoverEntry } from '@mc/shared';
+
+/** Template type of pet life-restore items (useItem targetType 2). */
+const PET_FUNC_TYPE = 507;
 import type { GameClient } from '../net/client';
+import type { PetGearActions } from './PetGearActions';
 import { RPC_DELAY, createThrottle } from '../net/throttle';
 import { askAmount } from '../ui/amountDialog';
 import { askConfirm } from '../ui/confirmDialog';
@@ -11,6 +15,10 @@ import { HP_POTION, MP_POTION } from './potions';
 
 export class BagActions {
   private readonly allow = createThrottle();
+  /** Set by PetController: the pet a life item is used on (selected in the open panel, else the battle pet). */
+  petTarget: () => number | null = () => null;
+  /** Set by PetController: pet skill books and pet equipment double-clicks (needs the pet window open). */
+  petGear: Pick<PetGearActions, 'use'> | null = null;
 
   constructor(
     private readonly client: GameClient,
@@ -20,11 +28,17 @@ export class BagActions {
 
   /** Double-click on a bag item: equipment is equipped, anything else is used. */
   use(item: BagItem): void {
+    if (this.petGear?.use(item)) return;
     if (this.player().level < item.reqLevel) return void toast('Cấp độ bạn chưa đủ!');
     if (item.itemType === ItemKind.EQUIP && (item.position < 1 || item.position > EQUIP_SLOT_COUNT)) {
       return void toast('Vật phẩm này bạn không dùng được!');
     }
     if (!this.allow('useItem', RPC_DELAY.useItem)) return;
+    if (item.tplType === PET_FUNC_TYPE) {
+      const petId = this.petTarget();
+      if (petId === null) return void toast('Bạn chưa có pet để sử dụng vật phẩm này!');
+      return this.send('useItem', 2, petId, item.id);
+    }
     this.send('useItem', 1, -1, item.id);
   }
 

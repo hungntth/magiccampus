@@ -8,6 +8,7 @@ import { CharacterModule } from '../character/character.module';
 import { GameDataModule } from '../gamedata/gamedata.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { PartyModule } from '../party/party.module';
+import { PetModule } from '../pet/pet.module';
 import { QuestModule } from '../quest/quest.module';
 import { SceneModule } from '../scene/scene.module';
 import { SkillModule } from '../skill/skill.module';
@@ -31,6 +32,7 @@ import { ReviveService } from './revive.service';
     GameDataModule,
     InventoryModule,
     PartyModule,
+    PetModule,
     QuestModule,
     SceneModule,
     SkillModule,

@@ -21,6 +21,14 @@ import { push, type Push } from './pushes';
 import { sidOf } from './bag-rules';
 
 export type RecoverKind = 'hp' | 'mp';
+export const ITEM_TYPE_PET_FUNC = 507;
+
+/** Implemented by PetService (registered at startup: PetModule imports this module, not the reverse). */
+export interface PetItemHook {
+  /** Why the life item cannot be used on this pet, or null. */
+  restoreBlocker(characterId: number, petId: number, reqLevel: number): Promise<string | null>;
+  restoreLife(characterId: number, petId: number): Promise<Push[]>;
+}
 const note = (msg: string): Push => push('onSystemMidMsgOrNote', msg);
 
 @Injectable()
@@ -33,6 +41,33 @@ export class UseItemService {
     private readonly equipment: EquipmentService,
     private readonly stats: CharacterStatsService,
   ) {}
+
+  private petHook: PetItemHook | null = null;
+
+  setPetHook(hook: PetItemHook): void {
+    this.petHook = hook;
+  }
+
+  /** useItem(2, petId, itemId): life restore items (type 507). Spend first, then credit the pet. */
+  usePet(characterId: number, petId: number, itemId: number): Promise<Push[]> {
+    return withCharLock(characterId, async () => {
+      const hook = this.petHook;
+      if (!hook) throw RpcException.forbidden('Chưa hỗ trợ dùng vật phẩm cho pet');
+      const item = await this.items.findOne({ _id: itemId, characterId, slotType: SlotType.BAG }).lean();
+      if (!item || item.itemType !== ItemKind.ITEM) throw RpcException.notFound('Không tìm thấy vật phẩm');
+      const tpl = await this.gameData.template(29, item.templateId);
+      if (!tpl) throw RpcException.notFound('Không tìm thấy vật phẩm');
+      if (Number(tpl.type) !== ITEM_TYPE_PET_FUNC) return [note('Vật phẩm này không dùng được cho pet')];
+      const why = await hook.restoreBlocker(characterId, petId, Number(tpl.req_level ?? 0));
+      if (why) return [note(why)]; // H5: nothing is consumed
+      const left = await this.consume(characterId, itemId, 1);
+      if (left === null) throw RpcException.forbidden('Vật phẩm vừa thay đổi, hãy thử lại');
+      return [
+        ...(await hook.restoreLife(characterId, petId)),
+        ...(await this.slotPushes(characterId, [{ id: itemId, sid: sidOf(item.slotIndex), left }])),
+      ];
+    });
+  }
 
   /** useItem(1, -1, itemId). Equipment goes through the equip path; returns the ordered pushes. */
   async useItem(characterId: number, itemId: number): Promise<Push[]> {

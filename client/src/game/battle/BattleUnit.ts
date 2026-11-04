@@ -28,6 +28,8 @@ const nameStyle = (fill: string): TextStyle =>
 export class BattleUnit extends Container {
   readonly slot: number;
   readonly enemy: boolean;
+  readonly isPet: boolean;
+  readonly level: number;
   readonly homeX: number;
   readonly homeY: number;
   hp: number;
@@ -53,7 +55,10 @@ export class BattleUnit extends Container {
     super();
     this.slot = p.battleId;
     this.enemy = isEnemySlot(p.battleId);
-    this.isSelf = p.type === BattleParticipantType.CHARACTER && (selfId === undefined || p.id === selfId);
+    this.isPet = p.type === BattleParticipantType.PET;
+    this.level = p.level;
+    // The local character shows HP/MP/SP, its pet HP/MP (teammates and their pets: HP only).
+    this.isSelf = selfId === undefined || (this.isPet ? p.cid === selfId : p.type === BattleParticipantType.CHARACTER && p.id === selfId);
     const home = SLOT_POS[p.battleId] ?? { x: 450, y: 285 };
     this.homeX = home.x;
     this.homeY = home.y;
@@ -102,7 +107,7 @@ export class BattleUnit extends Container {
     const rows: [number, number, number][] = [[this.hp, this.hpMax, COLOR_HP]];
     if (this.isSelf) {
       rows.push([this.mp, this.mpMax, COLOR_MP]);
-      if (this.spMax > 0) rows.push([this.sp, this.spMax, COLOR_SP]);
+      if (this.spMax > 0 && !this.isPet) rows.push([this.sp, this.spMax, COLOR_SP]);
     }
     const x = -BAR_W / 2;
     let y = this.headY - 10;

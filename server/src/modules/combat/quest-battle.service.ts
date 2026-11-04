@@ -39,7 +39,7 @@ export class QuestBattleService {
     if (enemies.length === 0) return false;
     const st = await this.stats.compute(session.characterId!);
     if (st.doc.currentHp <= 0) throw RpcException.forbidden('Bạn đã kiệt sức, hãy hồi sinh trước');
-    this.combat.start(session, st, enemies, Number(npc.id));
+    this.combat.start(session, st, enemies, Number(npc.id), await this.combat.loadPets([session.characterId!]));
     return true;
   }
 }

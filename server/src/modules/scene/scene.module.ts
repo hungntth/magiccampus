@@ -7,9 +7,10 @@ import { QuestModule } from '../quest/quest.module';
 import { BuffModule } from '../buff/buff.module';
 import { PartyModule } from '../party/party.module';
 import { TradeModule } from '../trade/trade.module';
+import { PetModule } from '../pet/pet.module';
 
 @Module({
-  imports: [CharacterModule, GameDataModule, QuestModule, BuffModule, PartyModule, TradeModule],
+  imports: [CharacterModule, GameDataModule, QuestModule, BuffModule, PartyModule, TradeModule, PetModule],
   providers: [SceneRpc, SceneTransportService],
   exports: [SceneTransportService],
 })

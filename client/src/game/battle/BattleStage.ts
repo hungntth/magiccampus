@@ -71,7 +71,7 @@ export class BattleStage extends Container {
 
   /** New round (group battle): a wait icon over every living player character; cleared by onCmdReady(slot) or the playlist. */
   showWaitIcons(): void {
-    for (const u of this.units.values()) if (!u.enemy) u.setWait(true);
+    for (const u of this.units.values()) if (!u.enemy && !u.isPet) u.setWait(true);
   }
 
   clearWaitIcon(slot?: number): void {

@@ -73,6 +73,9 @@ Research: `docs/research/2026-11-04_03_COMBAT_CLIENT_RESEARCH.md`, `..._04_COMBA
     **Disabled** (no H5 feature yet): Bắt, Pet, Vị trí, Auto, Thông tin. Kỹ năng / Vật phẩm lists open to the left.
   - Timer: `TimeCountCanvas` values (horizontalCenter 15, bottom 318, yellow 75 px, red 85 px from 9 s), black text stroke.
 
+## Pets in battle (M4)
+The battle pet sits at owner slot + 5. `battleUpdateCmd([owner, pet?])`. There is pet AI, catch `-70`, pet exp and life at settle. See `pets.md`.
+
 ## Group battles (M3 phase C)
 Party battles (roster, `onCmdReady`, readiness, reward split, round-robin loot, disconnect) are documented in `party.md`.
 Solo behaviour is unchanged.

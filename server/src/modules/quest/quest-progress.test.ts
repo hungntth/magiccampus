@@ -4,8 +4,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { QuestRequireRow, QuestTemplate } from '../gamedata/quest-data';
 import {
-  allMet, collectConsumption, collectItemIds, creditKills, incompleteKillTargets, initialObjectives, lootNeeds, questKillOf,
-  syncCollect,
+  allMet, collectConsumption, collectItemIds, creditKills, incompleteKillTargets, initialObjectives, lootNeeds, petNeeds, questKillOf,
+  syncCollect, syncPets,
 } from './quest-progress';
 import type { QuestObjective } from './quest.schema';
 
@@ -66,4 +66,20 @@ test('lootNeeds sums requirements per item and carries the bag count', () => {
     new Map([[516, 1]]),
   );
   assert.deepEqual([...needs], [[516, { current: 1, required: 3 }]]);
+});
+
+test('pet objectives: sync counts matching pets (capped), petNeeds carries q; kill / collect rows are untouched', () => {
+  const requires: QuestRequireRow[] = [
+    { qid: 1, kind: 2, type: 12, itemId: 157, num: 1, q: -1 }, { qid: 1, kind: 3, type: 12, itemId: 32, num: 2, q: 16 },
+  ];
+  const base = [obj(2, 157, 1, 1), obj(3, 32, 0, 2)];
+  const pets = [
+    { id: 1, tid: 32, petName: 'Tiểu Nấm Yêu', growRate: 1.6 }, { id: 2, tid: 32, petName: 'Tiểu Nấm Yêu', growRate: 0.8 },
+    { id: 3, tid: 32, petName: 'Bé', growRate: 2.2 }, { id: 4, tid: 32, petName: 'Tiểu Nấm Yêu', growRate: 2.2 },
+  ];
+  const synced = syncPets(base, requires, pets, () => 'Tiểu Nấm Yêu');
+  assert.deepEqual(synced, [obj(2, 157, 1, 1), obj(3, 32, 2, 2)]); // ids 1 and 4 match (0.8 too low, renamed one out)
+  assert.equal(syncPets(base, requires, pets.slice(0, 2), () => 'Tiểu Nấm Yêu')[1].current, 1);
+  assert.deepEqual(petNeeds(base, requires), [{ creatureId: 32, q: 16, required: 2 }]);
+  assert.equal(allMet(synced), true);
 });

@@ -1,10 +1,11 @@
 // battlePlayEnd(): the per-participant end of a battle. Every member's client calls it after its own end marker; each gets only
-// its own pushes: onAddChaQuest / onSetNpcState (kill credit), onAddMoney, onUPP, onPlayerLevelUp, onAddItem + onAddCharactorSlot /
-// onRedMsg (loot), onSetCharState back to normal. The battle is dropped once every member has ended it or is gone.
+// its own pushes: onAddChaQuest / onSetNpcState (kill credit), onAddMoney, onUPP, onPlayerLevelUp, the owner's pet pushes (onUpdatePet exp / life / level,
+// onRefreshPetProp), onAddItem + onAddCharactorSlot / onRedMsg (loot), onAddPet for caught pets (last), onSetCharState back to normal. The battle is dropped once every member has ended it or is gone.
 
 import { Injectable } from '@nestjs/common';
 import { BattleResult, CharState, type PlayerLevelUp, type SetCharState } from '@mc/shared';
 import { SceneManager } from '../../gateway/scene.manager';
+import { sendPushes } from '../inventory/pushes';
 import type { Session } from '../../gateway/session';
 import { QuestService } from '../quest/quest.service';
 import { CharacterStatsService } from '../stats/character-stats.service';
@@ -55,11 +56,13 @@ export class BattleEndService {
       const lv: PlayerLevelUp = { id: cid, level: update.level ?? 0, exp: update.exp ?? 0, lp: update.attrPoints ?? 0 };
       session.callback('onPlayerLevelUp', lv);
     }
+    sendPushes(session, r.petPushes);
     if (r.loot) {
       for (const notice of r.loot.notices) session.callback('onAddItem', notice);
       for (const item of r.loot.changed) session.callback('onAddCharactorSlot', item);
       if (r.loot.bagFull) session.callback('onRedMsg', 'Túi đồ đã đầy');
     }
+    sendPushes(session, r.catchPushes); // caught pets arrive after everything else
   }
 
   /** Kill credit: the changed quests (remaining counts), then the marker of each finish NPC standing on this map. */

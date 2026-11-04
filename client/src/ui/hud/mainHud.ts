@@ -1,11 +1,12 @@
 // In-game HUD (legacy MainLayer): portraits, minimap strip, buff bar, menu bar and shortcut bar. Chat is ChatBox (ui/chat.ts).
 // Call loadSkins() once before constructing it.
 
-import type { PlayerData } from '@mc/shared';
+import type { PetView, PlayerData } from '@mc/shared';
 import type { GameClient } from '../../net/client';
 import { BuffBar } from './buffBar';
 import { MiniMapCanvas } from './miniMap';
-import { PetCanvas, PortraitCanvas } from './portrait';
+import { PetCanvas } from './petCanvas';
+import { PortraitCanvas } from './portrait';
 import { SystemBar } from './systemBar';
 import { UserBar } from './userBar';
 import './hud.css';
@@ -14,6 +15,8 @@ export interface HudActions {
   onBag(): void;
   onCharacter(): void;
   onFriend(): void;
+  /** W key / HUD pet button / pet icon. */
+  onPet(): void;
   onLevelUp(): void;
   /** HP / MP bar click. */
   onRecover(kind: 'hp' | 'mp'): void;
@@ -24,14 +27,15 @@ export class MainHud {
   private readonly miniMap: MiniMapCanvas;
   private readonly systemBar: SystemBar;
   private readonly buffBar: BuffBar;
+  private readonly petCanvas: PetCanvas;
 
   constructor(parent: HTMLElement, client: GameClient, typing: () => boolean, actions: HudActions) {
     this.portrait = new PortraitCanvas(parent, actions);
-    new PetCanvas(parent);
+    this.petCanvas = new PetCanvas(parent, actions.onPet);
     this.buffBar = new BuffBar(parent, client);
     this.miniMap = new MiniMapCanvas(parent, client);
     new UserBar(parent);
-    this.systemBar = new SystemBar(parent, typing, actions.onBag, actions.onCharacter, actions.onFriend);
+    this.systemBar = new SystemBar(parent, typing, actions.onBag, actions.onCharacter, actions.onFriend, actions.onPet);
   }
 
   destroy(): void {
@@ -42,6 +46,10 @@ export class MainHud {
 
   setPlayer(p: PlayerData): void {
     this.portrait.update(p);
+  }
+
+  setBattlePet(p: PetView | null): void {
+    this.petCanvas.setPet(p);
   }
 
   setMap(name: string): void {

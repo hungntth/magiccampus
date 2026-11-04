@@ -6,6 +6,8 @@ const num = (v: unknown, d = 0): number => {
   return Number.isFinite(n) ? n : d;
 };
 
+const str = (v: unknown): string => (v === null || v === undefined ? '' : String(v));
+
 export interface SkillTemplate {
   id: number;
   name: string;
@@ -19,6 +21,12 @@ export interface SkillTemplate {
   reqLevel: number;
   base: number; // Go adapter: int(exp_skill), both 0 / -1 in every starter skill -> basic-attack numbers
   mult: number;
+  // pet skill books / passives (phase E)
+  buffId: number; // passive skills (type 11): data_tbl_buff id, 0 when none
+  creKind: string; // "classIds|minQLevel" creature gate, '' = unrestricted
+  codeName: string; // conflict key between pet skills
+  scriptReqL: string; // conflict key between pet skills
+  description: string;
 }
 
 export function buildSkillTable(rows: readonly Raw[]): Map<number, SkillTemplate> {
@@ -33,7 +41,22 @@ export function buildSkillTable(rows: readonly Raw[]): Map<number, SkillTemplate
       targetType: num(r.target_type), reqLevel: num(r.req_level),
       base: num(r.exp_skill) > 0 ? Math.trunc(num(r.exp_skill)) : 10,
       mult: dex > 10 ? dex / 100 : dex > 0 ? dex : 1,
+      buffId: Math.max(0, num(r.buff_id)), creKind: str(r.cre_kind), codeName: str(r.code_name), scriptReqL: str(r.script_req_l),
+      description: str(r.description),
     });
   }
+  return out;
+}
+
+/** Index by exact name, each list ordered by level then id (the pet book picks the lowest level). */
+export function skillsByName(table: ReadonlyMap<number, SkillTemplate>): Map<string, SkillTemplate[]> {
+  const out = new Map<string, SkillTemplate[]>();
+  for (const t of table.values()) {
+    if (!t.name) continue;
+    const list = out.get(t.name);
+    if (list) list.push(t);
+    else out.set(t.name, [t]);
+  }
+  for (const list of out.values()) list.sort((a, b) => a.level - b.level || a.id - b.id);
   return out;
 }

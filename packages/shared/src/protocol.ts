@@ -3,6 +3,7 @@
 
 import type { QuestKill } from './battle.js';
 import type { CharProperty } from './character.js';
+import type { PetLoginInfo, PetSceneView } from './pet.js';
 
 export type ClientMessage = { t: 'call'; id: number; m: string; a: unknown[] };
 
@@ -55,7 +56,7 @@ export interface ClassInfo {
   largeImgFemale: string;
 }
 
-export interface PlayerData {
+export interface PlayerData extends PetLoginInfo {
   id: number;
   name: string;
   classId: number;
@@ -102,6 +103,9 @@ export interface SceneCharacter {
   inGroup: boolean;
   isLeader: boolean;
   groupAfk: boolean;
+  /** Following pet (pets phase B): present only when the character has one and is not in an active party. */
+  showPetId?: number;
+  showPetObj?: PetSceneView;
 }
 
 export interface SceneNpc {
@@ -334,7 +338,7 @@ export type PlayerUpdate = Partial<
   Pick<
     PlayerData,
     | 'level' | 'exp' | 'money' | 'moneyBind' | 'gold' | 'goldBind' | 'attrPoints' | 'currentHp' | 'currentMp' | 'maxHp'
-    | 'maxMp' | 'attStrength' | 'attAgility' | 'attStamina' | 'attIntelligence' | 'attEnergy' | 'property'
+    | 'maxMp' | 'attStrength' | 'attAgility' | 'attStamina' | 'attIntelligence' | 'attEnergy' | 'property' | 'petMaxNum'
   >
 >;
 

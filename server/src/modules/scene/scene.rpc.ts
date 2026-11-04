@@ -13,6 +13,7 @@ import { GameDataService } from '../gamedata/gamedata.service';
 import { QuestService } from '../quest/quest.service';
 import { BuffService } from '../buff/buff.service';
 import { PartyService } from '../party/party.service';
+import { PetFollowService } from '../pet/pet-follow.service';
 import { portalDataOf } from './portal-data';
 import { resolveGate } from './portal.rules';
 import { SceneTransportService } from './scene-transport.service';
@@ -30,6 +31,7 @@ export class SceneRpc implements OnModuleInit {
     private readonly transport: SceneTransportService,
     private readonly buffs: BuffService,
     private readonly party: PartyService,
+    private readonly petFollow: PetFollowService,
   ) {}
 
   onModuleInit(): void {
@@ -64,7 +66,7 @@ export class SceneRpc implements OnModuleInit {
     for (const peer of this.scenes.members(session.mapId)) {
       if (peer === session || peer.characterId === null) continue;
       const doc = await this.characters.getById(peer.characterId).catch(() => null);
-      if (doc) out[String(doc._id)] = this.party.decorate(this.characters.toSceneCharacter(doc));
+      if (doc) out[String(doc._id)] = await this.petFollow.decorate(this.party.decorate(this.characters.toSceneCharacter(doc)));
     }
     return out;
   }

@@ -1,8 +1,9 @@
 // Builds battle fighters (player from the M1 effective stats, enemies from creature templates) and the wire participants.
 // Pure helpers over already-loaded data; the combat service does the loading.
 
-import { BattleParticipantType, type BattleParticipant } from '@mc/shared';
+import { BATTLE_PET_SLOT_OFFSET, BattleParticipantType, type BattleParticipant } from '@mc/shared';
 import type { CreatureTemplate, MapCreatureRow } from '../gamedata/combat-data';
+import type { BattlePet } from '../pet/pet-battle.service';
 import type { CharStats } from '../stats/character-stats.service';
 import type { Fighter } from './battle.types';
 import { capToPlayer, creatureStatsAt, spawnLevel, withDefaults, type CreatureCombat } from './creature-stats';
@@ -27,6 +28,20 @@ export function playerFighter(slot: number, st: CharStats, resCode: string): Fig
   };
 }
 
+/** The owner's pet: player side at owner slot + 5, full HP/MP (H5: pet HP is never persisted), stats from the pet's final values. */
+export function petFighter(ownerSlot: number, pet: BattlePet): Fighter {
+  const s = pet.stats;
+  return {
+    slot: ownerSlot + BATTLE_PET_SLOT_OFFSET, side: 'player', kind: 'pet', refId: pet.petId, name: pet.name, level: pet.level,
+    hp: s.maxHp, hpMax: s.maxHp, mp: s.maxMp, mpMax: s.maxMp, sp: s.maxSp, spMax: s.maxSp, resCode: pet.resCode, bossFlag: 0,
+    alive: true, expBase: -1, ownerCid: pet.ownerCid, tid: pet.tid, colorCode: pet.colorCode, iconCode: pet.iconCode,
+    element: pet.element, skills: pet.skills, skillList: pet.skillList,
+    attack: s.attack, magicAttack: s.magicAttack, defense: s.defense, magicDefense: s.magicDefense, hit: s.hit, dodge: s.dodge,
+    critical: s.critical, criticalDmg: 150, speed: s.speed, combo: 0, counter: 0, resiCritical: 0, resiDefy: 0, praDef: 0,
+    praMagDef: 0, reduceHurt1: 0, reduceHurt2: 0, enhPhyHurt: 0, enhMagicHurt: 0,
+  };
+}
+
 function enemyOf(slot: number, tpl: CreatureTemplate, s: CreatureCombat, bossFlag: number, expBase: number): Fighter {
   return {
     ...s, slot, side: 'enemy', kind: 'creature', refId: tpl.id, name: tpl.name, hp: s.hpMax, mp: s.mpMax, sp: 0, spMax: 0,
@@ -47,15 +62,21 @@ export function spawnFighter(slot: number, row: MapCreatureRow, tpl: CreatureTem
   return enemyOf(slot, tpl, s, row.bossFlag, expBase);
 }
 
+const PARTICIPANT_TYPE = {
+  character: BattleParticipantType.CHARACTER, creature: BattleParticipantType.CREATURE, pet: BattleParticipantType.PET,
+} as const;
+
 export function toParticipant(f: Fighter): BattleParticipant {
   const p: BattleParticipant = {
-    id: f.refId, type: f.kind === 'character' ? BattleParticipantType.CHARACTER : BattleParticipantType.CREATURE,
+    id: f.refId, type: PARTICIPANT_TYPE[f.kind],
     battleId: f.slot, name: f.name, level: f.level, hp: f.hp, hpMax: f.hpMax, mp: f.mp, mpMax: f.mpMax, sp: f.sp,
     spMax: f.spMax, resCode: f.resCode, bossFlag: f.bossFlag,
   };
   if (f.kind === 'character') {
     p.classId = f.classId;
     p.gender = f.gender;
+  } else if (f.kind === 'pet') {
+    Object.assign(p, { cid: f.ownerCid, tid: f.tid, colorCode: f.colorCode, iconCode: f.iconCode, element: f.element, skills: [...(f.skillList ?? [])] });
   }
   return p;
 }

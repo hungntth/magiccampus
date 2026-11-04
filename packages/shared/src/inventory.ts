@@ -2,7 +2,7 @@
 // Legacy item DTO subset (item.go:183-260) plus H5 extensions (name, iconCode, info, sellPrice).
 
 export const ItemKind = { ITEM: 1, EQUIP: 2 } as const; // legacy item_type
-export const SlotType = { BAG: 0, EQUIP: 1 } as const; // other slot types (bank, ...) are not ported
+export const SlotType = { BAG: 0, EQUIP: 1, PET_EQUIP: 6 } as const; // PET_EQUIP: slotIndex = petId * 8 + (pos - 50); bank etc. not ported
 export const EQUIP_SLOT_COUNT = 22; // equipped sid = template position (1..22), slotIndex = position - 1
 export const BAG_SID_BASE = 2101;
 export const BAG_PAGE_SLOTS = 30;
@@ -25,6 +25,7 @@ export interface BagItem {
   durability: number; // 0 for items
   maxDurability: number;
   position: number; // equipment template position (equip sid 1..22), 0 for items
+  tplType?: number; // H5 extension: item template `type` (507 = pet life item), 0 for equipment
   reqLevel: number; // template req_level (tooltip colouring)
   name: string; // H5 extension: resolved template name
   iconCode: string; // H5 extension: template icon_code

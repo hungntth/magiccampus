@@ -2,7 +2,7 @@
 // together, a 2 s safety timeout per step so a missing animation can never stall the round. Each step applies sSObj to the
 // actor, runs the behaviour, then applies tSObj to the target (popups, bars, shake).
 
-import { BattleBehavior as B, type BattlePlayList, type BattleReport, type BattleStateObj, type BattleStep } from '@mc/shared';
+import { BattleBehavior as B, type BattlePlayList, type BattleReport, type BattleStateObj, type BattleStep, type CatchFailed } from '@mc/shared';
 import { dirFromDelta } from '../SheetAnim';
 import type { BattleStage } from './BattleStage';
 import type { BattleUnit } from './BattleUnit';
@@ -20,6 +20,10 @@ export interface PlaybackEnd {
 export interface PlaybackHooks {
   /** Center banner text (skill names, phase C). */
   banner(text: string): void;
+  /** A unit's HP / MP changed (the local pet drives the HUD PetCanvas). */
+  unit?(unit: BattleUnit): void;
+  /** A catch (-70) failed: sSObj.catchF (the controller shows the text to the catcher only). */
+  catchFailed?(f: CatchFailed): void;
 }
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
@@ -78,6 +82,11 @@ function behave(s: BattleUnit, t: BattleUnit | undefined, step: BattleStep): Pro
     case B.DIE:
       s.fadeOut(DIE_FADE_MS);
       return Promise.resolve();
+    case B.CATCHED:
+      // Caught (BH_CATCHED): the creature fades out like a death; hp 0 makes it unpickable. The pet arrives with onAddPet later.
+      s.fadeOut(DIE_FADE_MS);
+      s.setHp(0);
+      return Promise.resolve();
     case B.STAND:
       // A self-targeted stand is the defend / timeout pose; tid -1 just returns to the idle loop.
       if (step.tid === step.sid) return s.play(Action.DEFENCE);
@@ -106,6 +115,7 @@ function behave(s: BattleUnit, t: BattleUnit | undefined, step: BattleStep): Pro
 
 function applyState(stage: BattleStage, u: BattleUnit, o: BattleStateObj, hooks: PlaybackHooks): void {
   if (o.skill) hooks.banner(o.skill);
+  if (o.catchF) hooks.catchFailed?.(o.catchF);
   if (o.miss) stage.popup(u, 'Né', '#ffffff', 22);
   if (o.hHp !== undefined) {
     const dmg = Math.round(u.hp - o.hHp);
@@ -124,4 +134,5 @@ function applyState(stage: BattleStage, u: BattleUnit, o: BattleStateObj, hooks:
     u.setMp(o.rMp);
   }
   if (o.uMp !== undefined) u.setMp(o.uMp);
+  hooks.unit?.(u);
 }

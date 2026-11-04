@@ -8,6 +8,8 @@ import './battle.css';
 
 export interface BattleMenuHandlers {
   onAttackMode(): void;
+  /** Bắt: the next enemy click is a catch attempt. */
+  onCatchMode(): void;
   onDefend(): void;
   onEscape(): void;
   /** Learned skills usable in battle (active, supported). */
@@ -45,8 +47,8 @@ export class BattleMenu {
     this.addButton('attack', 'Tấn công', () => this.selectAttack());
     this.addButton('defend', 'Phòng ngự', () => h.onDefend());
     this.addButton('skill', 'Kỹ năng', () => this.toggleSkills());
-    // Bắt (capture), Pet, Vị trí (swap position) and Auto have no H5 feature yet: shown, disabled.
-    this.addButton('catch', 'Bắt', null);
+    // Pet, Vị trí (swap position) and Auto have no H5 feature yet: shown, disabled.
+    this.addButton('catch', 'Bắt', () => this.selectCatch());
     this.addButton('pet', 'Pet', null);
     this.addButton('position', 'Vị trí', null);
     this.addButton('item', 'Vật phẩm', () => this.toggleItems());
@@ -78,6 +80,13 @@ export class BattleMenu {
     this.skillList.style.display = 'none';
     this.mark('attack');
     this.h.onAttackMode();
+  }
+
+  private selectCatch(): void {
+    this.items.style.display = 'none';
+    this.skillList.style.display = 'none';
+    this.mark('catch');
+    this.h.onCatchMode();
   }
 
   private mark(key: string): void {
@@ -142,6 +151,13 @@ export class BattleMenu {
         this.h.onTimeout();
       }
     }, 1000);
+  }
+
+  /** The pet step took over: the command column goes away but the countdown keeps running. */
+  suspend(): void {
+    this.side.style.display = 'none';
+    this.items.style.display = 'none';
+    this.skillList.style.display = 'none';
   }
 
   /** Hides menu and timer; `waitText` ("Đang chờ...") is shown as the banner until the next show(). */

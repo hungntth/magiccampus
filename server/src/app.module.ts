@@ -20,6 +20,7 @@ import { SkillModule } from './modules/skill/skill.module';
 import { SocialModule } from './modules/social/social.module';
 import { PartyModule } from './modules/party/party.module';
 import { TradeModule } from './modules/trade/trade.module';
+import { PetModule } from './modules/pet/pet.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { TradeModule } from './modules/trade/trade.module';
     StatsModule,
     BuffModule,
     CombatModule,
+    PetModule,
     SystemModule,
   ],
 })

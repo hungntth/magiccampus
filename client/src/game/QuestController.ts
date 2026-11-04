@@ -2,7 +2,7 @@
 // markers (onSetNpcState), rewards (onUPP / onAddMoney / onPlayerLevelUp), the quest panel and tracker.
 // RPCs: takeQuest, finishQuest, cancelQuest (throttled to 1 / 1100 ms each), initQuestManager on scene load.
 
-import { isFinishable, MAX_QUEST_NUM, QuestAwardMode, QuestState, requireProgress } from '@mc/shared';
+import { countMatchingPets, isFinishable, MAX_QUEST_NUM, QuestAwardMode, QuestState, requireProgress } from '@mc/shared';
 import type {
   CancelQuestResult, ChaQuest, FinishQuestArg, FinishQuestReply, InitQuestManagerReply, PlayerData,
   PlayerLevelUp, PlayerUpdate, QuestView, RequireProgress,
@@ -44,6 +44,10 @@ export class QuestController {
       // The bag changes after this handler (BagController registers later): re-render once it has applied the push.
       c.on('onAddCharactorSlot', () => this.refreshSoon()),
       c.on('onDelCharactorSlot', () => this.refreshSoon()),
+      // Pet turn-in objectives count the owned pets (a rename changes whether one still matches).
+      c.on('onAddPet', () => this.refreshSoon()),
+      c.on('onDelPet', () => this.refreshSoon()),
+      c.on('onUpdatePet', (_id, key) => key === 'petName' && this.refreshSoon()),
       c.on('onCancelQuest', (d) => this.onCancel(d as CancelQuestResult)),
       c.on('onSetNpcState', (id, state) => this.host.npc(Number(id))?.setQuestState(Number(state))),
       c.on('onUPP', (d) => this.onUpdate(d as PlayerUpdate)),
@@ -80,7 +84,8 @@ export class QuestController {
 
   /** Requirement lines and whether the quest can be turned in: the server state, or the bag / kill counters. */
   private progressOf(view: QuestView): { lines: RequireProgress[]; finishable: boolean } {
-    const lines = requireProgress(view, QuestState.CAN_FINISH, (id) => this.host.bagCount(id));
+    const pets = Object.values(this.host.player.petList);
+    const lines = requireProgress(view, QuestState.CAN_FINISH, (id) => this.host.bagCount(id), (r) => countMatchingPets(pets, r.itemId, r.q, r.name));
     const taken = view.state === QuestState.TAKEN || view.state === QuestState.CAN_FINISH;
     return { lines, finishable: taken && isFinishable(lines, view.state === QuestState.CAN_FINISH) };
   }

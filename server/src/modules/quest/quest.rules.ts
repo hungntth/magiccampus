@@ -62,14 +62,15 @@ export function canAccept(
 
 /**
  * H5 slice: supported type and every require row is the accept-time granted item (pre-met), an item to collect
- * (kind 1, item table 29, any quality) or a creature to kill (kind 2, type 12). Pet / equipment objectives stay out.
+ * (kind 1, item table 29, any quality), a creature to kill (kind 2, type 12) or a pet to hand in (kind 3, type 12, phase D of
+ * pets). Equipment objectives stay out.
  */
 export function isSupported(tpl: QuestTemplate, require: readonly QuestRequireRow[]): boolean {
   if (!SUPPORTED_QUEST_TYPES.has(tpl.type)) return false;
   return require.every((r) => {
     if (r.kind === 1 && tpl.startGrantItem > 0 && r.itemId === tpl.startGrantItem) return true;
     if (r.kind === 1) return r.type === 29 && r.q < 0 && r.num > 0;
-    return r.kind === 2 && r.type === 12 && r.num > 0;
+    return (r.kind === 2 || r.kind === 3) && r.type === 12 && r.num > 0;
   });
 }
 

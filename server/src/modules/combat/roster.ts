@@ -48,7 +48,7 @@ export const playerSlot = (index: number): number => BATTLE_PLAYER_SLOTS[index];
 export interface Combatant {
   slot: number;
   side: 'player' | 'enemy';
-  kind: 'character' | 'creature';
+  kind: 'character' | 'creature' | 'pet';
   alive: boolean;
 }
 
@@ -69,4 +69,21 @@ export function splitReward(total: number, survivors: number): number {
 /** Survivors of a won battle: player-side characters that are alive (or have no HP pool at all, legacy MaxHP == 0). */
 export function isSurvivor(f: { side: string; kind: string; alive: boolean; hpMax: number }): boolean {
   return f.side === 'player' && f.kind === 'character' && (f.alive || f.hpMax === 0);
+}
+
+/** What a pet participant is owed at settle: exp only when its owner survived a win (even if the pet died), life drain always. */
+export interface PetSettlement {
+  petId: number;
+  ownerCid: number;
+  exp: number | null;
+}
+
+export function petSettlements(
+  fighters: Iterable<{ kind: string; refId: number; ownerCid?: number }>, survivorCids: ReadonlySet<number>, petExp: number,
+): PetSettlement[] {
+  const out: PetSettlement[] = [];
+  for (const f of fighters) {
+    if (f.kind === 'pet' && f.ownerCid !== undefined) out.push({ petId: f.refId, ownerCid: f.ownerCid, exp: survivorCids.has(f.ownerCid) ? petExp : null });
+  }
+  return out;
 }

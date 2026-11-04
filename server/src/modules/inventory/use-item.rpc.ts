@@ -1,4 +1,4 @@
-// Item-use RPCs: useItem(targetType, petId, itemId), fullHpRecoverByItem / fullMpRecoverByItem(targetType, targetId,
+// Item-use RPCs: useItem(targetType, petId, itemId) (1 = character, 2 = pet life items), fullHpRecoverByItem / fullMpRecoverByItem(targetType, targetId,
 // entries). All fire-and-forget on the client. Pushes (self): onUPP{currentHp,currentMp}, onAddCharactorSlot /
 // onDelCharactorSlot, onSystemMidMsgOrNote, plus the equip pushes when the item is equipment.
 
@@ -32,13 +32,16 @@ function parseEntries(raw: unknown): { id: number; priority: number }[] {
 export class UseItemRpc {
   constructor(private readonly useItem: UseItemService) {}
 
-  /** targetType 1 = character (pets are not ported), petId is ignored. */
+  /** targetType 1 = character (petId ignored), 2 = pet (life restore items on petId). */
   @Rpc('useItem', { requireCharacter: true, forbidInBattle: true })
   async use(session: Session, args: unknown[]): Promise<null> {
-    if (intArg(args[0], 'targetType') !== 1) throw RpcException.invalidArgs('targetType');
+    const targetType = intArg(args[0], 'targetType');
+    if (targetType !== 1 && targetType !== 2) throw RpcException.invalidArgs('targetType');
     const itemId = intArg(args[2], 'itemId');
+    const petId = targetType === 2 ? intArg(args[1], 'petId') : 0;
     return midNoteOnFail(session, async () => {
-      sendPushes(session, await this.useItem.useItem(session.characterId!, itemId));
+      const id = session.characterId!;
+      sendPushes(session, targetType === 2 ? await this.useItem.usePet(id, petId, itemId) : await this.useItem.useItem(id, itemId));
       return null;
     });
   }

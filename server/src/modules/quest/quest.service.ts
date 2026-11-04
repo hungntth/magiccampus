@@ -198,8 +198,10 @@ export class QuestService {
     }
     await doc.save();
     const granted = await this.rewards.grant(characterId, awards);
+    const petPushes = await this.rewards.grantPets(characterId, tpl, doc.classId, selectId); // after the item awards
+    const petExp = await this.rewards.grantPetExp(characterId, tpl.awardExp); // the active pet gets the full quest exp
     const qn = await this.quests.countDocuments({ characterId });
-    return { tpl, qn, exp, money, pushes, rewardPushes: granted.pushes };
+    return { tpl, qn, exp, money, pushes, rewardPushes: [...granted.pushes, ...petPushes, ...petExp] };
   }
 
   async cancel(characterId: number, questId: number): Promise<{ flag: boolean; qn: number; info?: string; tpl?: QuestTemplate }> {
@@ -300,7 +302,7 @@ export class QuestService {
 
   private requireName(kind: number, type: number, id: number): Promise<string> | string {
     if (kind === 1) return this.gameData.templateName(type, id);
-    return kind === 2 ? (this.gameData.creature(id)?.name ?? `#${id}`) : `#${id}`;
+    return kind === 2 || kind === 3 ? (this.gameData.creature(id)?.name ?? `#${id}`) : `#${id}`;
   }
 
   npcOnMap(npcId: number, mapId: number): boolean {

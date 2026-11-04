@@ -7,6 +7,7 @@ import { GameDataModule } from '../gamedata/gamedata.module';
 import { Character, CharacterSchema } from '../character/character.schema';
 import { CharacterQuest, CharacterQuestSchema, QuestHistory, QuestHistorySchema } from './quest.schema';
 import { InventoryModule } from '../inventory/inventory.module';
+import { PetModule } from '../pet/pet.module';
 import { StatsModule } from '../stats/stats.module';
 import { QuestProgressService } from './quest-progress.service';
 import { QuestRewardService } from './quest-reward.service';
@@ -22,6 +23,7 @@ import { QuestService } from './quest.service';
     ]),
     GameDataModule,
     InventoryModule,
+    PetModule,
     StatsModule,
   ],
   providers: [QuestService, QuestProgressService, QuestRewardService, QuestRpc],

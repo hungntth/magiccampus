@@ -1,4 +1,4 @@
-// Player + pet portraits, top-left (legacy PortraitCanvas left2/top5 192x57, PetCanvas left2/top67 179x46).
+// Player portrait, top-left (legacy PortraitCanvas left2/top5 192x57); the pet frame is petCanvas.ts.
 // Bars draw no text; values are in tooltips ("HP: 120/300"). HP / MP bar click = potion recovery, "Up" = manual level-up.
 
 import { LEVEL_EXP, type PlayerData } from '@mc/shared';
@@ -6,7 +6,7 @@ import { iconUrl } from '../../assets';
 import type { HudActions } from './mainHud';
 import { div, notReady, place, skinButton, skinImage, std } from './skin';
 
-class Bar {
+export class Bar {
   readonly root: HTMLDivElement;
   private readonly fill: HTMLDivElement;
 
@@ -87,23 +87,5 @@ export class PortraitCanvas {
     const cur = Math.min(p.exp - base, next - base);
     this.exp.set(cur, next - base, `Exp: ${cur}\n Cấp kế: ${next - base}\n Điểm kinh nghiệm không những có thể dùng để thăng cấp nhân vật mà còn có thể thăng cấp kỹ năng`);
     this.lvUp.hidden = !(p.level >= 20 && cur >= next - base);
-  }
-}
-
-/** Battle pet frame; no pets are ported yet, so it shows the legacy empty state (full bars, no avatar). */
-export class PetCanvas {
-  constructor(parent: HTMLElement) {
-    const root = place(div('hud-portrait', parent), 2, 67, 179, 46);
-    skinImage('MainStage_CharInfo/PetPortrait_png', root, 0, 0);
-    const head = place(div('hud-pet-head', root), 4, 4, 38, 38);
-    head.title = 'Nhấp xem thông tin chi tiết';
-    head.onclick = notReady;
-    place(div('hud-label hud-level', root), 48, 1, 25);
-    place(div('hud-label hud-name', root), 68, 1, 90);
-    new Bar(root, 'MainStage_CharInfo/HPBar', 67, 22, 89, 5).set(1, 1, 'HP: 100/100');
-    new Bar(root, 'MainStage_CharInfo/MPBar', 67, 32, 89, 5).set(1, 1, 'MP: 100/100');
-    skinButton({ up: 'MainStage_CharInfo/HealEmptyUp' }, root, 161, 20, 'Sinh Mệnh Hoàn tiện dụng', notReady);
-    skinButton({ up: 'MainStage_CharInfo/HealMPEmptyUp' }, root, 161, 30, 'Pháp Lực Hoàn tiện dụng', notReady);
-    skinButton(std('MainStage_CharInfo/ItemBag'), root, 160, 3, 'Vật phẩm pet sử dụng', notReady);
   }
 }

@@ -2,18 +2,23 @@
 // member still connected persists HP/MP; on a win the SURVIVORS also get exp / level-up / moneyBind (leader-level total split by
 // floor division), kill credit and their share of the loot (rolled once per enemy, round-robin). Persisted at settle so a
 // disconnect before battlePlayEnd cannot lose it; the pushes are kept on each member's result and sent at its own battlePlayEnd.
+// Pets: on a win each surviving owner's pet gets half the per-survivor exp (even when the pet died); every pet that fought loses
+// life, whatever the outcome (also when its owner left). Creatures a member caught (-70) become that member's pets here.
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { BattleResult } from '@mc/shared';
 import { Character } from '../character/character.schema';
+import { PetBattleService } from '../pet/pet-battle.service';
+import { PetCatchService } from '../pet/pet-catch.service';
+import { petBattleExp } from '../pet/pet-rules';
 import { applyExp } from '../quest/quest.rules';
 import { QuestService } from '../quest/quest.service';
 import { BattleLootService } from './battle-loot.service';
 import type { Battle, BattleMember, Fighter } from './battle.types';
 import { expReward, moneyReward } from './rewards';
-import { isSurvivor, splitReward } from './roster';
+import { isSurvivor, petSettlements, splitReward } from './roster';
 
 @Injectable()
 export class BattleSettleService {
@@ -23,6 +28,8 @@ export class BattleSettleService {
     @InjectModel(Character.name) private readonly chars: Model<Character>,
     private readonly quests: QuestService,
     private readonly lootService: BattleLootService,
+    private readonly petBattle: PetBattleService,
+    private readonly petCatch: PetCatchService,
   ) {}
 
   /** Decides the battle's result and credits it once; later calls do nothing. */
@@ -43,8 +50,38 @@ export class BattleSettleService {
       m.result.report.exp = exp;
       m.result.report.money = money;
     }
+    await this.settlePets(battle, survivors, exp);
+    await this.contractCaught(battle);
     if (win) await this.creditQuestsAndLoot(survivors, dead);
     for (const m of present) await this.persist(m, fighterOf(m)!, survivors.includes(m));
+  }
+
+  /** Pet exp (survivor owners of a win) and life drain (every pet participant). A failure is logged and never blocks the rest. */
+  private async settlePets(battle: Battle, survivors: readonly BattleMember[], splitExp: number): Promise<void> {
+    const owners = new Set(survivors.map((m) => m.cid));
+    for (const s of petSettlements(battle.fighters.values(), owners, petBattleExp(splitExp))) {
+      try {
+        const pushes = await this.petBattle.settle(s.ownerCid, s.petId, s.exp);
+        const owner = battle.members.get(s.ownerCid);
+        if (owner && !owner.left) owner.result.petPushes = pushes;
+      } catch (e) {
+        this.logger.error(`pet settle failed for pet ${s.petId}: ${(e as Error).message}`);
+      }
+    }
+  }
+
+  /** Creates the pets the members caught (any outcome: the creature is gone, Go). A failure is logged and never blocks the rest. */
+  private async contractCaught(battle: Battle): Promise<void> {
+    const caught = [...battle.fighters.values()].filter((f) => f.side === 'enemy' && f.caughtBy !== undefined);
+    for (const m of battle.members.values()) {
+      const ids = caught.filter((f) => f.caughtBy === m.slot).map((f) => f.refId);
+      if (ids.length === 0) continue;
+      try {
+        m.result.catchPushes = await this.petCatch.contract(m.cid, ids);
+      } catch (e) {
+        this.logger.error(`pet contract failed for character ${m.cid}: ${(e as Error).message}`);
+      }
+    }
   }
 
   /** A leaver's HP/MP as they were when it dropped (the board keeps counting it as dead). */

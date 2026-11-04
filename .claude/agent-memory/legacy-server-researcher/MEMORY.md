@@ -1,3 +1,4 @@
 - [Legacy code map](legacy_code_map.md) — Go package ownership, dispatcher notes, stale memory files, enum scales/collisions
 - [Go combat navigation](reference_go_combat_navigation.md) — where Go combat code lives, live vs dead handlers, stale legacy memory docs, data column semantics
+- [Go pet navigation](reference_go_pet_navigation.md) — pet/mount code map, stub growth RPCs, pet stat formula, catchable semantics, quirks
 - [Go multiplayer navigation](reference_go_multiplayer_navigation.md) — chat/group/social/trade/group-battle code map, in-memory vs DB, quirks, stale claims

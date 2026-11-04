@@ -1,7 +1,8 @@
 // Internal battle model (in memory only): fighters with combat stats, the battle record and the injectable RNG type.
 // The wire shapes live in @mc/shared battle.ts.
 
-import type { AddItemNotice, BagItem, BattleReport, SkillCategory } from '@mc/shared';
+import type { AddItemNotice, BagItem, BattleReport, LearnedSkill, SkillCategory } from '@mc/shared';
+import type { Push } from '../inventory/pushes';
 import type { KillCredit } from '../quest/quest.service';
 import type { SkillSpec } from './damage';
 
@@ -42,8 +43,8 @@ export type Side = 'player' | 'enemy';
 export interface Fighter extends CombatStats {
   slot: number;
   side: Side;
-  kind: 'character' | 'creature';
-  refId: number; // character id / creature template id
+  kind: 'character' | 'creature' | 'pet';
+  refId: number; // character id / creature template id / pet id
   name: string;
   level: number;
   hp: number;
@@ -58,6 +59,16 @@ export interface Fighter extends CombatStats {
   expBase: number; // map row exp override (> 0), else level * 10 is used
   classId?: number;
   gender?: number;
+  // pets only (kind 'pet', player side, slot = owner slot + 5)
+  ownerCid?: number;
+  tid?: number;
+  colorCode?: string;
+  iconCode?: string;
+  element?: number;
+  skills?: readonly number[]; // learned skill ids; a pet skill command must be one of them
+  skillList?: readonly LearnedSkill[]; // the battle-usable ones for the cList entry
+  // enemies only: set when a character caught it (-70); the pet is created at settle for that slot's member
+  caughtBy?: number; // catcher player slot
 }
 
 /** What one participant is owed, filled when the battle is settled and pushed at that member's own battlePlayEnd. */
@@ -67,6 +78,8 @@ export interface MemberResult {
   moneyTotal: number; // moneyBind after the reward, for onAddMoney
   quest: KillCredit | null; // kill credit persisted at settle
   loot: BattleLoot | null;
+  petPushes: Push[]; // the owner's pet exp / life / level pushes (onUpdatePet.., onRefreshPetProp), sent at battlePlayEnd
+  catchPushes: Push[]; // onAddPet per caught pet (or the red no-room note), sent last at battlePlayEnd
 }
 
 /** One player character in a battle (solo: exactly one). */
@@ -108,4 +121,5 @@ export interface PlayerCommand {
   heal?: { hp: number; mp: number };
   skill?: SkillCast; // set for a cast; absent for a basic attack (including the not-enough-MP fallback)
   leave?: boolean; // ESCAPE queued by a disconnect: the actor runs away and drops out, the battle goes on for the others
+  catch?: { catchable: number; room: number }; // CATCH (-70): target template facts + free pet slots at command time
 }

@@ -6,15 +6,7 @@
 import { Application, Container, FederatedPointerEvent, Ticker } from 'pixi.js';
 import { NpcType } from '@mc/shared';
 import type {
-  MoveUpdate,
-  NpcFuncInit,
-  OpenShop,
-  PlayerData,
-  SceneCharacter,
-  SceneEnterPush,
-  SceneItem,
-  SceneLoginResponse,
-  SceneNpc,
+  MoveUpdate, NpcFuncInit, OpenShop, PlayerData, SceneCharacter, SceneEnterPush, SceneItem, SceneLoginResponse, SceneNpc,
 } from '@mc/shared';
 import type { GameClient } from '../net/client';
 import { Entity } from './Entity';
@@ -26,6 +18,8 @@ import { findRoute, type RoutePoint } from './route';
 import { QuestController } from './QuestController';
 import { BagController } from './BagController';
 import { CharacterController } from './CharacterController';
+import { PetController } from './PetController';
+import { PetLayer } from './PetLayer';
 import { BattleController } from './BattleController';
 import { runSceneCommand } from './sceneCommands';
 import { SocialController } from './SocialController';
@@ -77,6 +71,8 @@ export class GameScene {
   private readonly bag: BagController;
   private readonly trade: TradeController;
   private readonly character: CharacterController;
+  private readonly pet: PetController;
+  private readonly petLayer: PetLayer;
   private readonly battle: BattleController;
   private readonly offs: (() => void)[] = [];
 
@@ -113,6 +109,7 @@ export class GameScene {
       onBag: () => this.bag.toggle(),
       onCharacter: () => this.character.toggle(),
       onFriend: () => this.friends.toggle(),
+      onPet: () => this.pet.toggle(),
       onLevelUp: () => this.character.levelUp(),
       onRecover: (kind) => this.bag.actions.recover(kind),
     });
@@ -128,14 +125,16 @@ export class GameScene {
     this.bag = new BagController({ client, chat: this.chat, player, shop: this.panels.shop });
     this.trade = new TradeController({ client, player, bag: this.bag });
     this.character = new CharacterController({ client, player, bag: this.bag });
+    this.pet = new PetController({ client, player, chat: this.chat, bag: this.bag, setBattlePet: (p) => this.hud.setBattlePet(p) });
     this.battle = new BattleController({
       client, player, root: this.root, world: this.world, entities: this.entityLayer,
-      bagItems: () => this.bag.list(),
+      bagItems: () => this.bag.list(), petVitals: (hp, mp) => this.pet.setBattleVitals(hp, mp),
       stopWalking: () => this.self?.teleport(this.self.x, this.self.y),
       mapSafe: () => (this.mapInfo?.safeFlag ?? 0) > 0,
     });
     this.entityLayer.sortableChildren = true;
     this.world.addChild(this.entityLayer);
+    this.petLayer = new PetLayer(client, this.entityLayer, entityOf);
     this.portals = new PortalLayer(this.entityLayer, this.world, (p, e) => this.onGateTap(p, e));
     this.root.addChild(this.world);
     this.root.scale.set(stageScale());
@@ -159,15 +158,8 @@ export class GameScene {
 
   destroy(): void {
     for (const off of this.offs) off();
-    this.social.destroy();
-    this.party.destroy();
-    this.friends.destroy();
-    this.trade.destroy();
-    this.quest.destroy();
-    this.bag.destroy();
-    this.character.destroy();
-    this.battle.destroy();
-    this.hud.destroy();
+    const { social, party, friends, trade, quest, bag, character, pet, petLayer, battle, hud } = this;
+    for (const c of [social, party, friends, trade, quest, bag, character, pet, petLayer, battle, hud]) c.destroy();
     this.panels.closeAll();
     this.pendingNpc = null;
     this.app.ticker.stop();
@@ -199,6 +191,7 @@ export class GameScene {
     this.self = new Entity(res.self.id, 'self', res.self.name, res.self.iconCode, res.self.resCode, res.self.posX, res.self.posY, res.self.posDir);
     this.entityLayer.addChild(this.self);
     this.party.track(res.self);
+    this.petLayer.fromScene(res.self);
 
     const [peers, npcs, items] = await Promise.all([
       this.client.call<Record<string, SceneCharacter>>('createChars'),
@@ -234,6 +227,7 @@ export class GameScene {
     this.portals.clear();
     this.npcLastClick.clear();
     this.npcIcons.clear();
+    this.petLayer.clear();
     this.map?.destroy({ children: true });
     this.map = null;
     for (const e of this.players.values()) e.destroy({ children: true });
@@ -257,6 +251,7 @@ export class GameScene {
     this.social.bindPlayer(e, data.name);
     this.entityLayer.addChild(e);
     this.party.track(data);
+    this.petLayer.fromScene(data);
   }
 
   private removePlayer(id: number): void {
@@ -391,6 +386,7 @@ export class GameScene {
     this.panels.closeIfFar();
     for (const e of this.players.values()) e.tick(dt);
     for (const e of this.npcs.values()) e.tick(dt);
+    this.petLayer.tick(dt);
     this.party.tick(dt);
 
     const scale = this.root.scale.x;

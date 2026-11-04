@@ -147,6 +147,18 @@ export class InventoryService {
     return { updated, deleted: gone.map((t) => ({ id: t.id, sid: sidOf(t.slotIndex) })) };
   }
 
+  /** Conditional decrement of one bag stack (deletes the row at 0). Null when the stack is missing or too small. */
+  async consumeStack(characterId: number, itemId: number, count: number): Promise<{ left: number; sid: number } | null> {
+    const row = await this.items.findOneAndUpdate(
+      { _id: itemId, characterId, slotType: SlotType.BAG, stackCount: { $gte: count } },
+      { $inc: { stackCount: -count } },
+      { new: true, projection: { stackCount: 1, slotIndex: 1 } },
+    ).lean();
+    if (!row) return null;
+    if (row.stackCount <= 0) await this.items.deleteOne({ _id: itemId, characterId, stackCount: { $lte: 0 } });
+    return { left: row.stackCount, sid: sidOf(row.slotIndex) };
+  }
+
   /** Deletes a whole bag stack for sale (delete first, so a double click cannot pay twice). */
   async removeForSale(characterId: number, itemId: number): Promise<SoldItem> {
     const doc = await this.items.findOne({ _id: itemId, characterId, slotType: SlotType.BAG }).lean();

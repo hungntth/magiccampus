@@ -1,6 +1,7 @@
 // Bag-backed quest progress: syncs collect objectives from the bag (Go syncCollectObjectives), builds the loot context
 // (active quests + still-needed items) and consumes the collected items when a quest is finished (Go consumeCollectObjectiveItems),
-// plus the accept-time grant item while the bag still holds it.
+// plus the accept-time grant item while the bag still holds it. Pet turn-in objectives (kind 3) are counted from the pets and paid
+// with pets on finish (PetObjectiveService).
 
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -9,7 +10,10 @@ import { GameDataService } from '../gamedata/gamedata.service';
 import type { LootContext } from '../combat/loot';
 import { InventoryService } from '../inventory/inventory.service';
 import { push, type Push } from '../inventory/pushes';
-import { collectConsumption, collectItemIds, grantConsumption, lootNeeds, syncCollect } from './quest-progress';
+import { PetObjectiveService } from '../pet/pet-objective.service';
+import {
+  collectConsumption, collectItemIds, grantConsumption, KIND_PET, lootNeeds, petNeeds, syncCollect, syncPets,
+} from './quest-progress';
 import { CharacterQuest, type QuestObjective } from './quest.schema';
 import type { QuestTemplate } from '../gamedata/quest-data';
 
@@ -24,6 +28,7 @@ export class QuestProgressService {
     @InjectModel(CharacterQuest.name) private readonly quests: Model<CharacterQuest>,
     private readonly inventory: InventoryService,
     private readonly gameData: GameDataService,
+    private readonly petObjectives: PetObjectiveService,
   ) {}
 
   /** Returns the rows with collect objectives set from the bag; one bag query serves every row. */
@@ -33,11 +38,16 @@ export class QuestProgressService {
       const tpl = this.gameData.getQuest(r.questId);
       if (tpl) collectItemIds(tpl, r.objectives).forEach((id) => ids.add(id));
     }
-    if (ids.size === 0) return [...rows];
-    const bag = await this.inventory.countByTemplate(characterId, [...ids]);
+    const needPets = rows.some((r) => r.objectives.some((o) => o.kind === KIND_PET));
+    if (ids.size === 0 && !needPets) return [...rows];
+    const bag = ids.size > 0 ? await this.inventory.countByTemplate(characterId, [...ids]) : new Map<number, number>();
+    const pets = needPets ? await this.petObjectives.facts(characterId) : [];
     return rows.map((r) => {
       const tpl = this.gameData.getQuest(r.questId);
-      return tpl ? { ...r, objectives: syncCollect(tpl, r.objectives, bag) } : r;
+      if (!tpl) return r;
+      const collected = syncCollect(tpl, r.objectives, bag);
+      const nameOf = (id: number): string => this.petObjectives.templateName(id);
+      return { ...r, objectives: needPets ? syncPets(collected, this.gameData.questRequire(r.questId), pets, nameOf) : collected };
     });
   }
 
@@ -78,6 +88,8 @@ export class QuestProgressService {
       for (const d of r.deleted) pushes.push(push('onDelCharactorSlot', d.id, d.sid));
       for (const item of r.updated) pushes.push(push('onAddCharactorSlot', item));
     }
+    // Pet objectives: the lowest-growRate matching pets are deleted (onDelPet) before the rewards (a freed slot can take a pet award).
+    pushes.push(...(await this.petObjectives.consume(characterId, petNeeds(objectives, this.gameData.questRequire(tpl.id)))));
     return pushes;
   }
 }

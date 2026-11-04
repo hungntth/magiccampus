@@ -37,3 +37,12 @@ test('a finishable quest shows everything complete; isFinishable combines server
   assert.equal(isFinishable(requireProgress(open, 104, () => 1), false), false);
   assert.equal(isFinishable([], false), false);
 });
+
+test('pet objective lines count the matching pets', () => {
+  const pet = { kind: 3, type: 12, itemId: 32, num: 2, q: 16, name: 'Tiểu Nấm Yêu' };
+  const view = { state: 103, require: [pet], questKill: [] };
+  assert.equal(requireProgress(view, 104, () => 0, () => 1)[0].have, 1);
+  assert.equal(requireProgress(view, 104, () => 0, () => 5)[0].have, 2); // capped at the requirement
+  assert.equal(requireProgress(view, 104, () => 0)[0].have, 0);
+  assert.equal(requireLabel(requireProgress(view, 104, () => 0, () => 2)[0]), 'Tiểu Nấm Yêu (2/2) (Hoàn thành)');
+});

@@ -10,6 +10,7 @@ import { GameGateway } from '../../gateway/game.gateway';
 import { CharacterService } from './character.service';
 import { GameDataService } from '../gamedata/gamedata.service';
 import { AuthService } from '../auth/auth.service';
+import { PetService } from '../pet/pet.service';
 import { QuestService } from '../quest/quest.service';
 import { CharacterStatsService } from '../stats/character-stats.service';
 
@@ -22,6 +23,7 @@ export class CharacterRpc {
     private readonly scenes: SceneManager,
     private readonly quests: QuestService,
     private readonly stats: CharacterStatsService,
+    private readonly pets: PetService,
     private readonly gateway: GameGateway,
   ) {}
 
@@ -78,7 +80,8 @@ export class CharacterRpc {
     this.scenes.bindCharacter(session, doc._id);
     // Effective stats (gear + buffs); current HP/MP are clamped to the effective max before they are sent.
     const stats = await this.stats.syncOnLogin(doc._id);
-    return this.characters.toPlayerData(doc, await this.quests.loginInfo(doc._id), stats);
+    const pets = await this.pets.loginInfo(doc._id);
+    return this.characters.toPlayerData(doc, await this.quests.loginInfo(doc._id), stats, pets);
   }
 
   @Rpc('backToCharSelect', { requireCharacter: true })

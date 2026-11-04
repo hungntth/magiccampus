@@ -1,12 +1,13 @@
 // Combat flow: random encounter start (cbom, rolled for the party leader or a solo player; the roster is the party's eligible
 // members), command intake -> round -> playlist, deadline rounds and disconnects. Battles are in memory (BattleManager); rewards
 // are settled by BattleSettleService when the result is decided, per-member end pushes by BattleEndService.
-// Pushes: onSetCharState, onBattleStart (every participant), onCmdReady(slot) (all participants, group battles), onUPP and
-// onBattlePlayList (per recipient: the end marker carries that member's own report).
+// Pushes: onUpdatePet(petId, currentHp / currentMp) then onSetCharState and onBattleStart (every participant; an owner's battle
+// pet fights at owner slot + 5), onCmdReady(slot) (all participants, group battles), onUPP and onBattlePlayList (per recipient:
+// the end marker carries that member's own report).
 
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import {
-  BattleAction, BattleResult, BATTLE_ENEMY_SLOTS, CharState, type BattleCmdReady, type BattlePlayList, type BattleStart,
+  BattleAction, BattleResult, BATTLE_ENEMY_SLOTS, BATTLE_PET_SLOT_OFFSET, CharState, type BattleCmdReady, type BattlePlayList, type BattleStart,
 } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
 import { GameGateway } from '../../gateway/game.gateway';
@@ -15,16 +16,17 @@ import type { Session } from '../../gateway/session';
 import { CharacterService } from '../character/character.service';
 import { GameDataService } from '../gamedata/gamedata.service';
 import { PartyManager } from '../party/party.manager';
+import { PetBattleService, type BattlePet } from '../pet/pet-battle.service';
 import type { Party } from '../party/party-rules';
 import { CharacterStatsService, type CharStats } from '../stats/character-stats.service';
 import { TradeService } from '../trade/trade.service';
 import { BattleManager, BATTLE_DEADLINE_MS } from './battle.manager';
-import { BattleCommandService, parseCommand } from './battle-command.service';
+import { BattleCommandService, parseCommands } from './battle-command.service';
 import { BattleEndService, pushCharState } from './battle-end.service';
 import { BattleSettleService } from './battle-settle.service';
 import type { Battle, BattleMember, Fighter, Rng } from './battle.types';
 import { ENCOUNTER_COOLDOWN_MS, rollEncounter } from './encounter';
-import { playerFighter, spawnFighter, toParticipant } from './fighters';
+import { petFighter, playerFighter, spawnFighter, toParticipant } from './fighters';
 import { missingCommands, playerSlot, selectRoster, type RosterCandidate } from './roster';
 import { resolveRound, type RoundOutcome } from './round';
 
@@ -45,6 +47,7 @@ export class CombatService implements OnModuleInit {
     private readonly characters: CharacterService,
     private readonly parties: PartyManager,
     private readonly trades: TradeService,
+    private readonly petBattle: PetBattleService,
   ) {}
 
   onModuleInit(): void {
@@ -81,7 +84,17 @@ export class CombatService implements OnModuleInit {
       if (tpl && slot !== undefined) enemies.push(spawnFighter(slot, row, tpl, mapLevel, sts.get(cid)!.doc.level));
     }
     if (enemies.length === 0) return;
-    this.startGroup(sessions, sessions.map((s) => sts.get(s.characterId!)!), enemies, 0);
+    this.startGroup(sessions, sessions.map((s) => sts.get(s.characterId!)!), enemies, 0, await this.loadPets(roster));
+  }
+
+  /** The fighting pet (state 1, life > 0) of each character that has one, by owner id. */
+  async loadPets(characterIds: readonly number[]): Promise<Map<number, BattlePet>> {
+    const out = new Map<number, BattlePet>();
+    for (const id of characterIds) {
+      const pet = await this.petBattle.fighterOf(id);
+      if (pet) out.set(id, pet);
+    }
+    return out;
   }
 
   private candidates(session: Session, party: Party | undefined, hpOf: (cid: number) => number): RosterCandidate[] {
@@ -93,15 +106,18 @@ export class CombatService implements OnModuleInit {
   }
 
   /** A solo battle (quest-battle NPCs stay solo). */
-  start(session: Session, st: CharStats, enemies: Fighter[], nid: number): Battle | null {
-    return this.startGroup([session], [st], enemies, nid);
+  start(session: Session, st: CharStats, enemies: Fighter[], nid: number, pets: ReadonlyMap<number, BattlePet> = new Map()): Battle | null {
+    return this.startGroup([session], [st], enemies, nid, pets);
   }
 
   /**
    * Registers the battle (sessions[0] is the leader; player i fights at slot 10 + i) and sends every participant the start
    * pushes (self state, map state, onBattleStart). Sync after the last await; a member that started another battle meanwhile is dropped.
+   * `pets` (by owner id) are the owners' battle pets: each joins at its owner's slot + 5.
    */
-  startGroup(sessions: Session[], sts: CharStats[], enemies: Fighter[], nid: number): Battle | null {
+  startGroup(
+    sessions: Session[], sts: CharStats[], enemies: Fighter[], nid: number, pets: ReadonlyMap<number, BattlePet> = new Map(),
+  ): Battle | null {
     const picks = sessions.map((s, i) => ({ s, st: sts[i] })).filter((p) => p.s.battleId === null);
     if (picks.length === 0 || picks[0].s !== sessions[0]) return null; // lost a race with a concurrent start
     const members = new Map<number, BattleMember>();
@@ -110,9 +126,11 @@ export class CombatService implements OnModuleInit {
       const cid = p.s.characterId!;
       const f = playerFighter(playerSlot(i), p.st, this.characters.resCode(p.st.doc.classId, p.st.doc.gender));
       fighters.set(f.slot, f);
+      const bp = pets.get(cid);
+      if (bp) fighters.set(f.slot + BATTLE_PET_SLOT_OFFSET, petFighter(f.slot, bp));
       members.set(cid, {
         cid, slot: f.slot, left: false, acked: false,
-        result: { report: { exp: 0, money: 0, items: [] }, levelUp: false, moneyTotal: 0, quest: null, loot: null },
+        result: { report: { exp: 0, money: 0, items: [] }, levelUp: false, moneyTotal: 0, quest: null, loot: null, petPushes: [], catchPushes: [] },
       });
     });
     for (const e of enemies) fighters.set(e.slot, e);
@@ -132,6 +150,11 @@ export class CombatService implements OnModuleInit {
       s.battleId = battle.id;
       this.trades.stopFor(s.characterId!, true); // a battle ends any open trade
       s.encounterUntil = now + ENCOUNTER_COOLDOWN_MS;
+      const pet = fighters.get(battle.members.get(s.characterId!)!.slot + BATTLE_PET_SLOT_OFFSET);
+      if (pet?.kind === 'pet') {
+        s.callback('onUpdatePet', pet.refId, 'currentHp', pet.hpMax); // the client's pet HP/MP come from these, before the cList
+        s.callback('onUpdatePet', pet.refId, 'currentMp', pet.mpMax);
+      }
       pushCharState(this.scenes, s, CharState.BATTLE);
       s.callback('onBattleStart', start);
     }
@@ -139,8 +162,9 @@ export class CombatService implements OnModuleInit {
   }
 
   /**
-   * battleUpdateCmd([cmd]): validates and stores this member's command, tells everyone (onCmdReady), and resolves the round
-   * once every alive player character has submitted. Earlier submitters simply wait for the playlist.
+   * battleUpdateCmd([ownerCmd, petCmd?]): validates and stores this member's commands (the second is for its battle pet), tells
+   * everyone (onCmdReady), and resolves the round once every alive player character has submitted. Earlier submitters simply
+   * wait for the playlist. A dead owner with a live pet sends [defence, petCmd]: only the pet command is stored.
    */
   async command(session: Session, raw: unknown): Promise<void> {
     const battle = this.manager.ofCharacter(session.characterId!);
@@ -148,11 +172,18 @@ export class CombatService implements OnModuleInit {
     if (!battle || !member || battle.ended || member.left) throw RpcException.notFound('Không trong trận chiến');
     const own = battle.fighters.get(member.slot)!;
     if (battle.busy) throw RpcException.forbidden('Đang xử lý lượt');
-    if (!own.alive) throw RpcException.forbidden('Bạn đã gục, hãy chờ trận đấu kết thúc');
-    if (battle.commands.has(member.slot)) throw RpcException.forbidden('Bạn đã gửi lệnh, đang chờ đồng đội');
-    const pc = await this.commands.resolve(session, battle, own, parseCommand(raw));
-    if (battle.ended || battle.busy || battle.commands.has(member.slot)) throw RpcException.forbidden('Đang xử lý lượt');
-    battle.commands.set(member.slot, pc);
+    const { own: ownCmd, pet: petCmd } = parseCommands(raw);
+    const petF = battle.fighters.get(member.slot + BATTLE_PET_SLOT_OFFSET);
+    const pet = petF?.kind === 'pet' && petF.alive && petCmd ? petF : undefined;
+    if (!own.alive && !pet) throw RpcException.forbidden('Bạn đã gục, hãy chờ trận đấu kết thúc');
+    const submitted = (): boolean => battle.commands.has(own.alive ? member.slot : pet!.slot);
+    if (submitted()) throw RpcException.forbidden('Bạn đã gửi lệnh, đang chờ đồng đội');
+    // The pet is resolved first: it has no side effects, so a bad pet command cannot waste the owner's potion.
+    const petPc = pet ? await this.commands.resolve(session, battle, pet, petCmd!) : undefined;
+    const pc = own.alive ? await this.commands.resolve(session, battle, own, ownCmd) : undefined;
+    if (battle.ended || battle.busy || submitted()) throw RpcException.forbidden('Đang xử lý lượt');
+    if (pc) battle.commands.set(member.slot, pc);
+    if (pet && petPc) battle.commands.set(pet.slot, petPc);
     const ready: BattleCmdReady = member.slot;
     if (battle.members.size > 1) this.pushAll(battle, 'onCmdReady', ready);
     await this.runIfReady(battle);
@@ -233,6 +264,11 @@ export class CombatService implements OnModuleInit {
     const own = battle.fighters.get(member.slot)!;
     member.left = true;
     battle.commands.set(member.slot, { action: BattleAction.ESCAPE, targetSlot: -1, leave: true });
+    const pet = battle.fighters.get(member.slot + BATTLE_PET_SLOT_OFFSET);
+    if (pet?.kind === 'pet') {
+      pet.hp = 0; // the pet leaves with its owner (its life drain is still applied at settle)
+      pet.alive = false;
+    }
     this.manager.detach(battle, member.cid);
     await this.settleService.saveVitals(member.cid, own);
     await this.runIfReady(battle);

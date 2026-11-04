@@ -8,7 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "node --test --import tsx ./src/resurl.test.ts ./src/questProgress.test.ts ./src/skill.test.ts"
+    "test": "node --test --import tsx ./src/resurl.test.ts ./src/questProgress.test.ts ./src/skill.test.ts ./src/petCatch.test.ts ./src/petGear.test.ts"
   },
   "devDependencies": {
     "tsx": "^4.19.2",

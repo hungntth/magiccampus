@@ -10,6 +10,7 @@ import { GameDataModule } from '../gamedata/gamedata.module';
 import { AuthModule } from '../auth/auth.module';
 import { QuestModule } from '../quest/quest.module';
 import { SkillModule } from '../skill/skill.module';
+import { PetModule } from '../pet/pet.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { SkillModule } from '../skill/skill.module';
     AuthModule,
     SkillModule,
     QuestModule,
+    PetModule,
     StatsModule,
   ],
   providers: [CharacterService, CharacterRpc, CharacterStatsRpc],

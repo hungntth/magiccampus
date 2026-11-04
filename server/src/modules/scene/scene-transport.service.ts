@@ -1,6 +1,6 @@
 // Moves a session to another map: leaves the current room, persists the arrival position, joins the destination room
 // and builds the SceneLoginResponse (= onSceneEnter payload). Shared by gates (sceneChange), /go and transport NPCs.
-// A party leader's move takes the non-AFK, non-fighting members standing with it along (each gets its own onSceneEnter).
+// Scene payloads carry the following pet (showPetObj). A party leader's move takes the non-AFK, non-fighting members standing with it along (each gets its own onSceneEnter).
 
 import { Injectable } from '@nestjs/common';
 import type { SceneLoginResponse } from '@mc/shared';
@@ -9,6 +9,7 @@ import { SceneManager } from '../../gateway/scene.manager';
 import { CharacterService } from '../character/character.service';
 import { GameDataService } from '../gamedata/gamedata.service';
 import { PartyService } from '../party/party.service';
+import { PetFollowService } from '../pet/pet-follow.service';
 import { TradeService } from '../trade/trade.service';
 
 @Injectable()
@@ -19,6 +20,7 @@ export class SceneTransportService {
     private readonly gameData: GameDataService,
     private readonly party: PartyService,
     private readonly trades: TradeService,
+    private readonly petFollow: PetFollowService,
   ) {}
 
   /** Caller must have checked that `mapId` exists. `follow` is false for the follower hops themselves. */
@@ -44,7 +46,7 @@ export class SceneTransportService {
     doc.posX = x;
     doc.posY = y;
     doc.dir = dir;
-    const self = this.party.decorate(this.characters.toSceneCharacter(doc));
+    const self = await this.petFollow.decorate(this.party.decorate(this.characters.toSceneCharacter(doc)));
     this.scenes.broadcast(mapId, 'onScenePlayerEntered', [self], session);
     return { mapId, map: this.gameData.toMapInfo(mapRow), self };
   }

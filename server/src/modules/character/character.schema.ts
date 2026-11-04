@@ -61,6 +61,10 @@ export class Character {
   @Prop({ default: 0 })
   attrPoints: number;
 
+  // Pet bag capacity (Go pet_slots, default 6, cap 180); read through PetService.
+  @Prop({ default: 6 })
+  petMaxNum: number;
+
   // maxHp / maxMp are a cache rewritten whenever stats are recomputed; the formula is the source of truth.
   @Prop({ default: 100 })
   maxHp: number;
