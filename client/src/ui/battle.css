@@ -1,5 +1,6 @@
-/* Battle DOM layer (ui/battleMenu.ts, ui/reviveDialog.ts). While #stage has .in-battle the HUD is hidden; chat stays. */
-#stage.in-battle > *:not(.battle-ui):not(.hud-chat-bar):not(.hud-chat-menu):not(.confirm-dialog):not(.revive-dialog) {
+/* Battle DOM layer (ui/battleMenu.ts, ui/reviveDialog.ts). While #stage has .in-battle the HUD is hidden; chat stays.
+   The command column redraws the Flash CrystalBlueButton / BasicTitleLabel skins with CSS (no converted skin exists). */
+#stage.in-battle > *:not(.battle-ui):not(.battle-side):not(.hud-chat-bar):not(.hud-chat-menu):not(.confirm-dialog):not(.revive-dialog) {
   display: none !important;
 }
 
@@ -15,92 +16,154 @@
 }
 
 #stage > .battle-ui > * {
-  pointer-events: auto;
-}
-
-#stage > .battle-ui > .battle-timer,
-#stage > .battle-ui > .battle-banner {
   pointer-events: none;
 }
 
-.battle-menu,
-.battle-items {
+/* ---- Command column (PlayerCmdCanvas 83x267, buttons 73 wide; battleInfoBtn 5 px under it) ---- */
+#stage > .battle-side {
   position: absolute;
-  top: 30px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px;
-  background: rgba(14, 20, 40, 0.88);
-  border: 1px solid #e8c46a;
-  border-radius: 6px;
-  color: #fff;
-  font-size: 13px;
+  right: 36px;
+  top: 100px;
+  width: 83px;
+  pointer-events: none;
+}
+
+.battle-side > * {
+  pointer-events: auto;
 }
 
 .battle-menu {
-  right: 12px;
-  width: 96px;
+  position: relative;
+  box-sizing: border-box;
+  width: 83px;
+  margin-top: 8px;
+  padding: 16px 0 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: linear-gradient(180deg, rgba(20, 70, 82, 0.82), rgba(8, 40, 52, 0.86));
+  border: 2px solid #5fd2d6;
+  border-radius: 7px;
+  box-shadow: 0 0 0 1px #0a3a44, inset 0 0 0 1px rgba(160, 250, 250, 0.35), 0 2px 6px rgba(0, 0, 0, 0.45);
 }
 
-.battle-items {
-  right: 118px;
-  min-width: 150px;
-}
-
+/* BasicTitleLabel tab riding on the top border (x 20, y 0, 45x22 in Flash). */
 .battle-menu-title {
+  position: absolute;
+  left: 50%;
+  top: -10px;
+  transform: translateX(-50%);
+  min-width: 52px;
+  height: 18px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  line-height: 16px;
   text-align: center;
-  font-weight: 700;
-  color: #e8c46a;
-  padding-bottom: 2px;
-  border-bottom: 1px solid #5a4a22;
-  margin-bottom: 2px;
+  white-space: nowrap;
+  font: 12px Tahoma, Verdana, sans-serif;
+  color: #dcffff;
+  text-shadow: 0 0 2px #04343c, 0 0 2px #04343c;
+  background: linear-gradient(180deg, #2b8e98, #0f5560);
+  border: 1px solid #8ff0f0;
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px #0a3a44;
 }
 
+/* CrystalBlueButton: glossy aqua pill, white label with a dark outline. */
 .battle-btn {
-  font: inherit;
+  box-sizing: border-box;
+  width: 73px;
+  height: 23px;
+  padding: 0 2px;
+  font: 12px Tahoma, Verdana, sans-serif;
   color: #fff;
-  background: #243255;
-  border: 1px solid #4a5a88;
-  border-radius: 4px;
-  padding: 6px 4px;
+  text-shadow: 0 0 2px #05424a, 0 0 2px #05424a, 0 1px 1px #05424a;
+  white-space: nowrap;
+  background: linear-gradient(180deg, #b6fbfb 0%, #5ad9e0 45%, #22b0bc 52%, #38c8d0 100%);
+  border: 1px solid #0e6670;
+  border-radius: 5px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(0, 60, 70, 0.35);
   cursor: pointer;
 }
 
-.battle-btn:hover {
-  background: #34467a;
+.battle-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #dcffff 0%, #82eef2 45%, #3cc8d2 52%, #5ad8e0 100%);
 }
 
+.battle-btn:active:not(:disabled) {
+  background: linear-gradient(180deg, #2aa8b4 0%, #48c6ce 100%);
+}
+
+/* Selected command: the Flash glow button turns orange. */
 .battle-btn.selected {
-  border-color: #e8c46a;
-  background: #3d4f86;
+  background: linear-gradient(180deg, #ffe6a8 0%, #ffb648 45%, #ef8a12 52%, #f8a636 100%);
+  border-color: #8a4a06;
+  text-shadow: 0 0 2px #6a3200, 0 0 2px #6a3200, 0 1px 1px #6a3200;
 }
 
-.battle-item {
+/* No H5 feature behind it yet (Bắt, Pet, Vị trí, Auto, Thông tin): same skin, dimmed. */
+.battle-btn:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.battle-info-btn {
+  display: block;
+  margin: 5px 0 0 5px;
+}
+
+/* Kỹ năng / Vật phẩm lists open to the left of the column. */
+.battle-items {
+  position: absolute;
+  top: 8px;
+  right: calc(100% + 6px);
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 16px 6px 6px;
+  background: linear-gradient(180deg, rgba(20, 70, 82, 0.9), rgba(8, 40, 52, 0.92));
+  border: 2px solid #5fd2d6;
+  border-radius: 7px;
+  box-shadow: 0 0 0 1px #0a3a44, 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+.battle-items .battle-menu-title {
+  top: -10px;
+}
+
+.battle-items .battle-btn.battle-item {
+  width: auto;
   text-align: left;
-  padding: 5px 8px;
+  padding: 0 8px;
 }
 
 .battle-empty {
-  color: #aab;
+  color: #bfe6e8;
+  font: 12px Tahoma, Verdana, sans-serif;
   padding: 4px 6px;
 }
 
+/* ---- TimeCountCanvas: horizontalCenter 15, bottom 318; yellow 75 px, red 85 px from 9 s ---- */
 .battle-timer {
   position: absolute;
   left: calc(50% + 15px);
   bottom: 318px;
   transform: translateX(-50%);
-  font-size: 64px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 75px;
   font-weight: 900;
-  color: #ffe14d;
-  text-shadow: 0 0 4px #000, 2px 2px 0 #000;
-  pointer-events: none;
+  line-height: 1;
+  color: #ffee00;
+  -webkit-text-stroke: 6px #000;
+  paint-order: stroke fill;
+  text-shadow: 2px 3px 0 #000;
 }
 
 .battle-timer.urgent {
-  color: #ff3b30;
-  font-size: 76px;
+  color: #ff2a1a;
+  font-size: 85px;
 }
 
 .battle-banner {
@@ -111,8 +174,9 @@
   font-size: 34px;
   font-weight: 900;
   color: #fff;
-  text-shadow: 0 0 6px #000, 2px 2px 0 #000;
-  pointer-events: none;
+  -webkit-text-stroke: 4px #000;
+  paint-order: stroke fill;
+  text-shadow: 2px 2px 0 #000;
   white-space: nowrap;
 }
 

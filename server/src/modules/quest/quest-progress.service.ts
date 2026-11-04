@@ -1,5 +1,6 @@
 // Bag-backed quest progress: syncs collect objectives from the bag (Go syncCollectObjectives), builds the loot context
-// (active quests + still-needed items) and consumes the collected items when a quest is finished (Go consumeCollectObjectiveItems).
+// (active quests + still-needed items) and consumes the collected items when a quest is finished (Go consumeCollectObjectiveItems),
+// plus the accept-time grant item while the bag still holds it.
 
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -8,7 +9,7 @@ import { GameDataService } from '../gamedata/gamedata.service';
 import type { LootContext } from '../combat/loot';
 import { InventoryService } from '../inventory/inventory.service';
 import { push, type Push } from '../inventory/pushes';
-import { collectConsumption, collectItemIds, lootNeeds, syncCollect } from './quest-progress';
+import { collectConsumption, collectItemIds, grantConsumption, lootNeeds, syncCollect } from './quest-progress';
 import { CharacterQuest, type QuestObjective } from './quest.schema';
 import type { QuestTemplate } from '../gamedata/quest-data';
 
@@ -63,7 +64,16 @@ export class QuestProgressService {
   /** Takes the quest's collected items out of the bag (call under the character lock, before crediting the reward). */
   async consumeCollected(characterId: number, tpl: QuestTemplate, objectives: readonly QuestObjective[]): Promise<Push[]> {
     const pushes: Push[] = [];
-    for (const [itemId, count] of collectConsumption(tpl, objectives)) {
+    const take = collectConsumption(tpl, objectives);
+    const grants = grantConsumption(tpl, objectives);
+    if (grants.size > 0) {
+      const bag = await this.inventory.countByTemplate(characterId, [...grants.keys()]);
+      for (const [itemId, need] of grants) {
+        const n = Math.min(need, bag.get(itemId) ?? 0);
+        if (n > 0) take.set(itemId, (take.get(itemId) ?? 0) + n);
+      }
+    }
+    for (const [itemId, count] of take) {
       const r = await this.inventory.removeByTemplate(characterId, itemId, count);
       for (const d of r.deleted) pushes.push(push('onDelCharactorSlot', d.id, d.sid));
       for (const item of r.updated) pushes.push(push('onAddCharactorSlot', item));

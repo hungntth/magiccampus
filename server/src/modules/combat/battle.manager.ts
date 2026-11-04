@@ -1,4 +1,4 @@
-// In-memory battle registry (no Mongo documents): battleId -> Battle and characterId -> battleId, plus the 5 s deadline
+// In-memory battle registry (no Mongo documents): battleId -> Battle and characterId -> battleId (one entry per participant), plus the 5 s deadline
 // checker. The combat service registers the expiry handler (it owns round resolution), so this class stays dependency-free.
 
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
@@ -32,12 +32,21 @@ export class BattleManager implements OnModuleDestroy {
 
   add(battle: Battle): void {
     this.byId.set(battle.id, battle);
-    this.byCharacter.set(battle.characterId, battle.id);
+    for (const cid of battle.members.keys()) this.byCharacter.set(cid, battle.id);
   }
 
+  /** Drops the battle and every participant's lookup. */
   remove(battle: Battle): void {
     this.byId.delete(battle.id);
-    if (this.byCharacter.get(battle.characterId) === battle.id) this.byCharacter.delete(battle.characterId);
+    for (const cid of battle.members.keys()) this.detach(battle, cid);
+  }
+
+  /** One participant is done (battlePlayEnd) or gone; the battle itself goes once nobody is left attached. */
+  detach(battle: Battle, characterId: number): void {
+    if (this.byCharacter.get(characterId) === battle.id) this.byCharacter.delete(characterId);
+    const member = battle.members.get(characterId);
+    if (member) member.acked = true;
+    if ([...battle.members.values()].every((m) => m.acked)) this.byId.delete(battle.id);
   }
 
   get(id: string): Battle | undefined {

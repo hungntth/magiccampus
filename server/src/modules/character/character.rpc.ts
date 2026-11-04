@@ -6,6 +6,7 @@ import { Rpc } from '../../gateway/rpc.decorator';
 import { RpcException } from '../../gateway/errors';
 import type { Session } from '../../gateway/session';
 import { SceneManager } from '../../gateway/scene.manager';
+import { GameGateway } from '../../gateway/game.gateway';
 import { CharacterService } from './character.service';
 import { GameDataService } from '../gamedata/gamedata.service';
 import { AuthService } from '../auth/auth.service';
@@ -21,6 +22,7 @@ export class CharacterRpc {
     private readonly scenes: SceneManager,
     private readonly quests: QuestService,
     private readonly stats: CharacterStatsService,
+    private readonly gateway: GameGateway,
   ) {}
 
   @Rpc('getClassList', { quiet: true })
@@ -80,7 +82,8 @@ export class CharacterRpc {
   }
 
   @Rpc('backToCharSelect', { requireCharacter: true })
-  backToCharSelect(session: Session): { ok: true } {
+  async backToCharSelect(session: Session): Promise<{ ok: true }> {
+    await this.gateway.leaveCharacter(session); // party leave, onScenePlayerLeft, ... while the character is still bound
     this.scenes.leave(session);
     session.characterId = null;
     session.characterName = null;

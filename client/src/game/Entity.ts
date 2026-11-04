@@ -64,6 +64,7 @@ export class Entity extends Container {
   private bubble: Container | null = null;
   private bubbleTimer: ReturnType<typeof setTimeout> | null = null;
   private questMarker: Text | null = null;
+  private leaderFlag: Text | null = null;
   private hovered = false;
 
   constructor(
@@ -94,7 +95,7 @@ export class Entity extends Container {
     this.labels = new EntityLabels(displayName, NAME_COLOR[kind]);
     this.addChild(this.labels);
 
-    if (kind === 'npc') {
+    if (kind !== 'self') {
       this.eventMode = 'static';
       this.cursor = 'pointer';
       // Legacy CreatureView mouseOver/mouseOut: white glow on the sprite only (not the name label).
@@ -130,7 +131,7 @@ export class Entity extends Container {
     const bubble = new Container();
     bubble.addChild(bg, label);
     bubble.eventMode = 'none';
-    const above = this.questMarker ? this.questMarker.height : 0;
+    const above = Math.max(this.questMarker?.height ?? 0, this.leaderFlag?.height ?? 0);
     bubble.position.set(0, this.headY - above - 2 - (th + 12));
     this.addChild(bubble);
     this.bubble = bubble;
@@ -150,8 +151,23 @@ export class Entity extends Container {
     this.layoutMarker();
   }
 
+  /** Party leader flag above the head (legacy UI_LEADER_FLAG; H5 draws a crown). */
+  setLeaderFlag(on: boolean): void {
+    if (on === (this.leaderFlag !== null) || this.destroyed) return;
+    this.leaderFlag?.destroy();
+    this.leaderFlag = null;
+    if (on) {
+      this.leaderFlag = new Text({ text: '♛', style: markerStyle('#ffd23f') });
+      this.leaderFlag.anchor.set(0.5, 1);
+      this.leaderFlag.eventMode = 'none';
+      this.addChild(this.leaderFlag);
+    }
+    this.layoutMarker();
+  }
+
   private layoutMarker(): void {
     this.questMarker?.position.set(0, this.headY - 2);
+    this.leaderFlag?.position.set(0, this.headY - 2);
   }
 
   /**

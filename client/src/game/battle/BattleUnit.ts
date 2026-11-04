@@ -1,5 +1,5 @@
-// One combatant on the battle stage: sheet animation (stand / run / attack / hurt / dead ...), name, HP (and own MP) bar,
-// run-to-target and fade tweens. Driven by BattleStage.tick(dt); one-shot actions resolve their promise when they finish.
+// One combatant on the battle stage: sheet animation (stand / run / attack / hurt / dead ...), name under the feet,
+// legacy PropBar HP bar above the head (own side: HP/MP/SP stacked), run-to-target and fade tweens. Driven by BattleStage.tick(dt); one-shot actions resolve their promise when they finish.
 
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { BattleParticipantType, type BattleParticipant } from '@mc/shared';
@@ -7,10 +7,23 @@ import { SheetAnim, loadSheet } from '../SheetAnim';
 import { sheetNameFromResCode } from '../Entity';
 import { Action, CLOSE_TO, RUN_SPEED, SLOT_POS, defaultDir, isEnemySlot } from './slots';
 
+// Legacy PropBar: 50x4 bar, #333 back, 1 px black line around a #ddd frame at (-1, -2, w + 2, h + 3); each next bar sits at
+// y + height - 1.
 const BAR_W = 50;
 const BAR_H = 4;
+const BAR_STEP = BAR_H + 3 - 1;
+// GamePredef PROPERTY_COLOR_HP / _MP / _SP.
+const COLOR_HP = 0xff0000;
+const COLOR_MP = 0x3333aa;
+const COLOR_SP = 0xffff00;
+const NAME_Y = 10; // CreatureView _textName.y: the name sits just under the feet
 const nameStyle = (fill: string): TextStyle =>
-  new TextStyle({ fontFamily: 'system-ui, sans-serif', fontSize: 13, fontWeight: '700', fill, stroke: { color: '#000000', width: 3 } });
+  new TextStyle({
+    fontFamily: 'Tahoma, Verdana, sans-serif',
+    fontSize: 12,
+    fill,
+    stroke: { color: '#000000', width: 3, join: 'round' },
+  });
 
 export class BattleUnit extends Container {
   readonly slot: number;
@@ -21,6 +34,8 @@ export class BattleUnit extends Container {
   mp: number;
   readonly hpMax: number;
   readonly mpMax: number;
+  private readonly sp: number;
+  private readonly spMax: number;
   dir: number;
   /** Top of the sprite relative to the feet (negative); bars and popups sit above it. */
   headY = -60;
@@ -29,14 +44,16 @@ export class BattleUnit extends Container {
   private readonly bars = new Graphics();
   private readonly nameText: Text;
   private readonly isSelf: boolean;
+  private waitIcon: Text | null = null;
   private goal: { x: number; y: number; done: () => void } | null = null;
   private fade: { left: number; total: number } | null = null;
 
-  constructor(p: BattleParticipant) {
+  /** `selfId`: the local character id; in a group battle only that unit shows the MP / SP bars (teammates show HP only). */
+  constructor(p: BattleParticipant, selfId?: number) {
     super();
     this.slot = p.battleId;
     this.enemy = isEnemySlot(p.battleId);
-    this.isSelf = p.type === BattleParticipantType.CHARACTER;
+    this.isSelf = p.type === BattleParticipantType.CHARACTER && (selfId === undefined || p.id === selfId);
     const home = SLOT_POS[p.battleId] ?? { x: 450, y: 285 };
     this.homeX = home.x;
     this.homeY = home.y;
@@ -45,6 +62,8 @@ export class BattleUnit extends Container {
     this.mp = p.mp;
     this.hpMax = Math.max(1, p.hpMax);
     this.mpMax = Math.max(1, p.mpMax);
+    this.sp = p.sp;
+    this.spMax = p.spMax;
     this.dir = defaultDir(p.battleId);
 
     const shadow = new Graphics().ellipse(0, 0, 22, 9).fill({ color: 0x000000, alpha: 0.35 });
@@ -53,7 +72,8 @@ export class BattleUnit extends Container {
     const shown = p.type === BattleParticipantType.CREATURE ? p.name.split('【')[0] : p.name;
     const color = p.bossFlag === 1 ? '#ff0000' : p.bossFlag === 2 ? '#00ff00' : this.enemy ? '#ffffff' : '#ffff00';
     this.nameText = new Text({ text: shown, style: nameStyle(color) });
-    this.nameText.anchor.set(0.5, 1);
+    this.nameText.anchor.set(0.5, 0);
+    this.nameText.position.set(0, NAME_Y);
     this.addChild(shadow, this.body, this.bars, this.nameText);
     this.eventMode = 'none';
     void this.load(p.resCode);
@@ -76,18 +96,38 @@ export class BattleUnit extends Container {
     this.layout();
   }
 
-  /** Bars at headY - 10 (HP; own MP stacked under it), name just above them. */
+  /** Bar stack from headY - 10 downward (legacy _barContainer.y); enemies show HP only, the own character HP/MP/SP. */
   private layout(): void {
     this.bars.clear();
-    const draw = (y: number, v: number, max: number, color: number): void => {
-      this.bars.rect(-BAR_W / 2, y, BAR_W, BAR_H).fill(0x333333);
-      this.bars.rect(-BAR_W / 2, y, (BAR_W * Math.max(0, Math.min(max, v))) / max, BAR_H).fill(color);
-      this.bars.rect(-BAR_W / 2, y, BAR_W, BAR_H).stroke({ color: 0xdddddd, width: 1 });
-    };
-    const top = this.headY - 10;
-    draw(top, this.hp, this.hpMax, 0xff0000);
-    if (this.isSelf) draw(top + BAR_H - 1, this.mp, this.mpMax, 0x3333aa);
-    this.nameText.position.set(0, top - 2);
+    const rows: [number, number, number][] = [[this.hp, this.hpMax, COLOR_HP]];
+    if (this.isSelf) {
+      rows.push([this.mp, this.mpMax, COLOR_MP]);
+      if (this.spMax > 0) rows.push([this.sp, this.spMax, COLOR_SP]);
+    }
+    const x = -BAR_W / 2;
+    let y = this.headY - 10;
+    for (const [v, max, color] of rows) {
+      this.bars.rect(x - 1, y - 2, BAR_W + 2, BAR_H + 3).fill(0xdddddd).stroke({ color: 0x000000, width: 1 });
+      this.bars.rect(x, y, BAR_W, BAR_H).fill(0x333333);
+      const w = Math.round((BAR_W * Math.max(0, Math.min(max, v))) / max);
+      if (w > 0) this.bars.rect(x, y, w, BAR_H).fill(color);
+      y += BAR_STEP;
+    }
+  }
+
+  /** Group battles: the "waiting for a command" bubble over a player character (BattleCreatureView.showWaitIcon). */
+  setWait(on: boolean): void {
+    if (!on) {
+      this.waitIcon?.destroy();
+      this.waitIcon = null;
+      return;
+    }
+    if (this.waitIcon || this.hp <= 0) return;
+    const icon = new Text({ text: '...', style: new TextStyle({ fontFamily: 'Tahoma, Verdana, sans-serif', fontSize: 18, fontWeight: '900', fill: '#ffffff', stroke: { color: '#000000', width: 4 } }) });
+    icon.anchor.set(0.5, 1);
+    icon.position.set(0, this.headY - 14);
+    this.waitIcon = icon;
+    this.addChild(icon);
   }
 
   setHp(hp: number): void {

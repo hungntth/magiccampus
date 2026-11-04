@@ -13,6 +13,7 @@ import './hud.css';
 export interface HudActions {
   onBag(): void;
   onCharacter(): void;
+  onFriend(): void;
   onLevelUp(): void;
   /** HP / MP bar click. */
   onRecover(kind: 'hp' | 'mp'): void;
@@ -30,7 +31,7 @@ export class MainHud {
     this.buffBar = new BuffBar(parent, client);
     this.miniMap = new MiniMapCanvas(parent, client);
     new UserBar(parent);
-    this.systemBar = new SystemBar(parent, typing, actions.onBag, actions.onCharacter);
+    this.systemBar = new SystemBar(parent, typing, actions.onBag, actions.onCharacter, actions.onFriend);
   }
 
   destroy(): void {

@@ -3,6 +3,7 @@
 
 import type { MapCreatureRow } from '../gamedata/combat-data';
 import type { Rng } from './battle.types';
+import { groupEnemyCount } from './roster';
 
 export const ENCOUNTER_MIN_RATE = 0.3;
 export const ENCOUNTER_MAX_RATE = 0.75;
@@ -18,10 +19,9 @@ export function normalizeEncounterRate(raw: number): number {
 /** Rows a random encounter may use: boss rows are excluded. */
 export const normalRows = (rows: readonly MapCreatureRow[]): MapCreatureRow[] => rows.filter((r) => r.bossFlag === 0);
 
-/** Solo enemy count: 1 or 2, capped by the number of distinct normal creature ids on the map. */
-export function enemyCount(rows: readonly MapCreatureRow[], rng: Rng): number {
-  const distinct = new Set(rows.map((r) => r.creatureId)).size;
-  return Math.min(1 + Math.floor(rng() * 2), distinct);
+/** Enemy count by roster size (solo: 1 or 2), capped by the number of distinct normal creature ids on the map. */
+export function enemyCount(rows: readonly MapCreatureRow[], rng: Rng, rosterSize = 1): number {
+  return groupEnemyCount(rosterSize, new Set(rows.map((r) => r.creatureId)).size, rng);
 }
 
 /** rand * 100 against the [start_rate, end_rate) bands; no band matches -> a uniformly random row. */
@@ -35,11 +35,11 @@ export function pickRow(rows: readonly MapCreatureRow[], rng: Rng): MapCreatureR
  * The spawn rows of one encounter, or null when it does not happen (rate 0, failed roll, no normal rows).
  * `rng()` is consumed in a fixed order: encounter roll, enemy count, then one band roll per enemy.
  */
-export function rollEncounter(rawRate: number, rows: readonly MapCreatureRow[], rng: Rng): MapCreatureRow[] | null {
+export function rollEncounter(rawRate: number, rows: readonly MapCreatureRow[], rng: Rng, rosterSize = 1): MapCreatureRow[] | null {
   const rate = normalizeEncounterRate(rawRate);
   if (rate <= 0 || rng() >= rate) return null;
   const pool = normalRows(rows);
   if (pool.length === 0) return null;
-  const n = enemyCount(pool, rng);
+  const n = enemyCount(pool, rng, rosterSize);
   return Array.from({ length: n }, () => pickRow(pool, rng));
 }

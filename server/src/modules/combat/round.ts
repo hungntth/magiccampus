@@ -118,11 +118,16 @@ function playerStrike(ctx: Ctx, p: Fighter, cmd: PlayerCommand): void {
   if (first) first.sSObj = { skill: cast.name, uMp: p.mp };
 }
 
-/** The player's own action; returns true when it ends the battle (flee). */
+/** The player's own action; returns true when it ends the battle (flee). A queued leave (disconnect) runs away and drops out instead. */
 function playerAct(ctx: Ctx, p: Fighter, cmd: PlayerCommand): boolean {
   switch (cmd.action) {
     case BattleAction.ESCAPE:
       ctx.groups.push([step(p.slot, -1, B.ESCAPE, 300)]);
+      if (cmd.leave) {
+        p.hp = 0;
+        p.alive = false;
+        return false;
+      }
       return true;
     case BattleAction.ITEM: {
       const heal = cmd.heal ?? { hp: 0, mp: 0 };
@@ -142,13 +147,20 @@ function playerAct(ctx: Ctx, p: Fighter, cmd: PlayerCommand): boolean {
   }
 }
 
-/** Resolves the round: mutates the fighters and returns the playlist (with the end marker when the battle ended). */
+const MISSING: PlayerCommand = { action: BattleAction.TIMEOUT, targetSlot: -1 };
+
+/**
+ * Resolves the round: mutates the fighters and returns the playlist (with the end marker when the battle ended).
+ * `cmds` is one command for the solo player, or the submitted commands by player slot (a missing one counts as a timeout).
+ * Any member fleeing ends the battle for everyone (result FLED).
+ */
 export function resolveRound(
-  fighters: Map<number, Fighter>, cmd: PlayerCommand, round: number, rng: Rng,
+  fighters: Map<number, Fighter>, cmds: PlayerCommand | ReadonlyMap<number, PlayerCommand>, round: number, rng: Rng,
 ): RoundOutcome {
+  const cmdOf = (slot: number): PlayerCommand => (cmds instanceof Map ? cmds.get(slot) ?? MISSING : (cmds as PlayerCommand));
   const defending = new Set<number>();
   const players = alive(fighters.values(), 'player');
-  if (cmd.action === BattleAction.DEFENCE) for (const p of players) defending.add(p.slot);
+  for (const p of players) if (cmdOf(p.slot).action === BattleAction.DEFENCE) defending.add(p.slot);
   const ctx: Ctx = { fighters, rng, defending, groups: [] };
 
   // Enemy targets are drawn up front like Go's GenerateNPCCommands; a target that died by its turn becomes a miss.
@@ -161,7 +173,7 @@ export function resolveRound(
   for (const actor of actOrder([...fighters.values()], rng)) {
     if (!actor.alive) continue;
     if (actor.side === 'player') {
-      if (playerAct(ctx, actor, cmd)) {
+      if (playerAct(ctx, actor, cmdOf(actor.slot))) {
         result = BattleResult.FLED;
         break;
       }

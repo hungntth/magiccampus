@@ -10,7 +10,7 @@ import { RpcException } from '../../gateway/errors';
 import { Counter } from '../character/counter.schema';
 import { GameDataService, type Row } from '../gamedata/gamedata.service';
 import { toBagItem, templateTable } from './bag-mapping';
-import { planAdd, planRemove, sellUnit, sidOf, type AddSpec, type BagStack } from './bag-rules';
+import { fitsAll, planAdd, planRemove, sellUnit, sidOf, type AddSpec, type BagStack } from './bag-rules';
 import { CharacterItem } from './character-item.schema';
 
 export interface SoldItem {
@@ -58,6 +58,13 @@ export class InventoryService {
   async canFit(characterId: number, spec: AddSpec): Promise<boolean> {
     const docs = await this.items.find({ characterId, slotType: SlotType.BAG }).lean();
     return planAdd(docs.map(toStack), spec, this.capacity()) !== null;
+  }
+
+  /** Dry run of several add() calls in a row (quest rewards). */
+  async canFitAll(characterId: number, specs: readonly AddSpec[]): Promise<boolean> {
+    if (specs.length === 0) return true;
+    const docs = await this.items.find({ characterId, slotType: SlotType.BAG }).lean();
+    return fitsAll(docs.map(toStack), specs, this.capacity());
   }
 
   /** Adds `spec.amount` of an item; throws invalidArgs('Túi đồ đã đầy') when it does not fit. Returns changed slots. */

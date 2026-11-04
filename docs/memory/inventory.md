@@ -59,6 +59,31 @@ Plan: `docs/plans/2026-11-03_05_BAG_SHOP_BUY_SELL.md`. Implemented 2026-11-03. L
   - toolbar Sắp xếp (confirm, 3 s throttle) and Vứt bỏ mode (confirm "Xác nhận hủy vật phẩm này?").
 - Equip, potions, buffs: `character-stats.md`.
 
+## Bag window look (2026-11-04)
+- Rebuilt to match the legacy Flex BagPanel. The decompile of `compDragable/BagPanel.as` was aborted, so the layout comes
+  from an original screenshot plus the `BAGPANEL_U` / `BAGPANEL_S` strings. 270 px wide, ~523 px tall, `top: 28px` so it
+  fits the 570 px stage.
+- Frame, title bar and orb, close button, tabs, slot boxes, slots, scrollbar and checkboxes are drawn in CSS (`bag.css`),
+  copying the colours of the legacy Common_Components skins. Only icons are images: 17 swfui PNGs in
+  `client/public/ui/Panels_BagPanel/` (the 6 tool buttons up/over, plus the currency icons SilverBinded, GoldBinded,
+  11533 = silver ingot and 1663 = gold ingot). `1` and `1511` are generated but unused; they share the symbol name `1`,
+  and their file names come from the id suffix. Regenerate (the MainStage_* set stays identical):
+  `pnpm --filter @mc/swf-tools swfui -out ../../client/public/ui -xor 1,2,0 -match '_embed_css__style_MainStage_|Panels_BagPanel_swf_+(button_(use|Discarded|Resolution|repair|rpeair|Lock|sorting)_(up|over)_mc2|SilverBinded|GoldBinded|1)_' D:/mcgame/frontend/s/6a41a5ba5c0006ab4e0c1321a2b05027`
+  (that file is the XOR-wrapped main client; there is no `.orig` copy under D:).
+- Layout, top to bottom:
+  - title and close button;
+  - tabs 1 2 3 4 5 < > N.vụ Pet;
+  - 6 x 5 grid plus a scrollbar (the thumb fills the track because there is one page);
+  - 10 "P..." pet tabs and a 6 x 3 pet grid;
+  - tool icons Sử dụng / Vứt bỏ / Tách rời / Sửa chữa / Khóa / Sắp xếp;
+  - 2 x 2 currency fields (Ngân phiếu = moneyBind, Kim phiếu = goldBind, Bạc = money, Vàng = gold) with payment checkboxes.
+- Working: page 1 and Sắp xếp. Sử dụng, Vứt bỏ and Tách rời are modes: click the tool, then click an item. Tách rời splits
+  into the first free slot through the amount dialog.
+- Disabled or display-only: pages 2–5, < >, N.vụ, Pet, the pet tabs and pet grid (empty), Sửa chữa, Khóa and the
+  checkboxes. The checkboxes show the server defaults Ngân phiếu / Kim phiếu; ChangeMoneyType is not ported.
+- Art quirks: Sửa chữa is `button_repair_up` / `button_rpeair_over` (legacy typo). Sắp xếp only has an over state, which is
+  also used for up.
+
 ## Deferred
 Repair buttons, payment radios / ChangeMoneyType, extra pages, quest/pet/temp bags, bank, stock limits, quest "item in bag"
 requirements, equipment random properties. If `addMoney` fails after a

@@ -19,6 +19,7 @@ export class GameGateway {
   private readonly logger = new Logger(GameGateway.name);
   private readonly sessions = new Map<number, Session>();
   private readonly disconnectHooks: DisconnectHook[] = [];
+  private readonly characterLeaveHooks: DisconnectHook[] = [];
   private wss: WebSocketServer | null = null;
 
   constructor(
@@ -34,6 +35,21 @@ export class GameGateway {
 
   onDisconnect(hook: DisconnectHook): void {
     this.disconnectHooks.push(hook);
+  }
+
+  /** Runs when a session stops playing its character without disconnecting (backToCharSelect). */
+  onCharacterLeave(hook: DisconnectHook): void {
+    this.characterLeaveHooks.push(hook);
+  }
+
+  async leaveCharacter(session: Session): Promise<void> {
+    for (const hook of this.characterLeaveHooks) {
+      try {
+        await hook(session);
+      } catch (err) {
+        this.logger.error(`character leave hook failed: ${(err as Error).message}`);
+      }
+    }
   }
 
   sessionCount(): number {

@@ -2,7 +2,7 @@
 // markers (onSetNpcState), rewards (onUPP / onAddMoney / onPlayerLevelUp), the quest panel and tracker.
 // RPCs: takeQuest, finishQuest, cancelQuest (throttled to 1 / 1100 ms each), initQuestManager on scene load.
 
-import { isFinishable, MAX_QUEST_NUM, QuestState, requireProgress } from '@mc/shared';
+import { isFinishable, MAX_QUEST_NUM, QuestAwardMode, QuestState, requireProgress } from '@mc/shared';
 import type {
   CancelQuestResult, ChaQuest, FinishQuestArg, FinishQuestReply, InitQuestManagerReply, PlayerData,
   PlayerLevelUp, PlayerUpdate, QuestView, RequireProgress,
@@ -101,8 +101,9 @@ export class QuestController {
       npcId,
       npcName,
       iconCode: npcId !== null ? this.host.npcIcon(npcId) : '0',
+      classId: this.host.player.classId,
       onTake: () => npcId !== null && this.take(view, npcId),
-      onFinish: () => this.finish(view, npcId),
+      onFinish: (selectId) => this.finish(view, npcId, selectId),
       onCancel: () => this.cancel(view),
     });
   }
@@ -117,9 +118,13 @@ export class QuestController {
     void this.host.client.call('takeQuest', view.qid, npcId).catch((e) => toast((e as Error).message, true));
   }
 
-  private finish(view: QuestView, npcId: number | null): void {
+  private finish(view: QuestView, npcId: number | null, selectId: number): void {
+    if (view.data.at === QuestAwardMode.CHOOSE_ONE && view.award.length > 0 && selectId < 0) {
+      toast('Vui lòng chọn 1 phần thưởng!', true); // QUESTPANEL_S[6]
+      return;
+    }
     if (!this.throttle('finish')) return;
-    const arg: FinishQuestArg = { i: view.qid, s: -1, n: npcId ?? -1 };
+    const arg: FinishQuestArg = { i: view.qid, s: selectId, n: npcId ?? -1 };
     void this.host.client
       .call<FinishQuestReply>('finishQuest', arg)
       .then((r) => {
@@ -176,9 +181,10 @@ export class QuestController {
   private onUpdate(u: PlayerUpdate): void {
     const gained = u.exp !== undefined ? u.exp - this.host.player.exp : 0;
     Object.assign(this.host.player, u);
-    const parts = [gained > 0 ? `${gained} Exp` : '', this.pendingMoney].filter(Boolean);
+    // Legacy CALLBACK_S[42..45] "Nhận: " — one [Thông báo] line per gain.
+    if (gained > 0) this.host.chat.notice(`Nhận: ${gained} Kinh nghiệm`);
+    if (this.pendingMoney) this.host.chat.notice(`Nhận: ${this.pendingMoney}`);
     this.pendingMoney = '';
-    if (parts.length > 0) this.host.chat.system(`Nhận được ${parts.join(', ')}`);
     this.host.playerChanged();
   }
 

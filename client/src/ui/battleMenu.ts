@@ -1,6 +1,6 @@
-// Battle DOM layer (legacy PlayerCmdCanvas + TimeCountCanvas + center banner): command buttons (Tấn công, Phòng ngự, Kỹ năng,
-// Vật phẩm, Bỏ chạy; Kỹ năng lists the learned active skills with their MP cost), the 25 s countdown (red from 9 s, TIMEOUT at 0), the potion list and the "Bắt Đầu / Đang chờ..." banner.
-// A 900x570 box centred in #stage so the offsets match the Flash layout. Strings are the original Language.as ones.
+// Battle DOM layer (legacy PlayerCmdCanvas + battleInfoBtn + TimeCountCanvas + center banner). The command column sits at
+// the stage's right edge: "Nhân vật" title tab, the nine PLAYERCMDCANVAS_U buttons in Flash order, "Thông tin" under it; Kỹ năng
+// and Vật phẩm open lists beside it. Timer (25 s, red from 9 s) and banner live in a 900x570 box centred in #stage.
 
 import { BATTLE_TURN_SECONDS, skillMpLabel, type BagItem, type LearnedSkill } from '@mc/shared';
 import { stageEl } from './stage';
@@ -28,6 +28,8 @@ const el = (cls: string, text?: string, tag = 'div'): HTMLElement => {
 
 export class BattleMenu {
   readonly root = el('battle-ui');
+  /** Right-edge column: command panel, Thông tin and the skill/item lists. */
+  private readonly side = el('battle-side');
   private readonly menu = el('battle-menu');
   private readonly timer = el('battle-timer');
   private readonly banner = el('battle-banner');
@@ -43,19 +45,30 @@ export class BattleMenu {
     this.addButton('attack', 'Tấn công', () => this.selectAttack());
     this.addButton('defend', 'Phòng ngự', () => h.onDefend());
     this.addButton('skill', 'Kỹ năng', () => this.toggleSkills());
+    // Bắt (capture), Pet, Vị trí (swap position) and Auto have no H5 feature yet: shown, disabled.
+    this.addButton('catch', 'Bắt', null);
+    this.addButton('pet', 'Pet', null);
+    this.addButton('position', 'Vị trí', null);
     this.addButton('item', 'Vật phẩm', () => this.toggleItems());
     this.addButton('escape', 'Bỏ chạy', () => h.onEscape());
+    this.addButton('auto', 'Auto', null);
+    // BATTLESTAGE_S[17]: toggles the battle info panel in Flash, not ported yet.
+    const info = el('battle-btn battle-info-btn', 'Thông tin', 'button') as HTMLButtonElement;
+    info.disabled = true;
     this.items.style.display = 'none';
     this.skillList.style.display = 'none';
-    this.menu.style.display = 'none';
+    this.side.style.display = 'none';
     this.timer.style.display = 'none';
-    this.root.append(this.menu, this.items, this.skillList, this.timer, this.banner);
-    stageEl().appendChild(this.root);
+    this.side.append(this.menu, info, this.items, this.skillList);
+    this.root.append(this.timer, this.banner);
+    stageEl().append(this.root, this.side);
   }
 
-  private addButton(key: string, label: string, onClick: () => void): void {
-    const b = el('battle-btn', label, 'button');
-    b.onclick = onClick;
+  /** `onClick` null = no feature behind it yet, rendered disabled. */
+  private addButton(key: string, label: string, onClick: (() => void) | null): void {
+    const b = el('battle-btn', label, 'button') as HTMLButtonElement;
+    if (onClick) b.onclick = onClick;
+    else b.disabled = true;
     this.buttons.set(key, b);
     this.menu.appendChild(b);
   }
@@ -115,7 +128,7 @@ export class BattleMenu {
   /** Shows the command menu and starts the countdown; attack is selected by default. */
   show(): void {
     this.hideBanner();
-    this.menu.style.display = '';
+    this.side.style.display = '';
     this.timer.style.display = '';
     this.mark('attack');
     this.left = BATTLE_TURN_SECONDS;
@@ -134,7 +147,7 @@ export class BattleMenu {
   /** Hides menu and timer; `waitText` ("Đang chờ...") is shown as the banner until the next show(). */
   hide(waitText?: string): void {
     this.stopTimer();
-    this.menu.style.display = 'none';
+    this.side.style.display = 'none';
     this.items.style.display = 'none';
     this.skillList.style.display = 'none';
     this.timer.style.display = 'none';
@@ -170,5 +183,6 @@ export class BattleMenu {
     this.stopTimer();
     this.hideBanner();
     this.root.remove();
+    this.side.remove();
   }
 }

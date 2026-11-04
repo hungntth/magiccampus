@@ -1,10 +1,10 @@
 // Small yes / no confirmation (legacy Alert) reusing the amount-dialog look: message, Đồng ý / Hủy. Enter confirms,
-// Esc cancels. Returns a function that closes it.
+// Esc cancels (both call onNo when given). Returns a function that closes it without calling either.
 
 import { stageEl } from './stage';
 import './bag.css';
 
-export function askConfirm(text: string, onYes: () => void): () => void {
+export function askConfirm(text: string, onYes: () => void, onNo?: () => void): () => void {
   const root = document.createElement('div');
   root.className = 'amount-dialog confirm-dialog';
   const msg = document.createElement('div');
@@ -27,7 +27,7 @@ export function askConfirm(text: string, onYes: () => void): () => void {
     e.stopPropagation();
     e.preventDefault();
     if (e.key === 'Enter') yes();
-    else close();
+    else no();
   };
   const close = (): void => {
     window.removeEventListener('keydown', onKey, true);
@@ -37,8 +37,12 @@ export function askConfirm(text: string, onYes: () => void): () => void {
     close();
     onYes();
   };
+  const no = (): void => {
+    close();
+    onNo?.();
+  };
   ok.onclick = yes;
-  cancel.onclick = close;
+  cancel.onclick = no;
   window.addEventListener('keydown', onKey, true);
   stageEl().appendChild(root);
   ok.focus();

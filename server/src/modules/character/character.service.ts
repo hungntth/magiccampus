@@ -39,6 +39,17 @@ export class CharacterService {
     return doc;
   }
 
+  /** Live character by exact (trimmed) name, or null; used by the friend list (add by name). */
+  async findByName(name: string): Promise<CharacterDocument | null> {
+    return this.characters.findOne({ name, deleted: false });
+  }
+
+  /** Live characters for a set of ids (rows of deleted characters are simply absent). */
+  async findByIds(ids: number[]): Promise<CharacterDocument[]> {
+    if (ids.length === 0) return [];
+    return this.characters.find({ _id: { $in: ids }, deleted: false });
+  }
+
   async getOwned(accountId: string, id: number): Promise<CharacterDocument> {
     const doc = await this.getById(id);
     if (doc.accountId !== accountId) throw RpcException.forbidden('not your character');
@@ -80,6 +91,12 @@ export class CharacterService {
 
   async updatePosition(id: number, mapId: number, x: number, y: number, dir: number): Promise<void> {
     await this.characters.updateOne({ _id: id }, { $set: { mapId, posX: x, posY: y, dir, lastActive: new Date() } });
+  }
+
+  /** Same position for several characters (party members following their leader). */
+  async updatePositions(ids: number[], mapId: number, x: number, y: number, dir: number): Promise<void> {
+    if (ids.length === 0) return;
+    await this.characters.updateMany({ _id: { $in: ids } }, { $set: { mapId, posX: x, posY: y, dir, lastActive: new Date() } });
   }
 
   /** Payment preference of the character: selected money / gold currency keys (defaults moneyBind / goldBind). */
@@ -182,6 +199,9 @@ export class CharacterService {
       posY: doc.posY,
       posDir: doc.dir,
       iconCode: this.iconCode(doc.classId, doc.gender),
+      inGroup: false,
+      isLeader: false,
+      groupAfk: false,
     };
   }
 

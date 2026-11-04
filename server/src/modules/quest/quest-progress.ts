@@ -1,7 +1,7 @@
 // Pure objective rules for collect / kill quests (Go domain/quest + application/quest service.go): initial objectives,
 // bag-synced collect progress, kill credit and the "remaining" questKill list. No Nest / Mongo.
-// Objectives that equal the quest's accept-time grant item keep the pre-H5 behaviour: met at accept, never counted from
-// the bag, never consumed (H5 does not grant that item into the bag).
+// Objectives that equal the quest's accept-time grant item are met at accept and never counted from the bag (the item is
+// granted into the bag on accept; rows taken before that have none). On finish it is taken back if the bag still holds it.
 
 import type { QuestKill } from '@mc/shared';
 import type { QuestRequireRow, QuestTemplate } from '../gamedata/quest-data';
@@ -45,6 +45,13 @@ export function syncCollect(
 export function collectConsumption(tpl: QuestTemplate, objectives: readonly QuestObjective[]): Map<number, number> {
   const out = new Map<number, number>();
   for (const o of objectives) if (isCollect(tpl, o)) out.set(o.itemId, (out.get(o.itemId) ?? 0) + o.required);
+  return out;
+}
+
+/** Accept-time grant items to take back on finish: item id -> required (taken only as far as the bag has them). */
+export function grantConsumption(tpl: QuestTemplate, objectives: readonly QuestObjective[]): Map<number, number> {
+  const out = new Map<number, number>();
+  for (const o of objectives) if (isGrantObjective(tpl, o)) out.set(o.itemId, (out.get(o.itemId) ?? 0) + o.required);
   return out;
 }
 

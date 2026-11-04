@@ -4,7 +4,7 @@
 
 import { ColorMatrixFilter, type Container } from 'pixi.js';
 import {
-  BattleAction, BattleResult, BATTLE_PLAYER_SLOT, isBattleSkill, skillMpCost, skillNoMpMessage, skillTargetsEnemy,
+  BattleAction, BattleParticipantType, BattleResult, isBattleSkill, skillMpCost, skillNoMpMessage, skillTargetsEnemy,
   type BagItem, type BattleCommand, type BattlePlayList, type BattleStart, type LearnedSkill, type PlayerData,
   type ReliveSwitchResult, type SetCharState,
 } from '@mc/shared';
@@ -47,6 +47,8 @@ export class BattleController {
   private reviving = false;
   private sending = false;
   private menuOpen = false;
+  private mySlot = -1; // the local character's slot (10..14); teammates fill the other player slots
+  private groupSize = 1; // player characters in this battle: > 1 shows wait icons and the teammates' commands
   private skills: LearnedSkill[] = []; // initLearnedSkill, reloaded at every battle start
   private pendingSkill: LearnedSkill | null = null; // chosen skill waiting for an enemy click
   private lastCheck = { x: 0, y: 0 };
@@ -63,6 +65,7 @@ export class BattleController {
       c.on('onSetCharState', (d) => this.onCharState(d as SetCharState)),
       c.on('onBattleStart', (d) => this.onBattleStart(d as BattleStart)),
       c.on('onBattlePlayList', (d) => this.onPlayList(d as BattlePlayList)),
+      c.on('onCmdReady', (slot) => this.stage?.clearWaitIcon(Number(slot))),
     );
   }
 
@@ -117,7 +120,10 @@ export class BattleController {
     this.tintWorld(d.bossFlag > 0);
     this.host.entities.visible = false;
 
-    const stage = new BattleStage(d);
+    const chars = Object.values(d.cList).filter((p) => p.type === BattleParticipantType.CHARACTER);
+    this.groupSize = chars.length;
+    this.mySlot = chars.find((p) => p.id === this.host.player.id)?.battleId ?? -1;
+    const stage = new BattleStage(d, this.host.player.id);
     stage.onPick = (slot) => {
       const sk = this.pendingSkill;
       this.send(sk ? skillCmd(sk, slot) : { tid: slot, action: BattleAction.ATTACK, id: 0, level: -1 });
@@ -138,7 +144,7 @@ export class BattleController {
       onEscape: () => askConfirm('Xác nhận bỏ chạy?', () => this.send({ tid: -1, action: BattleAction.ESCAPE, id: 0, level: -1 })),
       skills: () => this.skills,
       onSkill: (sk) => this.useSkill(sk),
-      onItem: (it) => this.send({ tid: BATTLE_PLAYER_SLOT, action: BattleAction.ITEM, id: it.id, level: -1 }),
+      onItem: (it) => this.send({ tid: this.mySlot, action: BattleAction.ITEM, id: it.id, level: -1 }),
       onTimeout: () => this.send({ tid: -1, action: BattleAction.TIMEOUT, id: -1, level: -1 }),
       potions: () => this.host.bagItems().filter((i) => HP_POTION[i.tid] !== undefined || MP_POTION[i.tid] !== undefined),
     });
@@ -160,13 +166,13 @@ export class BattleController {
 
   /** Kỹ năng menu pick: MP pre-check (Core.checkSkillRequire), then send at once (self skills) or wait for an enemy click. */
   private useSkill(sk: LearnedSkill): void {
-    const unit = this.stage?.units.get(BATTLE_PLAYER_SLOT);
+    const unit = this.stage?.units.get(this.mySlot);
     if (unit && skillMpCost(sk.useMp, unit.mpMax) > unit.mp) {
       toast(skillNoMpMessage(sk.name), true);
       return;
     }
     if (!skillTargetsEnemy(sk.type)) {
-      this.send(skillCmd(sk, BATTLE_PLAYER_SLOT));
+      this.send(skillCmd(sk, this.mySlot));
       return;
     }
     this.pendingSkill = sk;
@@ -175,6 +181,12 @@ export class BattleController {
   }
 
   private startRound(): void {
+    if (this.groupSize > 1) this.stage?.showWaitIcons();
+    if ((this.stage?.units.get(this.mySlot)?.hp ?? 1) <= 0) {
+      // Fallen in a group battle: no command UI, just wait for the others to finish the fight.
+      this.menu?.hide('Đang chờ...');
+      return;
+    }
     this.menuOpen = true;
     this.menu?.show();
     this.stage?.setPicking(true);
@@ -187,6 +199,7 @@ export class BattleController {
     this.menuOpen = false;
     this.menu?.hide('Đang chờ...');
     this.stage?.setPicking(false);
+    this.stage?.clearWaitIcon(this.mySlot);
     void (async () => {
       await sleep(Math.max(0, this.playbackStartedAt + SEND_DELAY_MS - performance.now()));
       try {
@@ -206,6 +219,7 @@ export class BattleController {
     if (!stage) return;
     this.sending = false;
     this.menu?.hide();
+    stage.clearWaitIcon();
     this.chain = this.chain.then(async () => {
       if (this.stage !== stage) return;
       this.playbackStartedAt = performance.now();
@@ -222,7 +236,8 @@ export class BattleController {
   /** The end marker was played: report, battlePlayEnd, back to the map, then the revive check. */
   private async finish(end: PlaybackEnd): Promise<void> {
     this.menu?.hide();
-    toast(reportText(end), end.result === BattleResult.LOSE, 4500);
+    const fallen = this.groupSize > 1 && (this.stage?.units.get(this.mySlot)?.hp ?? 1) <= 0;
+    toast(fallen && end.result === BattleResult.WIN ? 'Chiến thắng! Bạn đã gục nên không nhận thưởng' : reportText(end), end.result === BattleResult.LOSE, 4500);
     await this.host.client.call('battlePlayEnd').catch((e) => toast((e as Error).message, true));
     this.teardown();
     if (this.host.player.currentHp > 0) return;

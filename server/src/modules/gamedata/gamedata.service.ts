@@ -1,6 +1,6 @@
 // Read-only access to the static game tables imported from the old Postgres `data` schema.
 // Collections keep their original names (data_tbl_map, data_tbl_class, ...) and snake_case columns.
-// Hot tables (map, class, npc, quest + require/pre, scene items) are cached in memory at startup.
+// Hot tables (map, class, npc, quest + require/pre/award, scene items) are cached in memory at startup.
 
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
@@ -12,7 +12,9 @@ import {
   buildCombatTables, type CombatTables, type CreatureTemplate, type LootRow, type MapCreatureRow,
 } from './combat-data';
 import { buildSkillTable, type SkillTemplate } from './skill-data';
-import { buildQuestTables, type QuestPreRow, type QuestRequireRow, type QuestTables, type QuestTemplate } from './quest-data';
+import {
+  buildQuestTables, type QuestAwardRow, type QuestPreRow, type QuestRequireRow, type QuestTables, type QuestTemplate,
+} from './quest-data';
 
 export type Row = Record<string, unknown>;
 
@@ -60,12 +62,13 @@ export class GameDataService implements OnModuleInit {
       if (!this.npcsByMap.has(mapId)) this.npcsByMap.set(mapId, []);
       this.npcsByMap.get(mapId)!.push(npc);
     }
-    const [quests, requires, pres] = await Promise.all([
+    const [quests, requires, pres, awards] = await Promise.all([
       this.rows('data_tbl_quest'),
       this.rows('data_tbl_quest_require'),
       this.rows('data_tbl_quest_pre'),
+      this.rows('data_tbl_quest_award'),
     ]);
-    this.quests = buildQuestTables(quests, requires, pres);
+    this.quests = buildQuestTables(quests, requires, pres, awards);
     const [instances, templates] = await Promise.all([
       this.rows('data_tbl_sceneitem_instance'),
       this.rows('data_tbl_sceneitem_template'),
@@ -90,7 +93,7 @@ export class GameDataService implements OnModuleInit {
     this.skills = buildSkillTable(await this.rows('data_tbl_skill'));
     this.logger.log(
       `Loaded ${this.maps.size} maps, ${this.classes.size} classes, ${npcs.length} npcs, ` +
-        `${quests.length} quests (${requires.length} require, ${pres.length} pre), ` +
+        `${quests.length} quests (${requires.length} require, ${pres.length} pre, ${awards.length} award), ` +
         `${instances.length} scene items (${this.sceneItems.gates.length} gates), ` +
         `${this.shopsById.size} shops (${shopSlots.length} slots), ${this.buffs.size} buffs, ` +
         `${this.combat.creatures.size} creatures (${mapCreatures.length} map rows, ${loot.length} loot rows), ${this.skills.size} skills` +
@@ -145,6 +148,11 @@ export class GameDataService implements OnModuleInit {
 
   questPre(qid: number): QuestPreRow[] {
     return this.quests.pre.get(qid) ?? [];
+  }
+
+  /** data_tbl_quest_award rows of a quest, in row id order. */
+  questAwards(qid: number): QuestAwardRow[] {
+    return this.quests.award.get(qid) ?? [];
   }
 
   /** All scene items placed on a map, joined with their template, by id. */

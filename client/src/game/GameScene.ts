@@ -4,9 +4,8 @@
 // World and DOM HUD share the virtual Flash stage scale (ui/stage.ts).
 
 import { Application, Container, FederatedPointerEvent, Ticker } from 'pixi.js';
-import { ChatChannel, NpcType } from '@mc/shared';
+import { NpcType } from '@mc/shared';
 import type {
-  ChatMessage,
   MoveUpdate,
   NpcFuncInit,
   OpenShop,
@@ -24,14 +23,17 @@ import { HitMask } from './HitMask';
 import { PortalLayer, type Portal } from './PortalLayer';
 import { dirFromDelta } from './SheetAnim';
 import { findRoute, type RoutePoint } from './route';
-import { NpcDialog } from '../ui/npcDialog';
-import { ShopPanel } from '../ui/shopPanel';
 import { QuestController } from './QuestController';
 import { BagController } from './BagController';
 import { CharacterController } from './CharacterController';
 import { BattleController } from './BattleController';
 import { runSceneCommand } from './sceneCommands';
-import { ChatBox } from '../ui/chat';
+import { SocialController } from './SocialController';
+import { PartyController } from './PartyController';
+import { FriendController } from './FriendController';
+import { TradeController } from './TradeController';
+import { NpcPanels } from './NpcPanels';
+import type { ChatBox } from '../ui/chat';
 import { MainHud } from '../ui/hud/mainHud';
 import { clearUi, toast } from '../ui/screens';
 import { onStageResize, stageEl, stageScale } from '../ui/stage';
@@ -39,7 +41,6 @@ import { onStageResize, stageEl, stageScale } from '../ui/stage';
 const MOVE_SEND_INTERVAL_MS = 120;
 const NPC_TALK_RANGE = 250; // legacy NPCView click distance
 const NPC_STAND_OFFSET = 120; // how far from the NPC the player stops when walking up
-const NPC_DIALOG_CLOSE_DIST = 300;
 const NPC_CLICK_THROTTLE_MS = 1100;
 const GATE_CLICK_THROTTLE_MS = 1100; // RPCConfig sceneChange throttle
 // Boss / minigame / walk NPCs: not ported, clicking only shows a placeholder toast. Battle NPCs (10 / 19 / 20) are
@@ -62,16 +63,19 @@ export class GameScene {
   private readonly portals: PortalLayer;
   private pendingGate: Portal | null = null;
   private lastGateAt = -Infinity;
-  private readonly npcDialog = new NpcDialog();
-  private readonly shop = new ShopPanel();
+  private readonly panels: NpcPanels;
   private self: Entity | null = null;
   private mapInfo: SceneLoginResponse['map'] | null = null;
   private hitMask: HitMask | null = null;
   private lastSent = 0;
+  private readonly social: SocialController;
+  private readonly party: PartyController;
+  private readonly friends: FriendController;
   private readonly chat: ChatBox;
   private readonly hud: MainHud;
   private readonly quest: QuestController;
   private readonly bag: BagController;
+  private readonly trade: TradeController;
   private readonly character: CharacterController;
   private readonly battle: BattleController;
   private readonly offs: (() => void)[] = [];
@@ -84,14 +88,31 @@ export class GameScene {
     clearUi();
     const ui = stageEl();
     ui.replaceChildren();
-    this.chat = new ChatBox(
-      ui,
-      (channelId, msg) => void this.client.call('say', channelId, msg).catch((e) => toast((e as Error).message, true)),
-      (cmd, args) => void runSceneCommand(cmd, args, this.client, this.chat, (res) => this.applyScene(res)),
-    );
+    const entityOf = (id: number): Entity | undefined => (id === this.self?.entityId ? this.self : this.players.get(id));
+    this.social = new SocialController({
+      client, player, ui, entityOf,
+      locked: () => this.battle.locked,
+      party: () => this.party,
+      trade: () => this.trade,
+      friends: () => ({ isBlack: (id) => this.friends.isBlack(id), add: (name) => this.friends.addByName(name) }),
+      onCommand: (cmd, args) => void runSceneCommand(cmd, args, client, this.chat, (res) => this.applyScene(res)),
+    });
+    this.chat = this.social.chat;
+    this.friends = new FriendController({
+      client,
+      whisper: (name) => this.social.whisperTo(name),
+      privateChat: (id, name) => this.social.openPrivate(id, name),
+      invite: (id) => this.party.invite(id),
+    });
+    this.party = new PartyController({ client, player, ui, chat: this.chat, entityOf, locked: () => this.battle.locked });
+    this.panels = new NpcPanels({
+      client, npc: (id) => this.npcs.get(id), npcIcon: (id) => this.npcIcons.get(id) ?? '0', self: () => this.self,
+      quest: () => this.quest, bag: () => this.bag,
+    });
     this.hud = new MainHud(ui, client, () => document.activeElement instanceof HTMLInputElement, {
       onBag: () => this.bag.toggle(),
       onCharacter: () => this.character.toggle(),
+      onFriend: () => this.friends.toggle(),
       onLevelUp: () => this.character.levelUp(),
       onRecover: (kind) => this.bag.actions.recover(kind),
     });
@@ -104,7 +125,8 @@ export class GameScene {
       playerChanged: () => this.updateHud(),
       bagCount: (id) => this.bag.countOf(id),
     }, ui);
-    this.bag = new BagController({ client, chat: this.chat, player, shop: this.shop });
+    this.bag = new BagController({ client, chat: this.chat, player, shop: this.panels.shop });
+    this.trade = new TradeController({ client, player, bag: this.bag });
     this.character = new CharacterController({ client, player, bag: this.bag });
     this.battle = new BattleController({
       client, player, root: this.root, world: this.world, entities: this.entityLayer,
@@ -137,13 +159,16 @@ export class GameScene {
 
   destroy(): void {
     for (const off of this.offs) off();
+    this.social.destroy();
+    this.party.destroy();
+    this.friends.destroy();
+    this.trade.destroy();
     this.quest.destroy();
     this.bag.destroy();
     this.character.destroy();
     this.battle.destroy();
     this.hud.destroy();
-    this.npcDialog.close();
-    this.shop.close();
+    this.panels.closeAll();
     this.pendingNpc = null;
     this.app.ticker.stop();
     this.root.destroy({ children: true });
@@ -156,9 +181,8 @@ export class GameScene {
       this.client.on('onScenePlayerEntered', (data) => this.addPlayer(data as SceneCharacter)),
       this.client.on('onScenePlayerLeft', (id) => this.removePlayer(Number(id))),
       this.client.on('onCR', (data) => this.onRemoteMove(data as MoveUpdate)),
-      this.client.on('npcFuncInit', (data) => this.onNpcFuncInit(data as NpcFuncInit)),
-      this.client.on('onOpenShop', (data) => this.onOpenShop(data as OpenShop)),
-      this.client.on('onChat', (data) => this.onChat(data as ChatMessage)),
+      this.client.on('npcFuncInit', (data) => this.panels.onNpcFuncInit(data as NpcFuncInit)),
+      this.client.on('onOpenShop', (data) => this.panels.onOpenShop(data as OpenShop)),
       this.client.on('onKickChar', () => toast('Tài khoản được đăng nhập ở nơi khác', true, 8000)),
     );
   }
@@ -174,6 +198,7 @@ export class GameScene {
 
     this.self = new Entity(res.self.id, 'self', res.self.name, res.self.iconCode, res.self.resCode, res.self.posX, res.self.posY, res.self.posDir);
     this.entityLayer.addChild(this.self);
+    this.party.track(res.self);
 
     const [peers, npcs, items] = await Promise.all([
       this.client.call<Record<string, SceneCharacter>>('createChars'),
@@ -202,8 +227,7 @@ export class GameScene {
   }
 
   private clearScene(): void {
-    this.npcDialog.close();
-    this.shop.close();
+    this.panels.closeAll();
     this.quest.closePanel();
     this.pendingNpc = null;
     this.pendingGate = null;
@@ -225,11 +249,14 @@ export class GameScene {
     const existing = this.players.get(data.id);
     if (existing) {
       existing.teleport(data.posX, data.posY);
+      this.party.track(data);
       return;
     }
     const e = new Entity(data.id, 'player', data.name, data.iconCode, data.resCode, data.posX, data.posY, data.posDir);
     this.players.set(data.id, e);
+    this.social.bindPlayer(e, data.name);
     this.entityLayer.addChild(e);
+    this.party.track(data);
   }
 
   private removePlayer(id: number): void {
@@ -237,14 +264,6 @@ export class GameScene {
     if (!e) return;
     e.destroy({ children: true });
     this.players.delete(id);
-  }
-
-  /** Log every message; current-map chat also pops a bubble over the speaker (self included). */
-  private onChat(msg: ChatMessage): void {
-    this.chat.push(msg);
-    if (msg.channelId !== ChatChannel.LOCAL) return;
-    const speaker = msg.id === this.self?.entityId ? this.self : this.players.get(msg.id);
-    speaker?.say(msg.msg);
   }
 
   private onRemoteMove(data: MoveUpdate): void {
@@ -255,7 +274,7 @@ export class GameScene {
   }
 
   private onTap(e: FederatedPointerEvent): void {
-    if (!this.self || !this.mapInfo || this.chat.focused || this.battle.locked) return;
+    if (!this.self || !this.mapInfo || this.chat.focused || this.battle.locked || this.party.blocked()) return;
     this.pendingNpc = null;
     this.pendingGate = null;
     const local = this.world.toLocal(e.global);
@@ -290,7 +309,7 @@ export class GameScene {
   /** Gate click (SceneItemView.mouseDown): walk to the clicked point; arriving on the gate sends sceneChange(gateId). */
   private onGateTap(portal: Portal, e: FederatedPointerEvent): void {
     const self = this.self;
-    if (!self || !this.mapInfo || this.chat.focused || this.battle.locked) return;
+    if (!self || !this.mapInfo || this.chat.focused || this.battle.locked || this.party.blocked()) return;
     e.stopPropagation();
     this.pendingNpc = null;
     const local = this.world.toLocal(e.global);
@@ -319,7 +338,7 @@ export class GameScene {
 
   private onNpcClick(npc: Entity): void {
     const self = this.self;
-    if (!self || !this.mapInfo || this.chat.focused || this.battle.locked) return;
+    if (!self || !this.mapInfo || this.chat.focused || this.battle.locked || this.party.blocked()) return;
     if (UNSUPPORTED_NPC_TYPES.has(npc.npcType)) {
       toast('Tính năng đang phát triển');
       return;
@@ -355,31 +374,6 @@ export class GameScene {
     void this.client.call('clickNpc', npc.entityId).catch((e) => toast((e as Error).message, true));
   }
 
-  private onNpcFuncInit(data: NpcFuncInit): void {
-    const npc = this.npcs.get(data.npcId);
-    if (!npc) return;
-    if (data.npcQuest.state <= 0 && data.npcType <= 0) {
-      // Legacy: talk-only NPCs show their greeting as a speech bubble instead of a panel.
-      this.npcDialog.close();
-      npc.say(data.onServiceText);
-      return;
-    }
-    this.npcDialog.show(data, this.npcIcons.get(data.npcId) ?? '0', (view) => {
-      this.npcDialog.close();
-      this.quest.openFromNpc(view, data.npcId, data.npcName);
-    }, (npcType) => {
-      if (npcType !== NpcType.SHOP) return toast('Tính năng đang phát triển');
-      void this.client.call('npcFuncClick', data.npcId).catch((e) => toast((e as Error).message, true));
-    });
-  }
-
-  private onOpenShop(data: OpenShop): void {
-    this.npcDialog.close();
-    this.quest.closePanel();
-    this.shop.show(data, true);
-    this.bag.showBesideShop();
-  }
-
   private sendPosition(x: number, y: number, dir: number, route: number[][]): void {
     const now = performance.now();
     if (now - this.lastSent < MOVE_SEND_INTERVAL_MS) return;
@@ -394,9 +388,10 @@ export class GameScene {
     this.battle.tick(dt);
     this.portals.tick(dt);
     this.hud.setPosition(this.self.x, this.self.y);
-    this.closeDialogIfFar();
+    this.panels.closeIfFar();
     for (const e of this.players.values()) e.tick(dt);
     for (const e of this.npcs.values()) e.tick(dt);
+    this.party.tick(dt);
 
     const scale = this.root.scale.x;
     const sw = this.app.screen.width / scale;
@@ -405,16 +400,6 @@ export class GameScene {
     const camY = clamp(this.self.y - sh / 2, 0, Math.max(0, this.mapInfo.height - sh));
     this.world.position.set(-camX, -camY);
     this.map?.updateVisible(camX, camY, sw, sh);
-  }
-
-  private closeDialogIfFar(): void {
-    if (!this.self) return;
-    const far = (id: number | null): boolean => {
-      const npc = id === null ? undefined : this.npcs.get(id);
-      return id !== null && (!npc || Math.hypot(npc.x - this.self!.x, npc.y - this.self!.y) > NPC_DIALOG_CLOSE_DIST);
-    };
-    if (far(this.npcDialog.npcId)) this.npcDialog.close();
-    if (far(this.shop.npcId)) this.shop.close();
   }
 
   private updateHud(): void {

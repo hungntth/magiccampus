@@ -75,6 +75,25 @@ export function planAdd(bag: readonly BagStack[], spec: AddSpec, capacity = BAG_
   return rest > 0 ? null : { topUps, newStacks };
 }
 
+/** True when every spec fits when added one after the other (several rewards granted together). */
+export function fitsAll(bag: readonly BagStack[], specs: readonly AddSpec[], capacity = BAG_PAGE_SLOTS): boolean {
+  let sim = bag.map((s) => ({ ...s }));
+  let nextId = -1;
+  for (const spec of specs) {
+    const plan = planAdd(sim, spec, capacity);
+    if (!plan) return false;
+    const add = new Map(plan.topUps.map((t) => [t.id, t.add]));
+    sim = sim.map((s) => (add.has(s.id) ? { ...s, stackCount: s.stackCount + add.get(s.id)! } : s));
+    for (const n of plan.newStacks) {
+      sim.push({
+        id: nextId--, slotIndex: n.slotIndex, templateId: spec.templateId, itemType: spec.itemType, isBound: spec.bound,
+        colorCode: spec.color, stackCount: n.count,
+      });
+    }
+  }
+  return true;
+}
+
 // --- Moves, splits and sorting (legacy MoveItem / MoveItemPartial / SortBag), pure over plain slot rows ---
 
 export interface BagSlotRow extends BagStack {

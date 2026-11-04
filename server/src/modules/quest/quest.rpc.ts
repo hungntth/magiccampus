@@ -1,6 +1,7 @@
 // Quest RPCs: takeQuest, finishQuest, cancelQuest, initQuestManager.
 // Pushes (self): onAddChaQuest, onCancelQuest, onSetNpcState, onAddMoney, onUPP, onPlayerLevelUp; finishQuest first sends
-// onDelCharactorSlot / onAddCharactorSlot for the collected items it consumed.
+// onDelCharactorSlot / onAddCharactorSlot for the collected items it consumed and ends with onAddItem +
+// onAddCharactorSlot for the award items; takeQuest sends the same pair for an accept-time item.
 
 import { Injectable } from '@nestjs/common';
 import type {
@@ -32,8 +33,9 @@ export class QuestRpc {
   async takeQuest(session: Session, args: unknown[]): Promise<null> {
     const questId = intArg(args[0], 'questId');
     const npcId = intArg(args[1], 'npcId');
-    const quest = await this.quests.take(session.characterId!, questId, npcId, session.mapId);
+    const { quest, pushes } = await this.quests.take(session.characterId!, questId, npcId, session.mapId);
     session.callback('onAddChaQuest', quest);
+    sendPushes(session, pushes);
     await this.pushNpcStates(session, [npcId, quest.data.startNpc, quest.data.finishNpc]);
     return null;
   }
@@ -44,14 +46,16 @@ export class QuestRpc {
     const raw = args[0];
     let questId: number;
     let npcId = -1;
+    let selectId = -1; // picked award row id (choose-one quests)
     if (raw !== null && typeof raw === 'object') {
       const o = raw as Record<string, unknown>;
       questId = intArg(o.i, 'i');
       if (o.n !== undefined) npcId = intArg(o.n, 'n');
+      if (o.s !== undefined && o.s !== null) selectId = intArg(o.s, 's');
     } else {
       questId = intArg(raw, 'questId');
     }
-    const out = await this.quests.finish(session.characterId!, questId, npcId, session.mapId);
+    const out = await this.quests.finish(session.characterId!, questId, npcId, session.mapId, selectId);
     const id = session.characterId!;
     sendPushes(session, out.pushes); // consumed collect items leave the bag before the rewards arrive (Go order)
     const update: PlayerUpdate = { level: out.exp.level, exp: out.exp.exp, attrPoints: out.exp.attrPoints };
@@ -65,6 +69,7 @@ export class QuestRpc {
       const lv: PlayerLevelUp = { id, level: out.exp.level, exp: out.exp.exp, lp: out.exp.attrPoints };
       session.callback('onPlayerLevelUp', lv);
     }
+    sendPushes(session, out.rewardPushes); // award items after exp / money (Go FinishQuest order)
     await this.pushNpcStates(session, this.gameData.npcsOnMap(session.mapId).map((r) => Number(r.id)));
     return { flag: true, qid: questId, qn: out.qn };
   }

@@ -18,6 +18,7 @@ const SLOTS: Record<number, [string, number, number]> = {
   21: ['Thời trang', 57, 83], 22: ['Cánh', 187, 82],
 };
 const LOCKED = new Set([15, 16, 17, 18, 19, 20]);
+export { SLOTS as EQUIP_SLOTS, LOCKED as LOCKED_EQUIP_SLOTS }; // the other-player info panel reuses the layout
 
 type AttrKey = 'Strength' | 'Agility' | 'Stamina' | 'Intelligence' | 'Energy';
 const ATTRS: [AttrKey, string][] = [

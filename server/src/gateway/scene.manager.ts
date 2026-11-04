@@ -59,6 +59,11 @@ export class SceneManager {
     return this.byCharacter.get(characterId);
   }
 
+  /** Every session that has a character bound (online characters). */
+  onlineSessions(): Session[] {
+    return [...this.byCharacter.values()];
+  }
+
   release(session: Session): void {
     this.leave(session);
     if (session.accountId && this.byAccount.get(session.accountId) === session) {

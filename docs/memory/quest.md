@@ -62,8 +62,28 @@ NPC 430 (Sứ Giả Viên) is on **map 3 (Vân Đài)**, so 161 is turned in and
 - Grant-item objectives keep the old behaviour: met at accept, not consumed, because `start_grant_item` is not granted into the bag yet.
 - Pure helpers `quest/quest-progress.ts` and shared `questProgress.ts`. Details: `combat.md`.
 
+## Item rewards + accept-time grants (2026-11-04)
+- `data_tbl_quest_award` (1437 rows) is cached by `GameDataService.questAwards(qid)` (row id order). `QuestTemplate.at`
+  (`QuestAwardMode`): 1 all rows (every newbie quest), 2 player picks one (`finishQuest` `s` = award row id, refused with
+  "Vui lòng chọn 1 phần thưởng!"), 3 item rows filtered by template `req_class` (QuestCanvas; Go grants all).
+- `QuestView.award: QuestAward[]` (+ `data.at`) fills the panel's six Quà slots (icon, count, colour border; CHOOSE_ONE
+  slots are clickable). Pure rules: `quest/quest-award.ts` (+test); service: `quest/quest-reward.service.ts`.
+- Finish: reward room checked first with `InventoryService.canFitAll` (`bag-rules.fitsAll`) -> "Túi không đủ chỗ trống!"
+  before anything is consumed. Items/equipment are **bound**; equipment colour = q > 0 ? clamp(floor((q+4)/5)+1, 0..5)
+  (Go QuestRewardEquipmentColorCodeFromQuality, newbie q=10 -> 3) : template color_code; durability = endure_max;
+  notice name gets the quality prefix (Go FormatEquipmentDisplayNameFromQuality, q=10 -> "Trác Việt "). A failed add is
+  logged and skipped (Go). Push order: consumed slots -> onAddMoney -> onUPP -> onPlayerLevelUp -> onAddItem per award ->
+  onAddCharactorSlot per changed slot -> onSetNpcState.
+- Accept: `start_grant_item` x `start_grant_qty` (default 1), **unbound**, into the bag (H5 has no quest bag), pushed as
+  onAddItem + onAddCharactorSlot after onAddChaQuest; full bag skips it with a warning (Go). The grant objective stays met
+  at accept (rows taken before this change have no item); finish takes the item back as far as the bag holds it.
+- Verified over ws on a fresh class-1 character: quest 1 -> 20x item 1, 20x item 158, 1x 2918; quest 3 -> 170 + 209;
+  quest 2 -> 751..756 (all colour 3, bound, durability 100).
+- Not granted (logged): pet awards (kind 2, e.g. quest 4 "Nhận Pet" -> creature 32) and skill awards (kind 3) — no pet /
+  skill-book system yet. Equipment random props / element and the stored quality (bag name has no prefix) are not ported.
+
 ## Deferred
-Item/equipment/pet rewards and accept-time grant items (no inventory), equipment/quality/pet objectives, quest manager window,
+Pet/skill rewards, equipment quality props, equipment/quality/pet objectives, quest manager window,
 loop/daily/class/guild quests, choose-one rewards, real marker art, HP/MP recalculation, goldBind field, cross-map
 pathing for "Tìm". Quiet the 4 quest RPCs only after the user confirms the feature works.
 
@@ -71,5 +91,13 @@ pathing for "Tìm". Quiet the 4 quest RPCs only after the user confirms the feat
 - `client/src/ui/questPanel.ts` + `questPanel.css`: "NPC nhiệm vụ" window like legacy QuestPanel/QuestCanvas, plain
   HTML/CSS (no skin images): left = portrait, NPC name, speech (startText; completeText at 104), Nhận / Xong / Bỏ; right =
   "Mô tả nvụ" box ([type prefix #1E90FF][name in MSG_ITEM_COLOR], info, "Yêu cầu nhiệm vụ:", NPC nhận/trả with NPC
-  #FFCC00 and map #33FF66), Tiền / Exp, 6 empty Quà slots (item rewards not ported). Drag by the title bar, Esc / × close.
+  #FFCC00 and map #33FF66), Tiền / Exp, 6 Quà slots (filled from `QuestView.award` since 2026-11-04). Drag by the title bar, Esc / × close.
 - `QuestView` += `sMid`, `sMap` (start NPC map; legacy QuestCanvas `sMid`). `TYPE_PREFIX` exported from questTracker.
+
+## Tracker look (2026-11-04)
+- `ui/questTracker.ts` + `.quest-tracker` in `client/src/style.css`: Flash QuestGuide look in plain CSS (no images, no panel):
+  outlined white text, 128 px wide, names cut with "…" (full "[prefix] name" in the tooltip), × folds the list.
+  A finishable quest shows its name white and one "• Tìm[NPC]" line (NPC #ffb400); one in progress shows its name red
+  (#ff4a1c) with "• <target> (have/need)" lines (target red, green when that line is done).
+- The funCanvas column (Nạp … Bay, `hud/miniMap.ts`) is styled in `hud/hud.css` (`.hud-fun`, `.hud-red-btn`): teal frame,
+  cyan gradient buttons with outlined white text, CSS only.

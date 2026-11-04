@@ -1,6 +1,6 @@
 // Quest logic + persistence: NPC quest lists/markers, take / finish / cancel, active quest DTOs, kill credit and the
-// login questLog. Collect objectives are counted from the bag and consumed on finish. Rewards: exp (auto level-up < 20)
-// and money; item/pet rewards are not granted yet.
+// login questLog. Collect objectives are counted from the bag and consumed on finish. Rewards: exp (auto level-up < 20),
+// money and data_tbl_quest_award items / equipment (quest-reward.service.ts); accept grants start_grant_item.
 
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -15,6 +15,7 @@ import { withCharLock } from '../inventory/char-lock';
 import type { Push } from '../inventory/pushes';
 import { allMet, creditKills, initialObjectives, questKillOf } from './quest-progress';
 import { QuestProgressService } from './quest-progress.service';
+import { QuestRewardService } from './quest-reward.service';
 import { CharacterQuest, QuestHistory, type QuestObjective } from './quest.schema';
 import {
   acceptBlocker, applyExp, isSupported, npcQuestStates, npcStateOf,
@@ -40,6 +41,12 @@ export interface FinishOutcome {
   exp: ExpResult;
   money: { key: CreditedMoney; amount: number; total: number } | null;
   pushes: Push[]; // bag changes from consuming the collected items (sent before the rewards)
+  rewardPushes: Push[]; // onAddItem + onAddCharactorSlot for the award items (sent after exp / money)
+}
+
+export interface TakeOutcome {
+  quest: ChaQuest;
+  pushes: Push[]; // onAddItem + onAddCharactorSlot for the accept-time item (sent after onAddChaQuest)
 }
 
 /** Quests whose kill counters moved in a battle: the onAddChaQuest payloads and the finish NPCs of the now finishable ones. */
@@ -68,6 +75,7 @@ export class QuestService {
     @InjectModel(Character.name) private readonly characters: Model<Character>,
     private readonly gameData: GameDataService,
     private readonly progress: QuestProgressService,
+    private readonly rewards: QuestRewardService,
   ) {}
 
   async loadCtx(characterId: number): Promise<QuestCtx> {
@@ -117,7 +125,7 @@ export class QuestService {
     return { state: npcStateOf(states), list };
   }
 
-  async take(characterId: number, questId: number, npcId: number, mapId: number): Promise<ChaQuest> {
+  async take(characterId: number, questId: number, npcId: number, mapId: number): Promise<TakeOutcome> {
     const tpl = this.gameData.getQuest(questId);
     if (!tpl) throw RpcException.notFound('Nhiệm vụ không tồn tại');
     const require = this.gameData.questRequire(questId);
@@ -136,16 +144,19 @@ export class QuestService {
       if (isDupKey(e)) throw RpcException.forbidden('Đã nhận nhiệm vụ này');
       throw e;
     }
+    const pushes = await this.rewards.grantStart(characterId, tpl);
     const synced = await this.progress.syncObjectives(characterId, tpl, objectives);
-    return this.toChaQuest(tpl, { questId, takeDate, objectives: synced });
+    return { quest: await this.toChaQuest(tpl, { questId, takeDate, objectives: synced }), pushes };
   }
 
   /** Serialized per character: the collected items are consumed first, then the active row is deleted, then the reward. */
-  finish(characterId: number, questId: number, npcId: number, mapId: number): Promise<FinishOutcome> {
-    return withCharLock(characterId, () => this.finishLocked(characterId, questId, npcId, mapId));
+  finish(characterId: number, questId: number, npcId: number, mapId: number, selectId: number): Promise<FinishOutcome> {
+    return withCharLock(characterId, () => this.finishLocked(characterId, questId, npcId, mapId, selectId));
   }
 
-  private async finishLocked(characterId: number, questId: number, npcId: number, mapId: number): Promise<FinishOutcome> {
+  private async finishLocked(
+    characterId: number, questId: number, npcId: number, mapId: number, selectId: number,
+  ): Promise<FinishOutcome> {
     const tpl = this.gameData.getQuest(questId);
     if (!tpl) throw RpcException.notFound('Nhiệm vụ không tồn tại');
     const row = await this.quests.findOne({ characterId, questId }).lean();
@@ -155,6 +166,11 @@ export class QuestService {
     if (tpl.finishNpc > 0 && (npcId !== tpl.finishNpc || !this.npcOnMap(npcId, mapId))) {
       throw RpcException.forbidden('Không thể trả nhiệm vụ ở đây');
     }
+    const doc = await this.characters.findById(characterId);
+    if (!doc) throw RpcException.notFound('character not found');
+    // Reward room is checked before anything is spent (Flash QuestPanel.checkBag, QUESTPANEL_S[13]).
+    const awards = await this.rewards.plan(tpl, doc.classId, selectId);
+    if (!(await this.rewards.canFit(characterId, awards))) throw RpcException.forbidden('Túi không đủ chỗ trống!');
     // Go CompleteQuest: the collected items are taken out of the bag before the quest is completed and rewarded.
     const pushes = await this.progress.consumeCollected(characterId, tpl, objectives);
     const del = await this.quests.deleteOne({ _id: row._id });
@@ -163,8 +179,6 @@ export class QuestService {
       if (!isDupKey(e)) throw e;
     });
 
-    const doc = await this.characters.findById(characterId);
-    if (!doc) throw RpcException.notFound('character not found');
     const exp = applyExp({ level: doc.level, exp: doc.exp, attrPoints: doc.attrPoints }, tpl.awardExp);
     doc.level = exp.level;
     doc.exp = exp.exp;
@@ -183,8 +197,9 @@ export class QuestService {
       money = { key: field, amount: tpl.moneyNum, total: doc[field] };
     }
     await doc.save();
+    const granted = await this.rewards.grant(characterId, awards);
     const qn = await this.quests.countDocuments({ characterId });
-    return { tpl, qn, exp, money, pushes };
+    return { tpl, qn, exp, money, pushes, rewardPushes: granted.pushes };
   }
 
   async cancel(characterId: number, questId: number): Promise<{ flag: boolean; qn: number; info?: string; tpl?: QuestTemplate }> {
@@ -258,9 +273,10 @@ export class QuestService {
       data: {
         id: tpl.id, name: tpl.name, info: tpl.info, type: tpl.type, startText: tpl.startText,
         completeText: tpl.completeText, awardExp: tpl.awardExp, moneyNum: tpl.moneyNum, moneyType: tpl.moneyType,
-        startNpc: tpl.startNpc, finishNpc: tpl.finishNpc, minLevel: tpl.minLevel, color: tpl.color,
+        startNpc: tpl.startNpc, finishNpc: tpl.finishNpc, minLevel: tpl.minLevel, color: tpl.color, at: tpl.at,
       },
       require,
+      award: await this.rewards.views(tpl.id),
       questKill: questKillOf(objectives ?? initialObjectives(tpl, rows)),
       sName: String(start?.name ?? ''),
       sMid: Number(start?.pos_map_id ?? 0),

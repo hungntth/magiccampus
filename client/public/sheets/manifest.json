@@ -13278,5 +13278,14 @@
   "images": 1,
   "anims": 1,
   "skipped": 1
+ },
+ "resource/ui/UI_LOADING_BACK.swf": {
+  "md5": "38a9d7ea5a2e2ac769acf89e18e475a1",
+  "name": "resource/ui/UI_LOADING_BACK.swf",
+  "category": "vector-anim",
+  "sheet": "ui/UI_LOADING_BACK",
+  "images": 1,
+  "anims": 1,
+  "skipped": 1
  }
 }

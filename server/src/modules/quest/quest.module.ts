@@ -9,6 +9,7 @@ import { CharacterQuest, CharacterQuestSchema, QuestHistory, QuestHistorySchema 
 import { InventoryModule } from '../inventory/inventory.module';
 import { StatsModule } from '../stats/stats.module';
 import { QuestProgressService } from './quest-progress.service';
+import { QuestRewardService } from './quest-reward.service';
 import { QuestRpc } from './quest.rpc';
 import { QuestService } from './quest.service';
 
@@ -23,7 +24,7 @@ import { QuestService } from './quest.service';
     InventoryModule,
     StatsModule,
   ],
-  providers: [QuestService, QuestProgressService, QuestRpc],
+  providers: [QuestService, QuestProgressService, QuestRewardService, QuestRpc],
   exports: [QuestService, QuestProgressService],
 })
 export class QuestModule {}

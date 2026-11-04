@@ -1,4 +1,4 @@
-// Loot of a won battle: rolls every dead creature's rows (loot.ts) with the quest context and puts the drops into the bag.
+// Loot of a won battle: rolls every dead creature's rows once for the group (group-loot.ts, per-recipient quest context) and puts the drops into the bags.
 // Runs at settle so a disconnect before battlePlayEnd cannot lose them; a full bag skips the drop (onRedMsg at the end).
 
 import { Injectable } from '@nestjs/common';
@@ -9,7 +9,14 @@ import { withCharLock } from '../inventory/char-lock';
 import { InventoryService } from '../inventory/inventory.service';
 import { QuestProgressService } from '../quest/quest-progress.service';
 import type { BattleLoot, Fighter, Rng } from './battle.types';
-import { rollLoot, type LootDrop } from './loot';
+import { rollGroupLoot } from './group-loot';
+import type { LootDrop } from './loot';
+
+/** A loot recipient with the report its items are listed in. */
+export interface LootTarget {
+  cid: number;
+  report: BattleReport;
+}
 
 /** Same item + bound flag merge into one grant. */
 export function mergeDrops(drops: readonly LootDrop[]): LootDrop[] {
@@ -34,12 +41,25 @@ export class BattleLootService {
     private readonly progress: QuestProgressService,
   ) {}
 
-  async grant(characterId: number, dead: readonly Fighter[], report: BattleReport): Promise<BattleLoot> {
+  /**
+   * Rolls the dead creatures' loot once for the whole group (round-robin among the eligible recipients, group-loot.ts) and
+   * credits each recipient's drops to their bag. A solo battle is a group of one. Returns the loot by character id.
+   */
+  async grant(recipients: readonly LootTarget[], dead: readonly Fighter[]): Promise<Map<number, BattleLoot>> {
+    const ctxs = await Promise.all(recipients.map((r) => this.progress.lootContext(r.cid)));
+    const rows = dead.filter((f) => f.kind === 'creature').map((f) => this.gameData.creatureLoot(f.refId));
+    const drops = rollGroupLoot(rows, recipients.map((r, i) => ({ cid: r.cid, ctx: ctxs[i] })), this.rng);
+    const out = new Map<number, BattleLoot>();
+    for (const r of recipients) {
+      const mine = drops.filter((d) => d.cid === r.cid).map((d) => d.drop);
+      out.set(r.cid, await this.credit(r.cid, mergeDrops(mine), r.report));
+    }
+    return out;
+  }
+
+  private async credit(characterId: number, drops: readonly LootDrop[], report: BattleReport): Promise<BattleLoot> {
     const loot: BattleLoot = { changed: [], notices: [], bagFull: false };
-    const ctx = await this.progress.lootContext(characterId);
-    const drops: LootDrop[] = [];
-    for (const f of dead) if (f.kind === 'creature') drops.push(...rollLoot(this.gameData.creatureLoot(f.refId), ctx, this.rng));
-    for (const drop of mergeDrops(drops)) {
+    for (const drop of drops) {
       const tpl = await this.gameData.template(29, drop.itemId);
       if (!tpl) continue;
       const spec = { templateId: drop.itemId, itemType: ItemKind.ITEM, bound: drop.bound, color: 0, amount: drop.qty, maxStack: maxStack(tpl) };

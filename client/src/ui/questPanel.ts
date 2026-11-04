@@ -2,7 +2,10 @@
 // name, NPC speech and Nhận / Xong / Bỏ; right = "Mô tả nvụ" description (type prefix, name, info, requirements,
 // start/finish NPC with map) and the Tiền / Exp / Quà rewards. Drag by the title bar, Esc or × closes.
 
-import { MoneyType, QuestState, QuestType, requireLabel, type QuestView, type RequireProgress } from '@mc/shared';
+import {
+  MoneyType, QuestAwardKind, QuestAwardMode, QuestState, QuestType, requireLabel,
+  type QuestAward, type QuestView, type RequireProgress,
+} from '@mc/shared';
 import { iconUrl } from '../assets';
 import { stageEl } from './stage';
 import { closeOnEscape, makeDraggable } from './panelBehavior';
@@ -21,8 +24,9 @@ export interface QuestPanelOpts {
   npcId: number | null; // NPC the panel was opened at; null = from the tracker
   npcName: string;
   iconCode: string;
+  classId: number; // CLASS award mode shows only the player's class items (QuestCanvas)
   onTake: () => void;
-  onFinish: () => void;
+  onFinish: (selectId: number) => void; // selectId = picked award row id, -1 = none
   onCancel: () => void;
 }
 
@@ -31,6 +35,7 @@ export class QuestPanel {
   private qid: number | null = null;
   private shown: { view: QuestView; opts: QuestPanelOpts } | null = null;
   private offs: (() => void)[] = [];
+  private selectId = -1;
 
   get questId(): number | null {
     return this.qid;
@@ -43,6 +48,7 @@ export class QuestPanel {
 
   show(view: QuestView, opts: QuestPanelOpts): void {
     this.close();
+    this.selectId = -1;
     const root = el('div', 'qp');
     const header = el('div', 'qp-header');
     header.appendChild(el('div', 'qp-title', 'NPC nhiệm vụ'));
@@ -58,9 +64,7 @@ export class QuestPanel {
     const gold = view.data.moneyType === MoneyType.GOLD || view.data.moneyType === MoneyType.GOLD_BIND;
     body.append(el('div', 'qp-label', 'Tiền'), reward(gold ? 'qp-coin gold' : 'qp-coin', money > 0 ? money : 0));
     body.append(el('div', 'qp-label', 'Exp'), reward('qp-exp', view.data.awardExp > 0 ? view.data.awardExp : 0));
-    const gifts = el('div', 'qp-gifts');
-    for (let i = 0; i < GIFT_SLOTS; i++) gifts.appendChild(el('div', 'qp-slot'));
-    body.append(el('div', 'qp-label', 'Quà'), gifts);
+    body.append(el('div', 'qp-label', 'Quà'), this.gifts(view, opts.classId));
     root.appendChild(body);
 
     stageEl().appendChild(root);
@@ -77,6 +81,28 @@ export class QuestPanel {
     this.root = null;
     this.qid = null;
     this.shown = null;
+  }
+
+  /** Six Quà slots filled in award row order; CHOOSE_ONE slots are clickable and the picked one is highlighted. */
+  private gifts(view: QuestView, classId: number): HTMLElement {
+    const box = el('div', 'qp-gifts');
+    const shown = view.award.filter((a) => visibleAward(a, view.data.at, classId)).slice(0, GIFT_SLOTS);
+    const choose = view.data.at === QuestAwardMode.CHOOSE_ONE;
+    const slots: HTMLElement[] = [];
+    for (const a of shown) {
+      const slot = awardSlot(a);
+      if (choose) {
+        slot.classList.add('qp-pick');
+        slot.onclick = () => {
+          this.selectId = a.id;
+          for (const s of slots) s.classList.toggle('selected', s === slot);
+        };
+      }
+      slots.push(slot);
+      box.appendChild(slot);
+    }
+    for (let i = shown.length; i < GIFT_SLOTS; i++) box.appendChild(el('div', 'qp-slot'));
+    return box;
   }
 
   private leftColumn(view: QuestView, opts: QuestPanelOpts): HTMLElement {
@@ -103,7 +129,7 @@ export class QuestPanel {
       actions.appendChild(button('Nhận', opts.onTake));
     } else if (view.state === QuestState.TAKEN || view.state === QuestState.CAN_FINISH) {
       if (view.data.finishNpc <= 0 || opts.npcId === view.data.finishNpc) {
-        const done = button('Xong', opts.onFinish);
+        const done = button('Xong', () => opts.onFinish(this.selectId));
         done.disabled = !finishable;
         actions.appendChild(done);
       }
@@ -134,6 +160,29 @@ function description(view: QuestView, progress: readonly RequireProgress[]): HTM
   if (view.sName) box.appendChild(npcLine('NPC nhận nhiệm vụ: ', view.sName, view.sMap));
   if (view.fName) box.appendChild(npcLine('NPC trả nhiệm vụ: ', view.fName, view.pos?.name ?? ''));
   return box;
+}
+
+/** QuestCanvas: in CLASS mode an item award shows only when its template req_class has the player's class. */
+function visibleAward(a: QuestAward, mode: number, classId: number): boolean {
+  if (mode !== QuestAwardMode.CLASS || a.kind !== QuestAwardKind.ITEM) return true;
+  return !a.reqClass || a.reqClass === 'all' || a.reqClass.includes(`|${classId}|`);
+}
+
+function awardSlot(a: QuestAward): HTMLElement {
+  const slot = el('div', 'qp-slot qp-award');
+  slot.title = a.num > 1 ? `${a.name} x${a.num}` : a.name;
+  slot.style.borderColor = ITEM_COLOR[a.color] ?? '';
+  if (a.iconCode && a.iconCode !== '0') {
+    const img = document.createElement('img');
+    img.src = iconUrl(a.iconCode);
+    img.alt = a.name;
+    img.onerror = () => img.remove();
+    slot.appendChild(img);
+  } else {
+    slot.appendChild(el('span', 'qp-award-name', a.name));
+  }
+  if (a.num > 1) slot.appendChild(el('span', 'qp-award-num', String(a.num)));
+  return slot;
 }
 
 function npcLine(label: string, npc: string, map: string): HTMLElement {

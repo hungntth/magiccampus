@@ -451,45 +451,96 @@ body {
 
 
 
-/* Quest tracker (right side) */
+/* Quest tracker (right side): legacy QuestGuide look in plain CSS — no panel, outlined text, names cut with "…" */
 .quest-tracker {
   position: absolute;
   top: 140px;
   right: 92px;
-  width: 260px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px 12px;
+  width: 128px;
+  font-family: Tahoma, Verdana, Arial, sans-serif;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 18px;
+  color: #fff;
+  text-shadow: 1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000, 0 0 3px #000;
   pointer-events: auto;
 }
 
-.quest-tracker h4 {
-  margin: 0 0 4px;
-  font-size: 13px;
-  color: var(--accent);
+.quest-tracker .qt-head {
+  position: relative;
+  height: 18px;
+  margin-bottom: 2px;
+  text-align: center;
+}
+
+.quest-tracker .qt-title {
+  font-weight: bold;
+  letter-spacing: 0.3px;
+}
+
+.quest-tracker .qt-fold {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  width: 13px;
+  height: 13px;
+  padding: 0;
+  border: 1px solid #5a0c00;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ff8a6a, #d6250c 60%, #8c1300);
+  color: #fff;
+  font: bold 10px/11px Arial, sans-serif;
+  text-shadow: none;
+  cursor: pointer;
+}
+
+.quest-tracker .qt-item {
+  margin-bottom: 1px;
 }
 
 .quest-tracker a {
   cursor: pointer;
 }
 
-.quest-tracker .qt-name:hover {
-  text-decoration: underline;
+.quest-tracker .qt-name {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: bold;
+  color: #ff4a1c;
 }
 
-.quest-tracker .qt-find {
-  color: #7fd17f;
-  text-decoration: underline;
+.quest-tracker .qt-name.ready {
+  color: #fff;
 }
 
-.quest-tracker .qt-req {
+.quest-tracker .qt-line {
+  display: block;
+  position: relative;
   padding-left: 12px;
-  color: #d8d8d8;
 }
 
-.quest-tracker .qt-req.done {
-  color: #7fd17f;
+.quest-tracker .qt-line::before {
+  content: '•';
+  position: absolute;
+  left: 3px;
+}
+
+.quest-tracker .qt-npc {
+  color: #ffb400;
+}
+
+.quest-tracker .qt-target {
+  color: #ff4a1c;
+}
+
+.quest-tracker .qt-line.done .qt-target {
+  color: #66ff33;
+}
+
+@media (hover: hover) {
+  .quest-tracker .qt-name:hover,
+  .quest-tracker .qt-find:hover .qt-npc {
+    text-decoration: underline;
+  }
 }

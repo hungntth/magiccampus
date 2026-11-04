@@ -1,0 +1,138 @@
+/* Trade window (multiplayer phase E). Same navy / gold language as .friend-panel; slots reuse .bag-cell from bag.css. */
+.trade-panel {
+  position: absolute;
+  left: 14px;
+  top: 70px;
+  z-index: 46;
+  width: 460px;
+  box-sizing: border-box;
+  padding: 6px;
+  background: linear-gradient(180deg, #1d4a72 0%, #0e2a45 100%);
+  border: 2px solid #e8c46a;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+  font-family: Tahoma, Verdana, Arial, sans-serif;
+  font-size: 12px;
+  color: #fff;
+  pointer-events: auto;
+}
+
+.trade-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px 4px;
+  border-bottom: 1px solid #4f86b3;
+}
+
+.trade-title {
+  font-weight: 700;
+  color: #ffe9a8;
+}
+
+.trade-close {
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.trade-cols {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.trade-col {
+  flex: 1;
+  padding: 6px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+}
+
+.trade-col-title {
+  font-weight: 700;
+  color: #cfe3f5;
+  text-align: center;
+}
+
+.trade-status {
+  min-height: 16px;
+  margin: 2px 0 4px;
+  text-align: center;
+  color: #8fe28f;
+}
+
+.trade-slots {
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+}
+
+.trade-cell {
+  width: 38px;
+  height: 38px;
+  flex: none;
+}
+
+.trade-wallet {
+  margin-top: 8px;
+}
+
+.trade-money {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.trade-money-label {
+  width: 36px;
+  color: #ffe9a8;
+}
+
+.trade-input {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 4px;
+  border: 1px solid #4f86b3;
+  border-radius: 3px;
+  background: #0b2638;
+  color: #fff;
+  font: inherit;
+}
+
+.trade-input:disabled {
+  opacity: 0.7;
+}
+
+.trade-hint {
+  margin: 6px 2px 4px;
+  color: #9fc2df;
+  font-size: 11px;
+  text-align: center;
+}
+
+.trade-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.trade-btn {
+  min-width: 80px;
+  padding: 4px 10px;
+  border: 1px solid #e8c46a;
+  border-radius: 4px;
+  background: #2f6da3;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.trade-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

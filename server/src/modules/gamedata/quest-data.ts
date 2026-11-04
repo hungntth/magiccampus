@@ -1,5 +1,5 @@
-// Typed quest templates built from data_tbl_quest / _require / _pre rows, plus the in-memory indexes
-// GameDataService caches at startup (by id, by start/finish NPC, require/pre rows by qid).
+// Typed quest templates built from data_tbl_quest / _require / _pre / _award rows, plus the in-memory indexes
+// GameDataService caches at startup (by id, by start/finish NPC, require/pre/award rows by qid).
 
 import type { Row } from './gamedata.service';
 
@@ -21,6 +21,7 @@ export interface QuestTemplate {
   moneyNum: number;
   moneyType: number;
   color: number;
+  at: number; // QuestAwardMode: 1 all awards, 2 choose one, 3 own-class items
   startGrantItem: number; // 0 = none
   startGrantQty: number;
 }
@@ -44,12 +45,24 @@ export interface QuestPreRow {
   type: number;
 }
 
+/** data_tbl_quest_award: kind 1 item (type 29 item / 19 equipment), 2 pet (type 12), 3 skill; q = equipment quality. */
+export interface QuestAwardRow {
+  id: number;
+  qid: number;
+  kind: number;
+  type: number;
+  itemId: number;
+  num: number;
+  q: number;
+}
+
 export interface QuestTables {
   byId: Map<number, QuestTemplate>;
   byStartNpc: Map<number, QuestTemplate[]>;
   byFinishNpc: Map<number, QuestTemplate[]>;
   require: Map<number, QuestRequireRow[]>;
   pre: Map<number, QuestPreRow[]>;
+  award: Map<number, QuestAwardRow[]>;
 }
 
 const n = (v: unknown): number => {
@@ -77,13 +90,16 @@ export function toQuestTemplate(row: Row): QuestTemplate {
     moneyNum: n(row.money_num),
     moneyType: n(row.money_type),
     color: n(row.color),
+    at: n(row.at) || 1,
     startGrantItem: n(row.start_grant_item),
     startGrantQty: n(row.start_grant_qty),
   };
 }
 
-export function buildQuestTables(quests: Row[], requires: Row[], pres: Row[]): QuestTables {
-  const t: QuestTables = { byId: new Map(), byStartNpc: new Map(), byFinishNpc: new Map(), require: new Map(), pre: new Map() };
+export function buildQuestTables(quests: Row[], requires: Row[], pres: Row[], awards: Row[] = []): QuestTables {
+  const t: QuestTables = {
+    byId: new Map(), byStartNpc: new Map(), byFinishNpc: new Map(), require: new Map(), pre: new Map(), award: new Map(),
+  };
   for (const row of quests) {
     const q = toQuestTemplate(row);
     t.byId.set(q.id, q);
@@ -95,6 +111,13 @@ export function buildQuestTables(quests: Row[], requires: Row[], pres: Row[]): Q
   }
   for (const r of pres) {
     push(t.pre, n(r.qid), { qid: n(r.qid), kind: n(r.kind), itemId: n(r.item_id), num: n(r.num), type: n(r.type) });
+  }
+  // Row id order = the order the Flash panel fills its six Quà slots in.
+  for (const r of [...awards].sort((a, b) => n(a.id) - n(b.id))) {
+    if (n(r.qid) <= 0) continue;
+    push(t.award, n(r.qid), {
+      id: n(r.id), qid: n(r.qid), kind: n(r.kind), type: n(r.type), itemId: n(r.item_id), num: n(r.num), q: n(r.q),
+    });
   }
   return t;
 }

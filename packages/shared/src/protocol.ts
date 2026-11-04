@@ -98,6 +98,10 @@ export interface SceneCharacter {
   posDir: number;
   iconCode: string;
   resCode: string;
+  /** Party flags (multiplayer phase B); false when the character has no party. */
+  inGroup: boolean;
+  isLeader: boolean;
+  groupAfk: boolean;
 }
 
 export interface SceneNpc {
@@ -157,20 +161,6 @@ export interface MoveUpdate {
   dir: number;
   route: number[][];
 }
-
-export interface ChatMessage {
-  id: number;
-  name: string;
-  channelId: number;
-  msg: string;
-  time: number;
-}
-
-export const ChatChannel = {
-  LOCAL: 1,
-  GLOBAL: 2,
-  SYSTEM: 9,
-} as const;
 
 // --- NPC talk (clickNpc RPC -> npcFuncInit push) ---
 
@@ -241,6 +231,10 @@ export const QuestState = { ENOUGH_LEVEL: 101, CAN_TAKE: 102, TAKEN: 103, CAN_FI
 export const QuestType = { NEWHAND: 1, MAIN: 2, CLASS: 3, WORLD: 4, LOOP: 7, CALLBOARD: 9, GROWUP: 10 } as const;
 export const MoneyType = { MONEY_BIND: 1, MONEY: 2, GOLD_BIND: 3, GOLD: 4 } as const;
 export const MAX_QUEST_NUM = 25;
+/** QuestData.at: 1 every award row, 2 the player picks one (finishQuest s = award row id), 3 items of the player's class. */
+export const QuestAwardMode = { ALL: 1, CHOOSE_ONE: 2, CLASS: 3 } as const;
+/** data_tbl_quest_award.kind (GamePredef.QUEST_AWARD_*). */
+export const QuestAwardKind = { ITEM: 1, PET: 2, SKILL: 3 } as const;
 
 export type MoneyKey = 'moneyBind' | 'money' | 'goldBind' | 'gold';
 
@@ -258,6 +252,7 @@ export interface QuestData {
   finishNpc: number;
   minLevel: number;
   color: number;
+  at: number; // QuestAwardMode
 }
 
 export interface QuestRequire {
@@ -267,6 +262,20 @@ export interface QuestRequire {
   num: number;
   q: number;
   name: string;
+}
+
+/** One data_tbl_quest_award row as the quest panel's Quà slots show it. */
+export interface QuestAward {
+  id: number; // award row id (finishQuest s for QuestAwardMode.CHOOSE_ONE)
+  kind: number; // QuestAwardKind
+  type: number; // template table: 29 item · 19 equipment · 12 creature
+  itemId: number;
+  num: number;
+  q: number; // equipment quality (0 = template colour)
+  name: string; // H5: the client has no template tables
+  iconCode: string;
+  color: number; // colour index of the granted instance
+  reqClass: string; // template req_class ('' = any): CLASS mode shows only the player's class
 }
 
 export interface QuestPos {
@@ -282,6 +291,7 @@ export interface QuestView {
   state: number; // QuestState
   data: QuestData;
   require: QuestRequire[];
+  award: QuestAward[]; // H5: Flash read TBL_QUEST_AWARD from its static data
   questKill: QuestKill[]; // kill objectives, num = REMAINING kills (all of them for a quest not taken yet)
   sName: string; // start NPC name
   sMid: number; // start NPC map id (legacy QuestCanvas sMid), 0 if unknown

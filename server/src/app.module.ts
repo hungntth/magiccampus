@@ -17,6 +17,9 @@ import { StatsModule } from './modules/stats/stats.module';
 import { BuffModule } from './modules/buff/buff.module';
 import { CombatModule } from './modules/combat/combat.module';
 import { SkillModule } from './modules/skill/skill.module';
+import { SocialModule } from './modules/social/social.module';
+import { PartyModule } from './modules/party/party.module';
+import { TradeModule } from './modules/trade/trade.module';
 
 @Module({
   imports: [
@@ -28,6 +31,9 @@ import { SkillModule } from './modules/skill/skill.module';
     CharacterModule,
     SceneModule,
     ChatModule,
+    SocialModule,
+    PartyModule,
+    TradeModule,
     AssetsModule,
     NpcModule,
     QuestModule,

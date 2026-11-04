@@ -1,0 +1,1 @@
+- [Repo gotchas](repo_gotchas.md) — CRLF files, module cycles, nest watch restarts, browser-test tips, party flag push

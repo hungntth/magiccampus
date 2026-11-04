@@ -12,6 +12,7 @@ import { CharacterService } from '../character/character.service';
 import { GameDataService } from '../gamedata/gamedata.service';
 import { QuestService } from '../quest/quest.service';
 import { BuffService } from '../buff/buff.service';
+import { PartyService } from '../party/party.service';
 import { portalDataOf } from './portal-data';
 import { resolveGate } from './portal.rules';
 import { SceneTransportService } from './scene-transport.service';
@@ -28,13 +29,16 @@ export class SceneRpc implements OnModuleInit {
     private readonly quests: QuestService,
     private readonly transport: SceneTransportService,
     private readonly buffs: BuffService,
+    private readonly party: PartyService,
   ) {}
 
   onModuleInit(): void {
-    this.gateway.onDisconnect(async (session) => {
+    const left = (session: Session): void => {
       if (!session.hasCharacter || !session.mapId) return;
       this.scenes.broadcast(session.mapId, 'onScenePlayerLeft', [session.characterId], session);
-    });
+    };
+    this.gateway.onDisconnect(left);
+    this.gateway.onCharacterLeave(left);
   }
 
   @Rpc('sceneLogin', { requireCharacter: true })
@@ -60,7 +64,7 @@ export class SceneRpc implements OnModuleInit {
     for (const peer of this.scenes.members(session.mapId)) {
       if (peer === session || peer.characterId === null) continue;
       const doc = await this.characters.getById(peer.characterId).catch(() => null);
-      if (doc) out[String(doc._id)] = this.characters.toSceneCharacter(doc);
+      if (doc) out[String(doc._id)] = this.party.decorate(this.characters.toSceneCharacter(doc));
     }
     return out;
   }
@@ -98,6 +102,7 @@ export class SceneRpc implements OnModuleInit {
   async sceneChange(session: Session, args: unknown[]): Promise<null> {
     const gateId = Number(args[0]);
     if (!Number.isInteger(gateId)) throw RpcException.invalidArgs('gateId');
+    this.assertCanMove(session);
     const dest = resolveGate(gateId, portalDataOf(this.gameData));
     if (!dest || !this.gameData.getMap(dest.mapId)) throw RpcException.invalidArgs('gateId');
     const resp: SceneEnterPush = await this.transport.moveToMap(session, dest.mapId, dest.x, dest.y);
@@ -108,6 +113,7 @@ export class SceneRpc implements OnModuleInit {
   /** H5 dev command /go <mapId>: the old map-id sceneChange, arrival at the safe point (or x, y). */
   @Rpc('gmGoMap', { requireCharacter: true, forbidInBattle: true })
   async gmGoMap(session: Session, args: unknown[]): Promise<SceneLoginResponse> {
+    this.assertCanMove(session);
     const mapId = Number(args[0]);
     const mapRow = this.gameData.getMap(mapId);
     if (!mapRow) throw RpcException.notFound(`map ${mapId} not found`);
@@ -143,6 +149,7 @@ export class SceneRpc implements OnModuleInit {
   private async move(session: Session, x: number, y: number, dir: number, route: number[][]): Promise<void> {
     if (!Number.isFinite(x) || !Number.isFinite(y)) throw RpcException.invalidArgs('x/y');
     if (session.battleId !== null) return; // the map is frozen while fighting
+    if (!this.party.canMove(session)) return this.party.denyMove(session); // party followers walk with the leader
     const now = Date.now();
     if (now - session.lastMoveAt < MOVE_MIN_INTERVAL_MS) return;
     session.lastMoveAt = now;
@@ -154,5 +161,11 @@ export class SceneRpc implements OnModuleInit {
     await this.characters.updatePosition(session.characterId!, session.mapId, cx, cy, dir);
     const update: MoveUpdate = { id: session.characterId!, x: cx, y: cy, dir, route };
     this.scenes.broadcast(session.mapId, 'onCR', [update], session);
+    await this.party.relayMove(session, cx, cy, dir);
+  }
+
+  /** Party followers cannot leave on their own (gate, /go); they travel with the leader. */
+  private assertCanMove(session: Session): void {
+    if (!this.party.canMove(session)) throw RpcException.forbidden('Đã ở trong nhóm thì cần nghe lời nhóm trưởng!');
   }
 }

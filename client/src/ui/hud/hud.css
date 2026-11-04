@@ -117,20 +117,25 @@
   white-space: nowrap;
 }
 
+/* funCanvas column (Nạp … Bay): Flash teal frame and cyan pill buttons, drawn in CSS */
 .hud-fun {
   position: absolute;
-  border-radius: 6px;
-  border: 1px solid #2c6fa8;
-  background: linear-gradient(rgba(70, 150, 210, 0.85), rgba(30, 90, 160, 0.85));
+  box-sizing: border-box;
+  border-radius: 7px;
+  border: 1px solid #0d3f52;
+  background: linear-gradient(rgba(20, 78, 96, 0.82), rgba(8, 44, 60, 0.82));
+  box-shadow: inset 0 0 0 1px rgba(140, 230, 240, 0.55), 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 .hud-red-btn {
   position: absolute;
-  border-radius: 4px;
-  border: 1px solid #b23a26;
-  background: linear-gradient(#fffaf0, #e7d2b0);
-  color: #6a1a08;
-  text-shadow: none;
+  box-sizing: border-box;
+  border-radius: 5px;
+  border: 1px solid #0b5361;
+  background: linear-gradient(#b8f6f6 0%, #5fd8dc 45%, #22a9b4 55%, #3cc6cc 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), inset 0 -1px 0 rgba(0, 70, 80, 0.4);
+  color: #fff;
+  text-shadow: 1px 0 0 #0a4250, -1px 0 0 #0a4250, 0 1px 0 #0a4250, 0 -1px 0 #0a4250;
   text-align: center;
   line-height: 22px;
   cursor: pointer;
@@ -139,9 +144,13 @@
 
 @media (hover: hover) {
   .hud-red-btn:hover {
-    background: linear-gradient(#fff, #f6e2bf);
-    color: #c0280c;
+    background: linear-gradient(#e2ffff 0%, #8ae9ec 45%, #3fc3cc 55%, #63dde1 100%);
   }
+}
+
+.hud-red-btn:active {
+  background: linear-gradient(#2fb2bc 0%, #49c9cf 50%, #8ee6e8 100%);
+  line-height: 24px;
 }
 
 /* --- chat (bottom-left), plain CSS, no skin images --- */
@@ -186,8 +195,26 @@
   color: #ee0;
 }
 
+.hud-chat-log .line.notice {
+  color: #0ee; /* GamePredef.MSG_CHANNEL_COLOR[7] */
+}
+
+.hud-chat-log .line.event {
+  color: #e10; /* GamePredef.MSG_CHANNEL_COLOR[8] */
+}
+
+.hud-chat-log .line.team {
+  color: #6f6;
+}
+
+.hud-chat-log .line.whisper {
+  color: #f9f;
+}
+
 .hud-chat-log .who {
-  color: #4cf;
+  color: #f90;
+  pointer-events: auto; /* the log is click-through; names stay clickable (prefill /w name) */
+  cursor: pointer;
 }
 
 .hud-chat-tools {

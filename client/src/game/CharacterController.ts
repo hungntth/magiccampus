@@ -1,6 +1,6 @@
 // Client character state + flows: the "Nhân vật" panel (C key / HUD button), changeProperty (OK button, fire-and-forget),
 // manual level-up (lvUp from level 20, confirm first), stat-refresh onUPP (the player object is merged by QuestController
-// first; this only re-renders) and onSystemMidMsgOrNote (gate / failure messages shown as the toast).
+// first; this only re-renders). Server text pushes (onSystemMidMsgOrNote, ...) are handled by BagController.
 // Must be constructed after QuestController and BagController.
 
 import { AUTO_LEVEL_CAP } from '@mc/shared';
@@ -8,7 +8,6 @@ import type { ChangePropertyArg, PlayerData } from '@mc/shared';
 import type { GameClient } from '../net/client';
 import { askConfirm } from '../ui/confirmDialog';
 import { CharacterPanel } from '../ui/characterPanel';
-import { toast } from '../ui/screens';
 import type { BagController } from './BagController';
 
 export interface CharacterHost {
@@ -33,10 +32,7 @@ export class CharacterController {
       onClose: () => this.panel.close(),
     });
     bag.onChange = () => this.panel.render();
-    this.offs.push(
-      host.client.on('onUPP', () => this.panel.render()),
-      host.client.on('onSystemMidMsgOrNote', (text) => toast(String(text))),
-    );
+    this.offs.push(host.client.on('onUPP', () => this.panel.render()));
   }
 
   destroy(): void {

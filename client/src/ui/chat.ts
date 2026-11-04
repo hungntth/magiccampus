@@ -1,7 +1,7 @@
 // Chat (legacy ChatCanvas left1/bottom38 + the chat row of SystemBarCanvas), styled in plain CSS: channel tabs, log
-// filtered by tab, channel picker "Hiện tại↑", input, "Gửi" and emoji button. `/go <mapId>` goes to onCommand.
+// filtered by tab, channel picker "Hiện tại↑", input, "Gửi" and emoji button. `/w <name> <text>` whispers, other `/cmd` go to onCommand.
 
-import { ChatChannel, type ChatMessage } from '@mc/shared';
+import { ChatChannel, ChatLimits, type SayPush, type WisperPush } from '@mc/shared';
 import { div, notReady } from './hud/skin';
 
 const MAX_LINES = 100;
@@ -9,25 +9,36 @@ const MIN_H = 140;
 const MAX_H = 500;
 const H_STEP = 20;
 
-type Kind = 'local' | 'world' | 'system';
+type Kind = 'local' | 'world' | 'team' | 'whisper' | 'system' | 'notice' | 'event';
 const TABS: { label: string; kinds: Kind[] | null }[] = [
   { label: 'Toàn Bộ', kinds: null },
   { label: 'Thế Giới', kinds: ['world'] },
   { label: 'Hiện tại', kinds: ['local'] },
   { label: 'Bang Hội', kinds: [] },
-  { label: 'Nhóm', kinds: [] },
-  { label: 'Mật Ngữ', kinds: [] },
-  { label: 'Chỉ Thị', kinds: [] },
+  { label: 'Nhóm', kinds: ['team'] },
+  { label: 'Mật Ngữ', kinds: ['whisper'] },
+  { label: 'Chỉ Thị', kinds: ['notice'] },
   { label: 'Hệ thống', kinds: ['system'] },
-  { label: 'Sự việc', kinds: [] },
+  { label: 'Sự việc', kinds: ['event'] },
 ];
 // Send channels offered by btnChannel; only the ported ones carry a channel id.
 const SEND_CHANNELS: { label: string; id: number | null }[] = [
   { label: 'Hiện tại', id: ChatChannel.LOCAL },
-  { label: 'Thế giới', id: ChatChannel.GLOBAL },
+  { label: 'Thế giới', id: ChatChannel.WORLD },
   { label: 'Bang hội', id: null },
-  { label: 'Nhóm', id: null },
+  { label: 'Nhóm', id: ChatChannel.TEAM },
 ];
+const CHANNEL_LABEL: Record<number, { label: string; kind: Kind }> = {
+  [ChatChannel.LOCAL]: { label: 'Hiện tại', kind: 'local' },
+  [ChatChannel.WORLD]: { label: 'Thế Giới', kind: 'world' },
+  [ChatChannel.TEAM]: { label: 'Nhóm', kind: 'team' },
+};
+
+export interface ChatHandlers {
+  onSend(channelId: number, msg: string): void;
+  onWhisper(targetName: string, text: string): void;
+  onCommand(cmd: string, args: string[]): void;
+}
 
 export class ChatBox {
   readonly root: HTMLElement;
@@ -42,8 +53,7 @@ export class ChatBox {
 
   constructor(
     parent: HTMLElement,
-    private readonly onSend: (channelId: number, msg: string) => void,
-    private readonly onCommand: (cmd: string, args: string[]) => void,
+    private readonly handlers: ChatHandlers,
   ) {
     this.root = div('hud-chat', parent);
     this.log = div('hud-chat-log', this.root);
@@ -85,8 +95,8 @@ export class ChatBox {
     this.updateChannelBtn();
     const form = document.createElement('form');
     this.input = document.createElement('input');
-    this.input.maxLength = 100;
-    this.input.placeholder = 'Enter để chat, /go <mapId> để đổi map';
+    this.input.maxLength = ChatLimits.MAX_MSG_LEN;
+    this.input.placeholder = 'Enter để chat, /w <tên> <nội dung> để nhắn riêng';
     form.appendChild(this.input);
     bar.appendChild(form);
     form.onsubmit = (e) => {
@@ -98,7 +108,8 @@ export class ChatBox {
     this.resize(0);
 
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && document.activeElement !== this.input) {
+      // Enter focuses the chat input unless some input (this one, a private chat window, ...) already has focus.
+      if (e.key === 'Enter' && !(document.activeElement instanceof HTMLInputElement)) {
         this.input.focus();
         e.preventDefault();
       }
@@ -109,31 +120,68 @@ export class ChatBox {
     return document.activeElement === this.input;
   }
 
-  push(msg: ChatMessage): void {
-    const world = msg.channelId === ChatChannel.GLOBAL;
-    const line = div(`line ${world ? 'world' : 'local'}`);
+  /** Fills the input (e.g. "/w name ") and focuses it. */
+  prefill(text: string): void {
+    this.input.value = text;
+    this.input.focus();
+    this.input.setSelectionRange(text.length, text.length);
+  }
+
+  push(msg: SayPush): void {
+    const ch = CHANNEL_LABEL[msg.channelId] ?? CHANNEL_LABEL[ChatChannel.LOCAL];
+    const line = div(`line ${ch.kind}`);
+    line.append(`[${ch.label}]`, this.who(msg.name), `:${msg.msg}`);
+    this.append(ch.kind, line);
+  }
+
+  /** onWisper: "[Thầm] Bạn nói với [x]: ..." for the echo, "[Thầm] [x]: ..." for the receiver. */
+  pushWisper(w: WisperPush): void {
+    const line = div('line whisper');
+    if (w.self) line.append('[Thầm] Bạn nói với ', this.who(w.targetName), `: ${w.msg}`);
+    else line.append('[Thầm] ', this.who(w.name), `: ${w.msg}`);
+    this.append('whisper', line);
+  }
+
+  /** Clickable "[name]" that prefills a whisper to that player. */
+  private who(name: string): HTMLElement {
     const who = document.createElement('span');
     who.className = 'who';
-    who.textContent = `[${msg.name}]`;
-    line.append(`[${world ? 'Thế Giới' : 'Hiện tại'}] `, who, `: ${msg.msg}`);
-    this.append(world ? 'world' : 'local', line);
+    who.textContent = `[${name}]`;
+    who.onclick = () => this.prefill(`/w ${name} `);
+    return who;
   }
 
   system(text: string): void {
     this.append('system', div('line system', undefined, `[Hệ thống] ${text}`));
   }
 
+  /** ChatCanvas.showBlueMsg: personal notices (gains: exp, money, items) as "[Thông báo] ..." on the Chỉ Thị tab. */
+  notice(text: string): void {
+    this.append('notice', div('line notice', undefined, `[Thông báo] ${text}`));
+  }
+
+  /** ChatCanvas.showRedMsg: server announcements (onSystemMidMsgOrNote / onRedMsg / onBlueMsg) as red "[Sự kiện] ...". */
+  event(text: string): void {
+    if (text) this.append('event', div('line event', undefined, `[Sự kiện] ${text}`));
+  }
+
   private submit(): void {
     const text = this.input.value.trim();
     this.input.value = '';
     if (!text) return;
+    const whisper = /^\/w\s+(\S+)\s+([\s\S]+)$/i.exec(text);
+    if (whisper) {
+      this.handlers.onWhisper(whisper[1], whisper[2]);
+      return;
+    }
     if (text.startsWith('/')) {
       const [cmd, ...args] = text.slice(1).split(/\s+/);
-      this.onCommand(cmd.toLowerCase(), args);
+      if (cmd.toLowerCase() === 'w') this.system('Dùng: /w <tên> <nội dung>');
+      else this.handlers.onCommand(cmd.toLowerCase(), args);
       return;
     }
     const id = SEND_CHANNELS[this.sendChannel].id;
-    if (id !== null) this.onSend(id, text);
+    if (id !== null) this.handlers.onSend(id, text);
   }
 
   private updateChannelBtn(): void {

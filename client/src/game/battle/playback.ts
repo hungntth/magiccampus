@@ -93,7 +93,11 @@ function behave(s: BattleUnit, t: BattleUnit | undefined, step: BattleStep): Pro
     case B.ESCAPE: {
       const away = s.enemy ? -1 : 1;
       s.face(dirFromDelta(away, away, s.dir));
-      return s.runTo(s.x + away * ESCAPE_STEP, s.y + away * ESCAPE_STEP * 0.5);
+      // A member that leaves a group battle (flee-ended battles are torn down right after) drops out of the picture.
+      return s.runTo(s.x + away * ESCAPE_STEP, s.y + away * ESCAPE_STEP * 0.5).then(() => {
+        s.fadeOut(400);
+        s.setHp(0);
+      });
     }
     default:
       return Promise.resolve();

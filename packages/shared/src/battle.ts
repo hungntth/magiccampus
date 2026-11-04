@@ -18,6 +18,8 @@ export const CharState = { NORMAL: 1, BATTLE: 5 } as const;
 export const BATTLE_TURN_SECONDS = 25;
 /** Solo player slot, and the slot order enemies are filled in. */
 export const BATTLE_PLAYER_SLOT = 10;
+/** Group battle (M3 phase C): up to 5 player characters, leader first, at slots 10..14. */
+export const BATTLE_PLAYER_SLOTS: readonly number[] = [10, 11, 12, 13, 14];
 export const BATTLE_ENEMY_SLOTS: readonly number[] = [0, 2, 1, 4, 3];
 
 /** battleUpdateCmd([cmd]) argument (Battle.battleCmd): tid = target slot, id = bag item row id / skill id. */
@@ -89,6 +91,9 @@ export interface BattleStep {
 
 /** onBattlePlayList payload: groups run in order, the steps of one group run together. */
 export type BattlePlayList = BattleStep[][];
+
+/** onCmdReady(slot) push (positional arg): the player character at this slot submitted its command, so its wait icon clears. */
+export type BattleCmdReady = number;
 
 export interface SetCharState {
   cid: number;

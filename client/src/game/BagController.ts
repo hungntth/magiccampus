@@ -26,6 +26,8 @@ export class BagController {
   readonly actions: BagActions;
   /** Called after any item change (the character panel re-renders its equipment grid). */
   onChange: (() => void) | null = null;
+  /** Set by TradeController: while the trade panel is open a bag double-click is routed here (true = handled). */
+  tradeHook: ((item: BagItem) => boolean) | null = null;
 
   constructor(private readonly host: BagHost) {
     this.actions = new BagActions(host.client, () => host.player, () => this.items.values());
@@ -34,6 +36,7 @@ export class BagController {
       player: () => this.host.player,
       actions: this.actions,
       onSell: (item) => this.sell(item),
+      interceptUse: (item) => this.tradeHook?.(item) ?? false,
       onClose: () => this.panel.close(),
     });
     host.shop.onBuy = (slotId, amount) => this.buy(slotId, amount);
@@ -46,11 +49,18 @@ export class BagController {
       c.on('onStackItemInto', (_from, _to, src, dest, n) => this.stackInto(Number(src), Number(dest), Number(n))),
       c.on('onMoveItemNum', (_from, id, left) => this.setStack(Number(id), Number(left))),
       c.on('onItemSort', (list) => this.sorted(list as ItemSortEntry[])),
-      c.on('onAddItem', (d) => this.host.chat.system(`Nhận được ${(d as AddItemNotice).n} x${(d as AddItemNotice).q}`)),
-      c.on('onBlueMsg', (text) => toast(String(text))),
-      c.on('onRedMsg', (text) => toast(String(text), true)),
+      c.on('onAddItem', (d) => this.host.chat.notice(`Nhận: ${(d as AddItemNotice).n} x${(d as AddItemNotice).q}`)),
+      // Server text pushes: popup + red [Sự kiện] chat line (legacy Core.sysMidMsg shows mid msg and showRedMsg).
+      c.on('onSystemMidMsgOrNote', (text) => this.announce(String(text))),
+      c.on('onBlueMsg', (text) => this.announce(String(text))),
+      c.on('onRedMsg', (text) => this.announce(String(text), true)),
       c.on('onUPP', () => this.changed()),
     );
+  }
+
+  private announce(text: string, danger = false): void {
+    toast(text, danger);
+    this.host.chat.event(text);
   }
 
   destroy(): void {
@@ -93,6 +103,11 @@ export class BagController {
   toggle(): void {
     if (this.panel.isOpen) this.panel.close();
     else this.panel.show(this.host.shop.isOpen);
+  }
+
+  /** Shows the bag at the right side (beside the trade window), also when it is already open. */
+  openPanel(): void {
+    this.panel.show(true);
   }
 
   /** A shop just opened: show the bag beside it. */

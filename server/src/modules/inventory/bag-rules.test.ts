@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
-  firstFreeSlot, maxStack, planAdd, planMove, planRemove, planSort, planSplit, sellUnit, sidOf, type AddSpec, type BagSlotRow, type BagStack,
+  firstFreeSlot, fitsAll, maxStack, planAdd, planMove, planRemove, planSort, planSplit, sellUnit, sidOf, type AddSpec, type BagSlotRow, type BagStack,
 } from './bag-rules';
 
 const stack = (id: number, slotIndex: number, over: Partial<BagStack> = {}): BagStack => ({
@@ -164,5 +164,18 @@ describe('planRemove', () => {
     assert.equal(planRemove([stack(1, 0, { stackCount: 2 })], 1, 1, 3), null);
     assert.equal(planRemove([], 1, 1, 1), null);
     assert.equal(planRemove([stack(1, 0)], 1, 1, 0), null);
+  });
+});
+
+describe('fitsAll', () => {
+  it('counts slots opened by earlier specs', () => {
+    const bag = [stack(1, 0), stack(2, 1)];
+    const equip = (t: number): AddSpec => spec({ templateId: t, itemType: 2, amount: 1, maxStack: 1 });
+    assert.equal(fitsAll(bag, [equip(10), equip(11)], 4), true);
+    assert.equal(fitsAll(bag, [equip(10), equip(11), equip(12)], 4), false);
+  });
+  it('lets a later spec top up the stack an earlier one created', () => {
+    assert.equal(fitsAll([], [spec({ amount: 3 }), spec({ amount: 4 })], 1), true);
+    assert.equal(fitsAll([], [], 0), true);
   });
 });

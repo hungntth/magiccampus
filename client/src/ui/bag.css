@@ -1,93 +1,199 @@
-/* "Túi đồ" window; same visual language as .shop-panel (navy panel, gold frame, banner title). */
+/* "Túi đồ" window, drawn in CSS after the legacy Flex BagPanel (teal frame, title bar with orb, tabs, boxed slot areas).
+   Only the tool and currency icons are images (/ui/Panels_BagPanel, swfui output). 1:1 stage px. */
 .bag-panel {
-  --bag-gold: #e8c46a;
+  --bag-cyan: #56f2f0;
+  --bag-edge: #24a6c2;
+  --bag-dark: #373a59;
   position: absolute;
-  left: calc(50% - 139px);
-  top: 14%;
-  width: 278px;
-  padding: 32px 12px 10px;
+  left: calc(50% - 135px);
+  top: 28px;
+  width: 270px;
+  padding: 40px 10px 12px;
   box-sizing: border-box;
-  background: linear-gradient(180deg, #1d4a72 0%, #123553 40%, #0e2a45 100%);
-  border: 2px solid var(--bag-gold);
+  background: rgba(24, 81, 115, 0.86);
+  border: 2px solid var(--bag-cyan);
   border-radius: 10px;
-  box-shadow: 0 0 0 1px #3a2a08, inset 0 0 0 1px #6fa3cf, 0 6px 18px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 0 0 1px var(--bag-dark), 0 0 0 3px var(--bag-edge), 0 0 0 4px var(--bag-dark),
+    inset 0 0 0 1px var(--bag-dark), 0 6px 18px rgba(0, 0, 0, 0.5);
   font-family: Tahoma, Verdana, Arial, sans-serif;
   font-size: 12px;
   color: #fff;
   pointer-events: auto;
+  user-select: none;
 }
 
-/* The shop window shifts left (.shop-panel.with-bag, 460 px wide) and the bag sits at its right edge. */
+/* The shop window shifts left (.shop-panel.with-bag) and the bag sits at its right edge. */
 .bag-panel.beside-shop {
   left: calc(50% + 94px);
 }
 
+/* Title bar: glossy teal strip with a cyan orb on the left (the close button sits on the right). */
 .bag-header {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 30px;
+  border-bottom: 2px solid var(--bag-cyan);
+  border-radius: 8px 8px 0 0;
+  background: linear-gradient(180deg, #74c4c9 0, #6ab6bc 30%, #028390 32%, #02818d 80%, #03c8ce 100%);
+  box-shadow: 0 1px 0 var(--bag-dark), inset 0 -1px 0 var(--bag-dark);
+  cursor: move;
+}
+
+.bag-header::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 8px;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--bag-edge);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 30%, #c8ffff 0, #3ef0f2 35%, #0aa9b8 75%, #087c8c 100%);
+  box-shadow: 0 0 0 1px var(--bag-dark);
 }
 
 .bag-title {
   position: absolute;
-  top: -2px;
+  top: 7px;
   left: 50%;
   transform: translateX(-50%);
-  min-width: 100px;
-  padding: 3px 18px 4px;
-  background: linear-gradient(180deg, #3e7fb5 0%, #1c4c7a 100%);
-  border: 2px solid var(--bag-gold);
-  border-top: 0;
-  border-radius: 0 0 12px 12px;
-  text-align: center;
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
   font-weight: 700;
+  line-height: 16px;
+  letter-spacing: 1px;
+  white-space: nowrap;
   color: #ffe9a8;
-  text-shadow: 0 1px 0 #3a2a08, 0 0 3px #000;
+  text-shadow: 0 0 2px #3a2a08, 1px 1px 0 #3a2a08, -1px -1px 0 #3a2a08;
 }
+
+/* Thin cyan flourishes either side of the title (legacy TitleStrip). */
+.bag-title::before,
+.bag-title::after {
+  content: '';
+  width: 38px;
+  height: 2px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, transparent, var(--bag-cyan));
+}
+
+.bag-title::after { transform: scaleX(-1); }
 
 .bag-close {
   z-index: 1;
   position: absolute;
-  top: 4px;
-  right: 6px;
+  top: 5px;
+  right: 8px;
   width: 20px;
   height: 20px;
   padding: 0;
-  border: 1px solid #ffd0d0;
+  border: 2px solid #fff;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #ff7a7a, #c41818 70%);
+  background: radial-gradient(circle at 40% 30%, #ff6a5a 0, #d4140c 60%, #8e0000 100%);
+  box-shadow: 0 0 0 1px #6b0000;
+  font: 700 13px/16px Tahoma, Verdana, Arial, sans-serif;
   color: #fff;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 16px;
-  text-align: center;
   cursor: pointer;
 }
+
+.bag-close::before { content: '×'; }
+.bag-close:active { background: radial-gradient(circle at 40% 30%, #d4140c 0, #8e0000 100%); }
+
+@media (hover: hover) {
+  .bag-close:hover { filter: brightness(1.15); }
+}
+
+/* Tab strips. */
+.bag-tab-row {
+  display: flex;
+  gap: 1px;
+  padding: 0 4px;
+  height: 19px;
+}
+
+.bag-tab {
+  flex: 0 0 24px;
+  height: 19px;
+  padding: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  border: 1px solid #5fd9e2;
+  border-bottom: 0;
+  border-radius: 4px 4px 0 0;
+  background: linear-gradient(180deg, #3b8ea5 0, #1d6580 45%, #0e4561 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 19px;
+  white-space: nowrap;
+  color: #ffd98a;
+  text-shadow: 0 1px 1px #000;
+  cursor: pointer;
+}
+
+.bag-tab.wide { flex-basis: 31px; }
+.bag-tab.selected { border-color: #fff0a0; background: linear-gradient(180deg, #ffe58a 0, #e8b232 50%, #c48a0c 100%); color: #fff6d0; }
+.bag-tab:disabled {
+  border-color: #b4bcc2;
+  background: linear-gradient(180deg, #9aa2a8 0, #6c757c 50%, #50585e 100%);
+  color: #e4e8eb;
+  cursor: default;
+}
+.bag-pet-tabs .bag-tab { flex-basis: 23px; font-size: 11px; font-weight: 400; text-align: left; padding-left: 2px; }
+
+@media (hover: hover) {
+  .bag-tab:not(:disabled):not(.selected):hover { filter: brightness(1.2); }
+}
+
+/* Boxed slot areas (legacy CanvasBorder). */
+.bag-box {
+  display: flex;
+  gap: 4px;
+  padding: 7px 5px 7px 9px;
+  border: 2px solid var(--bag-cyan);
+  border-radius: 8px;
+  background: rgba(10, 46, 68, 0.35);
+  box-shadow: 0 0 0 1px var(--bag-dark), inset 0 0 0 1px var(--bag-dark);
+}
+
+.bag-items { margin-bottom: 6px; }
 
 .bag-grid {
   display: grid;
   grid-template-columns: repeat(6, 34px);
   grid-auto-rows: 34px;
-  gap: 3px;
-  justify-content: center;
-  padding: 6px;
-  background: #0d2d4a;
-  border: 1px solid #4f86b3;
-  border-radius: 8px;
-  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.6);
+  gap: 4px;
+}
+
+.bag-scroll {
+  position: relative;
+  width: 10px;
+  margin-left: auto;
+  border: 1px solid #3fa9b8;
+  border-radius: 5px;
+  background: #0b2a3c;
+}
+
+/* One page only: the thumb fills the whole track, like the legacy list with nothing to scroll. */
+.bag-scroll-thumb {
+  position: absolute;
+  inset: 1px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #7ff6f2 0, #2cc4c8 45%, #13808c 100%);
 }
 
 .bag-cell {
   position: relative;
   box-sizing: border-box;
-  background: #050f1a;
-  border: 2px solid #25506f;
+  background: linear-gradient(180deg, #123a52 0, #0b2638 100%);
+  border: 2px solid transparent;
   border-radius: 4px;
-  user-select: none;
+  box-shadow: inset 0 0 0 1px #1d4d66;
 }
 
 .bag-cell.filled:hover {
@@ -119,42 +225,84 @@
   line-height: 10px;
 }
 
-.bag-wallet {
-  margin-top: 8px;
-  padding: 4px 8px;
-  background: #0d2d4a;
-  border: 1px solid #4f86b3;
+/* Tool icons (34 x 34 up / over skins set per button through --up / --over). */
+.bag-toolbar {
+  display: flex;
+  justify-content: space-between;
+  margin: 6px 4px 4px;
+}
+
+.bag-tool {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
   border-radius: 6px;
+  background: var(--up) center no-repeat;
+  cursor: pointer;
+}
+
+.bag-tool.active { background-image: var(--over); box-shadow: 0 0 0 2px #ffd36a, 0 0 6px #ffd36a; }
+.bag-tool:disabled { filter: grayscale(0.85) brightness(0.8); cursor: default; }
+
+@media (hover: hover) {
+  .bag-tool:not(:disabled):hover { background-image: var(--over); }
+}
+
+.bag-grid.tool-mode .bag-cell.filled { cursor: pointer; }
+.bag-grid.drop-mode .bag-cell.filled { cursor: crosshair; }
+.bag-grid.drop-mode .bag-cell.filled:hover { box-shadow: 0 0 0 2px #ff5a5a; }
+
+/* Currency fields: icon, value box, payment checkbox (read-only). */
+.bag-wallet {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px 6px;
+  padding: 0 2px;
 }
 
 .bag-money {
   display: flex;
   align-items: center;
-  gap: 6px;
-  line-height: 18px;
+  gap: 3px;
 }
 
-.bag-money-label {
-  flex: 1;
-  color: #bcd6ec;
+.bag-money-icon {
+  flex: 0 0 30px;
+  height: 21px;
+  background: center / contain no-repeat;
 }
 
 .bag-money-val {
-  min-width: 70px;
-  text-align: right;
-  color: #ffe9a8;
+  flex: 1;
+  min-width: 0;
+  height: 18px;
+  padding: 0 5px;
+  overflow: hidden;
+  background: #0b2236;
+  border: 1px solid #4fe0e8;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px #16384f;
+  font-size: 12px;
+  line-height: 18px;
+  color: #fff;
 }
 
-.bag-coin {
-  width: 12px;
-  height: 12px;
+.bag-check {
+  flex: 0 0 14px;
+  height: 14px;
   box-sizing: border-box;
-  border-radius: 50%;
-  border: 1px solid #6b5a1a;
+  border: 1px solid #4fe0e8;
+  border-radius: 2px;
+  background: #0b2236;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 12px;
+  text-align: center;
+  color: #ffd84a;
 }
 
-.bag-coin.silver { background: radial-gradient(circle at 35% 30%, #fff, #b8c4cf 60%, #7d8a96); }
-.bag-coin.gold { background: radial-gradient(circle at 35% 30%, #fff3b0, #f2b928 60%, #b57a08); }
+.bag-check.checked::before { content: '✓'; }
 
 /* Amount dialog (legacy NumPanel), centred above the shop / bag windows. */
 .amount-dialog {
@@ -217,38 +365,6 @@
   border: 1px solid #fff2c4;
   border-radius: 4px;
   background: linear-gradient(180deg, #ffc65a 0%, #f08a1c 55%, #d96a0a 100%);
-}
-
-/* Toolbar (Sắp xếp / Vứt bỏ), drop mode, drag feedback, confirm dialog. */
-.bag-toolbar {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.bag-tool {
-  padding: 2px 10px 3px;
-  font: inherit;
-  font-weight: 700;
-  color: #fff;
-  cursor: pointer;
-  border: 1px solid #7fb4de;
-  border-radius: 4px;
-  background: linear-gradient(180deg, #3e7fb5 0%, #1c4c7a 100%);
-}
-
-.bag-tool.active {
-  border-color: #fff2c4;
-  background: linear-gradient(180deg, #ffc65a 0%, #d96a0a 100%);
-}
-
-.bag-grid.drop-mode .bag-cell.filled {
-  cursor: crosshair;
-}
-
-.bag-grid.drop-mode .bag-cell.filled:hover {
-  box-shadow: 0 0 0 2px #ff5a5a;
 }
 
 .confirm-dialog {

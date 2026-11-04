@@ -18,6 +18,9 @@ Legacy (Go/Flash) knowledge: `D:\mcgame\docs\PROJECT_KNOWLEDGE_BASE.md`.
 - [NPC dialog](memory/npc-dialog.md) — clickNpc RPC, npcFuncInit push, speech bubble vs Đối thoại dialog, client walk-to flow.
 - [Quests](memory/quest.md) — newbie/main quest chain: take/finish/cancel/initQuestManager, NPC markers, tracker, exp/level-up, quest_pre import.
 - [Main HUD](memory/main-hud.md) — legacy MainLayer HUD from extracted Flex skins: portraits, minimap strip + checkNetDelay, chat tabs, menu/shortcut bars.
-- [Chat](memory/chat.md) — say/onChat, CSS chat box, PopupText speech bubble over speakers and NPCs.
+- [Chat](memory/chat.md) — legacy channel ids, say/onSay, world chat Loa rule, team channel, CSS chat box, PopupText speech bubble.
+- [Social](memory/social.md) — whisper/p2pWisper, player menu, showChaInfo, friends and blacklist (relationships, initViewImC).
+- [Party and group battle](memory/party.md) — PartyBook invites/leave/AFK, follower lock and trail, map follow, group battle roster/readiness/reward split.
+- [Trade](memory/trade.md) — newTrade/tradeLock/tradeConfirm/stopTrade, saga swap under two char locks.
 - [Map portals](memory/portal.md) — transport gates: createSceneItems, legacy sceneChange(gateId) + onSceneEnter, destination/landing rules, swfanim gate art.
 - [Movement](memory/movement.md) — click-to-move A* over the hit mask (legacy SingleAstarRoute + key points), walkTo helper.

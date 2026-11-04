@@ -1354,5 +1354,107 @@
   "h": 72,
   "ox": 0,
   "oy": 0
+ },
+ "Panels_BagPanel/1": {
+  "w": 27,
+  "h": 17,
+  "ox": 0,
+  "oy": 0
+ },
+ "Panels_BagPanel/1511": {
+  "w": 27,
+  "h": 21,
+  "ox": 0,
+  "oy": 0
+ },
+ "Panels_BagPanel/1663": {
+  "w": 28,
+  "h": 20,
+  "ox": 0,
+  "oy": 0
+ },
+ "Panels_BagPanel/11533": {
+  "w": 28,
+  "h": 20,
+  "ox": 0,
+  "oy": 0
+ },
+ "Panels_BagPanel/button_Discarded_over_mc2": {
+  "w": 34,
+  "h": 34,
+  "ox": 0,
+  "oy": 0
+ },
+ "Panels_BagPanel/button_Discarded_up_mc2": {
+  "w": 34,
+  "h": 34,
+  "ox": 0,
+  "oy": 0
+ },
+ "Panels_BagPanel/button_Lock_over_mc2": {
+  "w": 34,
+  "h": 34,
+  "ox": 0,
+  "oy": 0
+ },
+ "Panels_BagPanel/button_Lock_up_mc2": {
+  "w": 34,
+  "h": 34,
+  "ox": 0,
+  "oy": 0
+ },
+ "Panels_BagPanel/button_repair_up_mc2": {
+  "w": 34,
+  "h": 34,
+  "ox": 0,
+  "oy": 0
+ },
+ "Panels_BagPanel/button_Resolution_over_mc2": {
+  "w": 34,
+  "h": 34,
+  "ox": 0,
+  "oy": 0
+ },
+ "Panels_BagPanel/button_Resolution_up_mc2": {
+  "w": 34,
+  "h": 34,
+  "ox": 0,
+  "oy": 0
+ },
+ "Panels_BagPanel/button_rpeair_over_mc2": {
+  "w": 34,
+  "h": 34,
+  "ox": 0,
+  "oy": 0
+ },
+ "Panels_BagPanel/button_sorting_over_mc2": {
+  "w": 34,
+  "h": 34,
+  "ox": 0,
+  "oy": 0
+ },
+ "Panels_BagPanel/button_use_over_mc2": {
+  "w": 34,
+  "h": 34,
+  "ox": 0,
+  "oy": 0
+ },
+ "Panels_BagPanel/button_use_up_mc2": {
+  "w": 34,
+  "h": 34,
+  "ox": 0,
+  "oy": 0
+ },
+ "Panels_BagPanel/GoldBinded": {
+  "w": 29,
+  "h": 16,
+  "ox": 0,
+  "oy": 0
+ },
+ "Panels_BagPanel/SilverBinded": {
+  "w": 33,
+  "h": 19,
+  "ox": 0,
+  "oy": 0
  }
 }

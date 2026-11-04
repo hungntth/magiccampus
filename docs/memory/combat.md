@@ -62,9 +62,23 @@ Research: `docs/research/2026-11-04_03_COMBAT_CLIENT_RESEARCH.md`, `..._04_COMBA
 - Sheet actions: 0 stand, 1 run, 3 attack, 4 DEAD, 5 HURT, 6 defence, 7 magic. Enemies face dir 1, players dir 5.
 - No hit or cast effects: `EFF_PLAYER_010008` is missing from the asset cache.
 - Tracker and panel show kill counts from `questKill`, collect counts from the bag (`BagController.countOf`), and "(Hoàn thành)".
+- **Battle look** (matches the Flash screenshot, browser-checked 2026-11-04):
+  - Arena: `BattleStage` draws sheet `ui/UI_LOADING_BACK` (legacy `DEFAULT_IMG_BATTLE`, greek-key ring) at alpha 0.6 at its sheet offset over the tinted map; no black overlay.
+    Regenerate with `swfanim -cache D:/mcgame/frontend/s/res -out client/public/sheets/ui -name UI_LOADING_BACK -hide 1 -manifest client/public/sheets/manifest.json -key resource/ui/UI_LOADING_BACK.swf 38a9d7ea5a2e2ac769acf89e18e475a1`.
+    `-hide 1` drops the SWF's opaque 900x570 backdrop shape, which would otherwise dim the whole box.
+  - Units (`BattleUnit`): legacy `PropBar` bars (50x4, #333 back, #ddd frame with a black line) from `headY - 10` downward; enemies HP only, own character HP / MP (0x3333AA) / SP (yellow, only when `spMax > 0`).
+    Name (Tahoma 12, black stroke) under the feet at y 10: enemies white, own side yellow, boss red/green.
+  - Command column (`ui/battleMenu.ts` + `battle.css`, `.battle-side` anchored right 36 / top 100 on `#stage`): "Nhân vật" title tab, the 9 `PLAYERCMDCANVAS_U` buttons in Flash order
+    (Tấn công, Phòng ngự, Kỹ năng, Bắt, Pet, Vị trí, Vật phẩm, Bỏ chạy, Auto) as CSS CrystalBlueButtons (73 px, selected = orange), "Thông tin" (`BATTLESTAGE_S[17]`) below.
+    **Disabled** (no H5 feature yet): Bắt, Pet, Vị trí, Auto, Thông tin. Kỹ năng / Vật phẩm lists open to the left.
+  - Timer: `TimeCountCanvas` values (horizontalCenter 15, bottom 318, yellow 75 px, red 85 px from 9 s), black text stroke.
+
+## Group battles (M3 phase C)
+Party battles (roster, `onCmdReady`, readiness, reward split, round-robin loot, disconnect) are documented in `party.md`.
+Solo behaviour is unchanged.
 
 ## Deferred
-- Pets, group battles, PvP, auto-battle, statuses and buffs in battle, elements.
+- Pets, PvP, auto-battle, statuses and buffs in battle, elements.
 - Hit effects, `hitNpc`/`clickBoss` visible monsters.
 - Paid revive, quest bag, money/exp loot rows, skill learning/upgrade and skill bar, AoE.
 - `GameScene.ts` is about 427 lines, over the cap; split it in a follow-up.
