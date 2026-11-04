@@ -1,0 +1,1 @@
+- [Legacy code map](legacy_code_map.md) — Go package ownership, dispatcher notes, stale memory files, enum scales/collisions

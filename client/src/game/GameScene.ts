@@ -28,6 +28,7 @@ import { NpcDialog } from '../ui/npcDialog';
 import { ShopPanel } from '../ui/shopPanel';
 import { QuestController } from './QuestController';
 import { BagController } from './BagController';
+import { CharacterController } from './CharacterController';
 import { runSceneCommand } from './sceneCommands';
 import { ChatBox } from '../ui/chat';
 import { MainHud } from '../ui/hud/mainHud';
@@ -70,6 +71,7 @@ export class GameScene {
   private readonly hud: MainHud;
   private readonly quest: QuestController;
   private readonly bag: BagController;
+  private readonly character: CharacterController;
   private readonly offs: (() => void)[] = [];
 
   constructor(
@@ -85,7 +87,12 @@ export class GameScene {
       (channelId, msg) => void this.client.call('say', channelId, msg).catch((e) => toast((e as Error).message, true)),
       (cmd, args) => void runSceneCommand(cmd, args, this.client, this.chat, (res) => this.applyScene(res)),
     );
-    this.hud = new MainHud(ui, client, () => document.activeElement instanceof HTMLInputElement, () => this.bag.toggle());
+    this.hud = new MainHud(ui, client, () => document.activeElement instanceof HTMLInputElement, {
+      onBag: () => this.bag.toggle(),
+      onCharacter: () => this.character.toggle(),
+      onLevelUp: () => this.character.levelUp(),
+      onRecover: (kind) => this.bag.actions.recover(kind),
+    });
     this.quest = new QuestController({
       client, chat: this.chat, player,
       npc: (id) => this.npcs.get(id),
@@ -95,6 +102,7 @@ export class GameScene {
       playerChanged: () => this.updateHud(),
     }, ui);
     this.bag = new BagController({ client, chat: this.chat, player, shop: this.shop });
+    this.character = new CharacterController({ client, player, bag: this.bag });
     this.entityLayer.sortableChildren = true;
     this.world.addChild(this.entityLayer);
     this.portals = new PortalLayer(this.entityLayer, this.world, (p, e) => this.onGateTap(p, e));
@@ -122,6 +130,7 @@ export class GameScene {
     for (const off of this.offs) off();
     this.quest.destroy();
     this.bag.destroy();
+    this.character.destroy();
     this.hud.destroy();
     this.npcDialog.close();
     this.shop.close();

@@ -4,6 +4,8 @@ import { Character, CharacterSchema } from './character.schema';
 import { Counter, CounterSchema } from './counter.schema';
 import { CharacterService } from './character.service';
 import { CharacterRpc } from './character.rpc';
+import { CharacterStatsRpc } from './character-stats.rpc';
+import { StatsModule } from '../stats/stats.module';
 import { GameDataModule } from '../gamedata/gamedata.module';
 import { AuthModule } from '../auth/auth.module';
 import { QuestModule } from '../quest/quest.module';
@@ -17,8 +19,9 @@ import { QuestModule } from '../quest/quest.module';
     GameDataModule,
     AuthModule,
     QuestModule,
+    StatsModule,
   ],
-  providers: [CharacterService, CharacterRpc],
+  providers: [CharacterService, CharacterRpc, CharacterStatsRpc],
   exports: [CharacterService],
 })
 export class CharacterModule {}

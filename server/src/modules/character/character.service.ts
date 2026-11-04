@@ -1,5 +1,5 @@
-// Character CRUD + DTO builders. Starter stats come from data_tbl_class (att_* columns), the
-// derived HP/MP formulas here are simple placeholders until the unified stat formula is ported.
+// Character CRUD + DTO builders. Starter attributes come from data_tbl_class (att_* columns); max HP/MP from the
+// shared stat formula (character-stats.ts); the full final stats come from CharacterStatsService.
 
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -7,6 +7,9 @@ import { Model } from 'mongoose';
 import type { CharListEntry, MoneyKey, PlayerData, SceneCharacter } from '@mc/shared';
 import { Character, type CharacterDocument } from './character.schema';
 import { Counter } from './counter.schema';
+import { classStartAttrs, profileOf } from './character-profile';
+import { buildBaseStats } from './character-stats';
+import type { CharStats } from '../stats/character-stats.service';
 import { RpcException } from '../../gateway/errors';
 import { GameDataService } from '../gamedata/gamedata.service';
 
@@ -51,24 +54,16 @@ export class CharacterService {
     if (await this.characters.exists({ name: trimmed })) throw RpcException.alreadyExists('name taken');
 
     const id = await this.nextId('characters');
-    const strength = num(cls.att_strength, 10);
-    const agility = num(cls.att_agility, 10);
-    const stamina = num(cls.att_stamina, 10);
-    const intelligence = num(cls.att_intelligence, 10);
-    const energy = num(cls.att_energy, 10);
-    const maxHp = 100 + stamina * 10;
-    const maxMp = 50 + intelligence * 5;
+    const att = classStartAttrs(cls);
+    const base = { strength: att.str, agility: att.agi, stamina: att.sta, intelligence: att.int, energy: att.eng };
+    const { maxHp, maxMp } = buildBaseStats(profileOf(base, cls));
     return this.characters.create({
       _id: id,
       accountId,
       name: trimmed,
       classId,
       gender,
-      strength,
-      agility,
-      stamina,
-      intelligence,
-      energy,
+      ...base,
       maxHp,
       currentHp: maxHp,
       maxMp,
@@ -130,7 +125,8 @@ export class CharacterService {
     };
   }
 
-  toPlayerData(doc: CharacterDocument, quests: { questLog: string; qn: number } = { questLog: '|', qn: 0 }): PlayerData {
+  /** Login payload; `stats` supplies the effective max HP/MP, base+gear attributes and `property`. */
+  toPlayerData(doc: CharacterDocument, quests: { questLog: string; qn: number }, stats: CharStats): PlayerData {
     return {
       id: doc._id,
       name: doc.name,
@@ -142,10 +138,10 @@ export class CharacterService {
       posX: doc.posX,
       posY: doc.posY,
       dir: doc.dir,
-      maxHp: doc.maxHp,
-      currentHp: doc.currentHp,
-      maxMp: doc.maxMp,
-      currentMp: doc.currentMp,
+      maxHp: stats.maxHp,
+      currentHp: stats.doc.currentHp,
+      maxMp: stats.maxMp,
+      currentMp: stats.doc.currentMp,
       money: doc.money,
       moneyBind: doc.moneyBind ?? 0,
       gold: doc.gold,
@@ -154,11 +150,12 @@ export class CharacterService {
       attrPoints: doc.attrPoints,
       questLog: quests.questLog,
       qn: quests.qn,
-      attStrength: doc.strength,
-      attAgility: doc.agility,
-      attStamina: doc.stamina,
-      attIntelligence: doc.intelligence,
-      attEnergy: doc.energy,
+      attStrength: stats.att.str,
+      attAgility: stats.att.agi,
+      attStamina: stats.att.sta,
+      attIntelligence: stats.att.int,
+      attEnergy: stats.att.eng,
+      property: stats.property,
     };
   }
 
@@ -187,9 +184,4 @@ export class CharacterService {
     const doc = await this.counters.findByIdAndUpdate(key, { $inc: { seq: 1 } }, { new: true, upsert: true });
     return doc.seq;
   }
-}
-
-function num(v: unknown, fallback: number): number {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : fallback;
 }

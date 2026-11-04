@@ -1,6 +1,8 @@
 // Wire protocol between the H5 client and the NestJS game server (JSON over WebSocket).
 // Mirrors the old RTMP shape: client "call" (method + args) and server "callback" pushes.
 
+import type { CharProperty } from './character.js';
+
 export type ClientMessage = { t: 'call'; id: number; m: string; a: unknown[] };
 
 export type ServerMessage =
@@ -80,6 +82,7 @@ export interface PlayerData {
   attStamina: number;
   attIntelligence: number;
   attEnergy: number;
+  property: CharProperty; // final stats (gear + buffs applied), see character.ts
 }
 
 export interface SceneCharacter {
@@ -313,7 +316,13 @@ export interface InitQuestManagerReply {
 }
 
 /** onUPP: partial player props after exp/money/level changes. */
-export type PlayerUpdate = Partial<Pick<PlayerData, 'level' | 'exp' | 'money' | 'moneyBind' | 'gold' | 'goldBind' | 'attrPoints'>>;
+export type PlayerUpdate = Partial<
+  Pick<
+    PlayerData,
+    | 'level' | 'exp' | 'money' | 'moneyBind' | 'gold' | 'goldBind' | 'attrPoints' | 'currentHp' | 'currentMp' | 'maxHp'
+    | 'maxMp' | 'attStrength' | 'attAgility' | 'attStamina' | 'attIntelligence' | 'attEnergy' | 'property'
+  >
+>;
 
 export interface PlayerLevelUp {
   id: number;
@@ -321,12 +330,6 @@ export interface PlayerLevelUp {
   exp: number;
   lp: number;
 }
-
-/** Cumulative exp to reach level L is LEVEL_EXP[L - 1] (levels 1..21, Go player_level_exp.go). */
-export const LEVEL_EXP: readonly number[] = [
-  1, 73, 358, 926, 1775, 3162, 5360, 8649, 13232, 18510, 25771, 38644, 62425, 98030, 139609, 187700, 242854,
-  305634, 376620, 456403, 545587,
-];
 
 // --- Main HUD ---
 

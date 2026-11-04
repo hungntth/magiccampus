@@ -16,6 +16,10 @@ export type Row = Record<string, unknown>;
 const TEMPLATE_FIELDS = {
   id: 1, name: 1, icon_code: 1, color: 1, color_code: 1, info: 1, description: 1, gold: 1, honor: 1, price: 1,
   stack_max: 1, single_flag: 1, endure_max: 1,
+  // character core: use / equip gates, potion amounts (i1/i2 for food) and equipment stat lines
+  type: 1, use_type: 1, req_level: 1, req_class: 1, i1: 1, i2: 1, position: 1, kind: 1, bind_type: 1,
+  main_prop1: 1, main_prop2: 1, main_prop_num1: 1, main_prop_num2: 1, prop1: 1, prop2: 1, prop_num1: 1, prop_num2: 1,
+  bind_prop_num: 1,
 };
 
 @Injectable()
@@ -30,6 +34,7 @@ export class GameDataService implements OnModuleInit {
   private shopsById = new Map<number, Row>();
   private shopSlotsBySid = new Map<number, Row[]>();
   private shopSlotsById = new Map<number, Row>();
+  private buffs = new Map<number, Row>();
 
   constructor(@InjectConnection() private readonly conn: Connection) {}
 
@@ -71,11 +76,12 @@ export class GameDataService implements OnModuleInit {
       if (!this.shopSlotsBySid.has(sid)) this.shopSlotsBySid.set(sid, []);
       this.shopSlotsBySid.get(sid)!.push(slot);
     }
+    this.buffs = await this.indexById('data_tbl_buff');
     this.logger.log(
       `Loaded ${this.maps.size} maps, ${this.classes.size} classes, ${npcs.length} npcs, ` +
         `${quests.length} quests (${requires.length} require, ${pres.length} pre), ` +
         `${instances.length} scene items (${this.sceneItems.gates.length} gates), ` +
-        `${this.shopsById.size} shops (${shopSlots.length} slots)` +
+        `${this.shopsById.size} shops (${shopSlots.length} slots), ${this.buffs.size} buffs` +
         (this.maps.size === 0 ? ' — run `pnpm import:seeds` to populate static data' : ''),
     );
   }
@@ -166,6 +172,11 @@ export class GameDataService implements OnModuleInit {
   /** One shop slot row (data_tbl_shop_slot) by its id. */
   getShopSlot(id: number): Row | undefined {
     return this.shopSlotsById.get(id);
+  }
+
+  /** Buff template (data_tbl_buff) by id, cached at startup. */
+  getBuff(id: number): Row | undefined {
+    return this.buffs.get(id);
   }
 
   /** Item (type 29) or equipment (type 19) template by id, queried on demand; undefined if unknown. */

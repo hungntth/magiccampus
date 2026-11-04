@@ -9,6 +9,7 @@ import { Rpc } from '../../gateway/rpc.decorator';
 import { RpcException } from '../../gateway/errors';
 import type { Session } from '../../gateway/session';
 import { GameDataService } from '../gamedata/gamedata.service';
+import { CharacterStatsService } from '../stats/character-stats.service';
 import { QuestService } from './quest.service';
 
 function intArg(v: unknown, field: string): number {
@@ -22,6 +23,7 @@ export class QuestRpc {
   constructor(
     private readonly quests: QuestService,
     private readonly gameData: GameDataService,
+    private readonly stats: CharacterStatsService,
   ) {}
 
   @Rpc('takeQuest', { requireCharacter: true })
@@ -54,7 +56,8 @@ export class QuestRpc {
       session.callback('onAddMoney', id, out.money.key, out.money.amount, out.money.total);
       update[out.money.key] = out.money.total;
     }
-    session.callback('onUPP', update);
+    // A level-up changes every derived stat (base attributes +1), so it sends the full stat-refresh payload.
+    session.callback('onUPP', out.exp.leveled ? { ...update, ...(await this.stats.refreshPayload(id)) } : update);
     if (out.exp.leveled) {
       const lv: PlayerLevelUp = { id, level: out.exp.level, exp: out.exp.exp, lp: out.exp.attrPoints };
       session.callback('onPlayerLevelUp', lv);

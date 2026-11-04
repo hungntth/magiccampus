@@ -13,6 +13,8 @@ import { NpcModule } from './modules/npc/npc.module';
 import { QuestModule } from './modules/quest/quest.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { SystemModule } from './modules/system/system.module';
+import { StatsModule } from './modules/stats/stats.module';
+import { BuffModule } from './modules/buff/buff.module';
 
 @Module({
   imports: [
@@ -28,6 +30,8 @@ import { SystemModule } from './modules/system/system.module';
     NpcModule,
     QuestModule,
     InventoryModule,
+    StatsModule,
+    BuffModule,
     SystemModule,
   ],
 })

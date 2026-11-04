@@ -1,0 +1,1 @@
+- [Decompile gaps and RPC semantics](decompile_gaps_and_rpc_semantics.md) — CallBack.as/BagPanel.as are empty; fire-and-forget vs Responder; RPC_DELAY drops

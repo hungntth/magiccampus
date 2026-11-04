@@ -40,7 +40,26 @@ Plan: `docs/plans/2026-11-03_05_BAG_SHOP_BUY_SELL.md`. Implemented 2026-11-03. L
   button toggles it. Ctrl + double-click a bag slot sells only while the shop panel is open.
 - `BagController` must be created after `QuestController` (its `onUPP` handler updates `player` first).
 
+## Bag operations (M1, 2026-11-04, plan `2026-11-04_02_CHARACTER_CORE.md`)
+- `getInitSlot` returns bag **and** equipped items (slotType 1, sid = position 1..22); the bag grid filters equipped ones out.
+  `BagItem` gained `position`, `reqLevel`.
+- RPCs (`inventory/bag-ops.rpc.ts` + `bag-ops.service.ts`, pure `bag-rules.ts` planMove/planSplit/planSort), none quiet:
+  - `moveItem(fromSid, toSid)`, open-page bag sids only:
+    - empty target: move, `onMoveItem`;
+    - same template + bound + colour within the max stack: merge, `onAddCharactorSlot` + `onStackItemInto(from, to, srcId, destId, n)`;
+    - otherwise: swap, `onSwapItem`.
+    - Templates with `stack_max <= 1` swap instead of failing.
+  - `moveItemNum(from, to, n)`, with `1 <= n < stack`: new row (keeps bound and colour) or merge. Pushes `onAddCharactorSlot`, then `onMoveItemNum(from, srcId, left)`.
+  - `dropItem(itemId[, pass])`: bag items only; the password is ignored. Pushes `onDelCharactorSlot`.
+  - `bagSort()`: sorts by (tid, itemType, unbound first, colour), merges, repacks from 0 (offset indexes because of the unique index).
+    Pushes `onDelCharactorSlot` per merged-away row, then `onItemSort([{oldId: oldSid, newId: newSid, stackNum}])`.
+- Client (`bagPanel.ts`, `BagController.ts`, `game/bagActions.ts`):
+  - drag moves, Shift-drop splits (amount dialog, max stack−1);
+  - double-click sends `useItem` (equip or drink);
+  - toolbar Sắp xếp (confirm, 3 s throttle) and Vứt bỏ mode (confirm "Xác nhận hủy vật phẩm này?").
+- Equip, potions, buffs: `character-stats.md`.
+
 ## Deferred
-Repair buttons, payment radios / ChangeMoneyType, extra pages, quest/pet/temp bags, bank, item use / drop / split / sort /
-drag, equipping, stock limits, quest "item in bag" requirements, equipment random properties. If `addMoney` fails after a
+Repair buttons, payment radios / ChangeMoneyType, extra pages, quest/pet/temp bags, bank, stock limits, quest "item in bag"
+requirements, equipment random properties. If `addMoney` fails after a
 sale delete the item is lost (no transaction); acceptable for now. Quiet the RPCs only after the user confirms.

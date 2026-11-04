@@ -31,8 +31,21 @@ export class InventoryService {
     private readonly gameData: GameDataService,
   ) {}
 
+  /** Bag items followed by equipped items (getInitSlot returns both in one map). */
   async list(characterId: number): Promise<BagItem[]> {
-    const docs = await this.items.find({ characterId, slotType: SlotType.BAG }).sort({ slotIndex: 1 }).lean();
+    const docs = await this.items.find({ characterId }).sort({ slotType: 1, slotIndex: 1 }).lean();
+    return this.mapDocs(docs);
+  }
+
+  /** Wire items of specific instance ids of this character (for onAddCharactorSlot / equipItems). */
+  async byIds(characterId: number, ids: number[]): Promise<BagItem[]> {
+    if (ids.length === 0) return [];
+    const docs = await this.items.find({ characterId, _id: { $in: ids } }).sort({ slotType: 1, slotIndex: 1 }).lean();
+    return this.mapDocs(docs);
+  }
+
+  async equipped(characterId: number): Promise<BagItem[]> {
+    const docs = await this.items.find({ characterId, slotType: SlotType.EQUIP }).sort({ slotIndex: 1 }).lean();
     return this.mapDocs(docs);
   }
 

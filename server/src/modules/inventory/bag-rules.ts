@@ -74,3 +74,103 @@ export function planAdd(bag: readonly BagStack[], spec: AddSpec, capacity = BAG_
   }
   return rest > 0 ? null : { topUps, newStacks };
 }
+
+// --- Moves, splits and sorting (legacy MoveItem / MoveItemPartial / SortBag), pure over plain slot rows ---
+
+export interface BagSlotRow extends BagStack {
+  maxStack: number; // stack limit of the template (maxStack())
+}
+
+const sameStackKey = (a: BagSlotRow, b: BagSlotRow): boolean =>
+  a.itemType === 1 && b.itemType === 1 && a.templateId === b.templateId && a.isBound === b.isBound
+  && a.colorCode === b.colorCode && a.maxStack > 1;
+
+export type MovePlan =
+  | { kind: 'move'; id: number; from: number; to: number }
+  | { kind: 'merge'; srcId: number; destId: number; from: number; to: number; merged: number }
+  | { kind: 'swap'; aId: number; bId: number; from: number; to: number }
+  | { kind: 'error'; reason: string };
+
+/**
+ * moveItem between two bag slot indexes: empty target -> move; same stackable (template, bound, colour) -> merge when
+ * the total fits the stack limit (else error, no partial merge); anything else -> swap.
+ */
+export function planMove(bag: readonly BagSlotRow[], from: number, to: number): MovePlan {
+  if (from === to) return { kind: 'error', reason: 'same slot' };
+  const src = bag.find((s) => s.slotIndex === from);
+  if (!src) return { kind: 'error', reason: 'empty source' };
+  const dest = bag.find((s) => s.slotIndex === to);
+  if (!dest) return { kind: 'move', id: src.id, from, to };
+  if (sameStackKey(src, dest)) {
+    const merged = src.stackCount + dest.stackCount;
+    if (merged > dest.maxStack) return { kind: 'error', reason: 'stack limit' };
+    return { kind: 'merge', srcId: src.id, destId: dest.id, from, to, merged };
+  }
+  return { kind: 'swap', aId: src.id, bId: dest.id, from, to };
+}
+
+export type SplitPlan =
+  | { kind: 'new'; srcId: number; from: number; to: number; count: number; remaining: number }
+  | { kind: 'merge'; srcId: number; destId: number; from: number; to: number; count: number; remaining: number; merged: number }
+  | { kind: 'error'; reason: string };
+
+/** moveItemNum: takes `n` (1 <= n < stack) from a stackable row into an empty slot or a matching stack. */
+export function planSplit(bag: readonly BagSlotRow[], from: number, to: number, n: number): SplitPlan {
+  if (from === to) return { kind: 'error', reason: 'same slot' };
+  const src = bag.find((s) => s.slotIndex === from);
+  if (!src) return { kind: 'error', reason: 'empty source' };
+  if (src.itemType !== 1 || src.maxStack <= 1) return { kind: 'error', reason: 'not stackable' };
+  if (!Number.isInteger(n) || n < 1 || n >= src.stackCount) return { kind: 'error', reason: 'bad amount' };
+  const remaining = src.stackCount - n;
+  const dest = bag.find((s) => s.slotIndex === to);
+  if (!dest) return { kind: 'new', srcId: src.id, from, to, count: n, remaining };
+  if (!sameStackKey(src, dest)) return { kind: 'error', reason: 'slot occupied' };
+  const merged = dest.stackCount + n;
+  if (merged > dest.maxStack) return { kind: 'error', reason: 'stack limit' };
+  return { kind: 'merge', srcId: src.id, destId: dest.id, from, to, count: n, remaining, merged };
+}
+
+export interface SortPlan {
+  removed: { id: number; slotIndex: number }[]; // rows merged away
+  kept: { id: number; from: number; to: number; stackCount: number; countChanged: boolean }[]; // survivors in new order
+}
+
+/** bagSort: stable sort by (tid, itemType, unbound first, colour, slot, id), merge up to the stack limit, repack from 0. */
+export function planSort(bag: readonly BagSlotRow[]): SortPlan {
+  const sorted = [...bag].sort(
+    (a, b) =>
+      a.templateId - b.templateId || a.itemType - b.itemType || Number(a.isBound) - Number(b.isBound)
+      || a.colorCode - b.colorCode || a.slotIndex - b.slotIndex || a.id - b.id,
+  );
+  const removed: SortPlan['removed'] = [];
+  const survivors: { row: BagSlotRow; count: number }[] = [];
+  let i = 0;
+  while (i < sorted.length) {
+    let j = i + 1;
+    while (j < sorted.length && sameStackKey(sorted[i], sorted[j])) j++;
+    if (j - i === 1) {
+      survivors.push({ row: sorted[i], count: sorted[i].stackCount });
+    } else {
+      let total = 0;
+      for (let k = i; k < j; k++) total += sorted[k].stackCount;
+      for (let k = i; k < j; k++) {
+        const take = Math.min(total, sorted[k].maxStack);
+        if (take > 0) survivors.push({ row: sorted[k], count: take });
+        else removed.push({ id: sorted[k].id, slotIndex: sorted[k].slotIndex });
+        total -= take;
+      }
+    }
+    i = j;
+  }
+  const kept = survivors.map((s, to) => ({
+    id: s.row.id, from: s.row.slotIndex, to, stackCount: s.count, countChanged: s.count !== s.row.stackCount,
+  }));
+  return { removed, kept };
+}
+
+/** First bag slot index in 0..capacity-1 that no row occupies, or -1 when the bag is full. */
+export function firstFreeSlot(used: Iterable<number>, capacity = BAG_PAGE_SLOTS): number {
+  const set = new Set(used);
+  for (let i = 0; i < capacity; i++) if (!set.has(i)) return i;
+  return -1;
+}

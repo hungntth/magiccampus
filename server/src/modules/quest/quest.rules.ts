@@ -1,11 +1,9 @@
 // Pure quest rules (no Nest/Mongo): accept gating (Go service.go:91-195 = Flash Player.canTakeQuest),
 // H5 "supported quest" filter, exp/level-up (Go character.go GainExperience) and NPC quest states.
 
-import { LEVEL_EXP, QuestState, QuestType } from '@mc/shared';
+import { ATTR_POINTS_PER_LEVEL, AUTO_LEVEL_CAP, LEVEL_EXP, QuestState, QuestType } from '@mc/shared';
 import type { QuestPreRow, QuestRequireRow, QuestTemplate } from '../gamedata/quest-data';
 
-export const AUTO_LEVEL_CAP = 20;
-export const ATTR_POINTS_PER_LEVEL = 5;
 const GENDER_ANY = 2;
 
 /** Quest types the H5 slice offers (newbie, main, world, growup). */

@@ -1,5 +1,5 @@
 // Scene RPCs: sceneLogin, createChars, createNpcs, createSceneItems, udcp/udcr (movement), sceneChange (gate teleport),
-// gmGoMap (dev /go). Pushes: onScenePlayerEntered, onScenePlayerLeft, onCR (movement), onSceneEnter (after sceneChange).
+// gmGoMap (dev /go). Pushes: initLongBuff (sceneLogin), onScenePlayerEntered, onScenePlayerLeft, onCR (movement), onSceneEnter (after sceneChange).
 
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import type { MoveUpdate, SceneCharacter, SceneEnterPush, SceneItem, SceneLoginResponse, SceneNpc } from '@mc/shared';
@@ -11,6 +11,7 @@ import { GameGateway } from '../../gateway/game.gateway';
 import { CharacterService } from '../character/character.service';
 import { GameDataService } from '../gamedata/gamedata.service';
 import { QuestService } from '../quest/quest.service';
+import { BuffService } from '../buff/buff.service';
 import { portalDataOf } from './portal-data';
 import { resolveGate } from './portal.rules';
 import { SceneTransportService } from './scene-transport.service';
@@ -26,6 +27,7 @@ export class SceneRpc implements OnModuleInit {
     private readonly gameData: GameDataService,
     private readonly quests: QuestService,
     private readonly transport: SceneTransportService,
+    private readonly buffs: BuffService,
   ) {}
 
   onModuleInit(): void {
@@ -47,6 +49,8 @@ export class SceneRpc implements OnModuleInit {
       doc.posY = Number(mapRow.safe_y ?? 0);
       await doc.save();
     }
+    // The client binds its callbacks before calling sceneLogin, so this is the first safe moment for initLongBuff.
+    session.callback('initLongBuff', await this.buffs.initPayload(doc._id));
     return this.transport.enterScene(session, doc.mapId, doc.posX, doc.posY, doc.dir);
   }
 

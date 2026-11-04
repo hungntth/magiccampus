@@ -1,4 +1,4 @@
-// Bag RPC: getInitSlot (login bag snapshot keyed by item id). Item changes are pushed by the shop flows.
+// Bag RPC: getInitSlot (login snapshot of bag + equipped items keyed by item id). Changes are pushed by the shop, equip, use and bag-op flows.
 
 import { Injectable } from '@nestjs/common';
 import type { GetInitSlotReply } from '@mc/shared';

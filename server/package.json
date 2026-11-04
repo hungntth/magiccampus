@@ -9,7 +9,8 @@
     "lint": "tsc -p tsconfig.json --noEmit",
     "test": "node --test --import tsx ./src/**/*.test.ts",
     "import:seeds": "tsx tools/import-seeds.ts",
-    "resmap": "tsx tools/resmap.ts"
+    "resmap": "tsx tools/resmap.ts",
+    "fix:char-attributes": "tsx tools/fix-char-attributes.ts"
   },
   "dependencies": {
     "@mc/shared": "workspace:*",

@@ -449,3 +449,35 @@
   font-size: 11px;
   font-weight: bold;
 }
+
+/* --- HP / MP bars are clickable (potion recovery): enlarge the 5 px hit area --- */
+.hud-portrait .hud-bar {
+  cursor: pointer;
+}
+
+.hud-portrait .hud-bar::before {
+  content: '';
+  position: absolute;
+  inset: -3px 0;
+}
+
+/* --- long buff bar (legacy LongBuffCanvas left2/top115, 16x16 icons) --- */
+.hud-buffbar {
+  position: absolute;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.hud-buff {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  cursor: pointer;
+}
+
+.hud-buff.missing {
+  background: #3a7bc8;
+  border: 1px solid #fff2c4;
+  box-sizing: border-box;
+}

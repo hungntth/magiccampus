@@ -1,4 +1,4 @@
-// Chat slash commands for the world scene: /go <mapId> (gmGoMap, dev teleport), /maps (getMapList).
+// Chat slash commands for the world scene: /go <mapId> (gmGoMap, dev teleport), /maps (getMapList), /buff <id> [seconds] (gmAddBuff).
 
 import type { SceneLoginResponse } from '@mc/shared';
 import type { GameClient } from '../net/client';
@@ -24,6 +24,16 @@ export async function runSceneCommand(
     if (cmd === 'maps') {
       const maps = await client.call<{ id: number; name: string; type: number }[]>('getMapList');
       chat.system(maps.map((m) => `${m.id}:${m.name}`).join(' · '));
+      return;
+    }
+    if (cmd === 'buff') {
+      const id = Number(args[0]);
+      const secs = args[1] === undefined ? 0 : Number(args[1]);
+      if (!Number.isInteger(id) || !Number.isInteger(secs)) {
+        chat.system('Dùng: /buff <id> [giây] (0 = vĩnh viễn)');
+        return;
+      }
+      await client.call('gmAddBuff', id, secs);
       return;
     }
     chat.system(`Lệnh không rõ: /${cmd}`);

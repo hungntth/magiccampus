@@ -1,8 +1,9 @@
 // Player + pet portraits, top-left (legacy PortraitCanvas left2/top5 192x57, PetCanvas left2/top67 179x46).
-// Bars draw no text; values are in tooltips ("HP: 120/300"). Panels behind the clicks are not ported yet.
+// Bars draw no text; values are in tooltips ("HP: 120/300"). HP / MP bar click = potion recovery, "Up" = manual level-up.
 
 import { LEVEL_EXP, type PlayerData } from '@mc/shared';
 import { iconUrl } from '../../assets';
+import type { HudActions } from './mainHud';
 import { div, notReady, place, skinButton, skinImage, std } from './skin';
 
 class Bar {
@@ -35,7 +36,7 @@ export class PortraitCanvas {
   private readonly exp: Bar;
   private readonly lvUp: HTMLDivElement;
 
-  constructor(parent: HTMLElement) {
+  constructor(parent: HTMLElement, actions: HudActions) {
     this.root = place(div('hud-portrait', parent), 2, 5, 192, 57) as HTMLDivElement;
     skinImage('MainStage_CharInfo/CharacterPortrait', this.root, 0, 0);
     this.head = document.createElement('img');
@@ -49,6 +50,8 @@ export class PortraitCanvas {
     this.name = place(div('hud-label hud-name', this.root), 84, 3, 86) as HTMLDivElement;
     this.hp = new Bar(this.root, 'MainStage_CharInfo/HPBar', 80, 22, 89, 5);
     this.mp = new Bar(this.root, 'MainStage_CharInfo/MPBar', 80, 32, 89, 5);
+    this.hp.root.onclick = () => actions.onRecover('hp');
+    this.mp.root.onclick = () => actions.onRecover('mp');
     this.sp = new Bar(this.root, 'MainStage_CharInfo/SPBar', 80, 41, 105, 4);
     this.exp = new Bar(this.root, 'MainStage_CharInfo/ExpBar', 80, 48, 105, 4);
     skinButton({ up: 'MainStage_CharInfo/HealEmptyUp', over: 'MainStage_CharInfo/HealEmptyOver' }, this.root, 175, 19,
@@ -57,7 +60,7 @@ export class PortraitCanvas {
       29, 'Pháp Lực Hoàn tiện dụng', notReady);
     skinButton(std('MainStage_CharInfo/ItemBag'), this.root, 173, 3, 'Vật phẩm nhân vật sử dụng', notReady);
     // "Up" sits outside the body and only shows when the exp bar is full (manual level-up from Lv 20).
-    this.lvUp = skinButton(std('MainStage_CharInfo/LevelUp'), this.root, 198, 0, 'Thăng cấp', notReady);
+    this.lvUp = skinButton(std('MainStage_CharInfo/LevelUp'), this.root, 198, 0, 'Thăng cấp', actions.onLevelUp);
     const vip = place(div('hud-vip', this.root, 'VIP'), 198, 30, 46, 22);
     vip.title = 'VIP';
     vip.onclick = notReady;
@@ -67,8 +70,11 @@ export class PortraitCanvas {
     this.head.src = iconUrl(p.iconCode);
     this.level.textContent = String(p.level);
     this.name.textContent = p.name;
-    this.hp.set(p.currentHp, p.maxHp, `HP: ${p.currentHp}/${p.maxHp}`);
-    this.mp.set(p.currentMp, p.maxMp, `MP: ${p.currentMp}/${p.maxMp}`);
+    // Max HP/MP come from property (gear and buffs applied); maxHp/maxMp are only the base cache.
+    const maxHp = p.property?.finalHp ?? p.maxHp;
+    const maxMp = p.property?.finalMp ?? p.maxMp;
+    this.hp.set(p.currentHp, maxHp, `HP: ${p.currentHp}/${maxHp}`);
+    this.mp.set(p.currentMp, maxMp, `MP: ${p.currentMp}/${maxMp}`);
     this.sp.set(0, 0, 'SP: 0/0');
     // Character.exp is cumulative; the bar shows progress inside the current level (legacy expSkill).
     const base = LEVEL_EXP[p.level - 1] ?? 0;

@@ -1,0 +1,46 @@
+// Small yes / no confirmation (legacy Alert) reusing the amount-dialog look: message, Đồng ý / Hủy. Enter confirms,
+// Esc cancels. Returns a function that closes it.
+
+import { stageEl } from './stage';
+import './bag.css';
+
+export function askConfirm(text: string, onYes: () => void): () => void {
+  const root = document.createElement('div');
+  root.className = 'amount-dialog confirm-dialog';
+  const msg = document.createElement('div');
+  msg.className = 'amount-total confirm-text';
+  msg.textContent = text;
+  const mk = (label: string): HTMLButtonElement => {
+    const b = document.createElement('button');
+    b.className = 'amount-btn';
+    b.textContent = label;
+    return b;
+  };
+  const ok = mk('Đồng ý');
+  const cancel = mk('Hủy');
+  const row = document.createElement('div');
+  row.className = 'amount-row';
+  row.append(ok, cancel);
+  root.append(msg, row);
+  const onKey = (e: KeyboardEvent): void => {
+    if (e.key !== 'Enter' && e.key !== 'Escape') return;
+    e.stopPropagation();
+    e.preventDefault();
+    if (e.key === 'Enter') yes();
+    else close();
+  };
+  const close = (): void => {
+    window.removeEventListener('keydown', onKey, true);
+    root.remove();
+  };
+  const yes = (): void => {
+    close();
+    onYes();
+  };
+  ok.onclick = yes;
+  cancel.onclick = close;
+  window.addEventListener('keydown', onKey, true);
+  stageEl().appendChild(root);
+  ok.focus();
+  return close;
+}

@@ -42,9 +42,26 @@ export class Character {
   @Prop({ default: 10 })
   energy: number;
 
+  // Distributed attribute points (changeProperty); strength..energy above stay the base att* values.
+  @Prop({ default: 0 })
+  aptStrength: number;
+
+  @Prop({ default: 0 })
+  aptAgility: number;
+
+  @Prop({ default: 0 })
+  aptStamina: number;
+
+  @Prop({ default: 0 })
+  aptIntelligence: number;
+
+  @Prop({ default: 0 })
+  aptEnergy: number;
+
   @Prop({ default: 0 })
   attrPoints: number;
 
+  // maxHp / maxMp are a cache rewritten whenever stats are recomputed; the formula is the source of truth.
   @Prop({ default: 100 })
   maxHp: number;
 
