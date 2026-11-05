@@ -93,3 +93,48 @@ PvP battles reuse BattleManager with two player sides; see `pk.md`.
 - Enemy hover card (2026-11-04, `client/src/game/battle/unitTip.ts`): hovering any living unit (enemy, self, ally, pet) at any time (not only while
   picking a target) shows under its feet "Cấp: N" (+ red "Boss" for bossFlag 1) and HP / MP bars with current/max; refreshed every
   tick by BattleStage. Picking tint / click-to-target still only while picking.
+
+## M9 phase A (auto battle)
+- PvE has no round cap any more (`round.ts`: cap 30 only when the enemy side has characters, a draw). AUTO -110 = basic attack on a
+  random living enemy; pets accept ITEM (owner's bag) and AUTO. Client auto chain: see `auto-battle.md`.
+- M9 phase D: relive modes and the blood bag replaced the free-only revive; see `blood-bag.md`. Battle settle stores `deathAt`.
+
+## M9 phase E (NPC battles)
+- `hitNpc(npcId)` / `clickBoss(npcId)` (`npc-battle.service.ts`, rules `npc-battle.ts`): NPC on the caller's map within 300 px,
+  leader only, line-up from `data_tbl_npc_creature` (`GameDataService.npcCreatures`, cached per nid; level row -> use_lv -> 10, boss_flag,
+  exp × exp_multi), else the map's first spawn row. Party roster via `CombatService.roster`. No H5 content sends it yet (type-25 walkers are M10).
+- Loop bosses go through `QuestBattleService` (fallback to the paired round, `bossFlag 1`); see `loop-quest.md`.
+- The hotbar stays visible in battle (`battle.css` exception `.hud-userbar`).
+
+## Spectate (M9 phase H)
+- RPCs (un-quieted): `startWatch(targetCid)` -> `{success[, error]}` (+ `onWatch(start + watch:true)` / `onSystemSay`), `quitWatch()`.
+  `spectate.service.ts` (in-memory watcher map), gates `spectate.ts` (WATCH_ERR, Go order), `spectate.rpc.ts`.
+- Watchers get every `onBattlePlayList` (no per-member end report), then `onWatchEnd()` 5 s after the end; released on quit, new
+  watch, disconnect, own battle start. Client `game/battle/watchMode.ts` ("Thoát"). Replay RPCs stay deferred (M12 pet arena).
+- `onSessionClosed` ignores a session whose `battleId` is not the battle (re-login kick race).
+
+## M10 E2.-1: current Go damage formula (2026-11-05)
+- `combat/damage.ts` now ports current Go `damage.go` (replaces the V1 notes above): proportional melee dodge, NPC-only level
+  bonus, XPN, Miễn Giảm 100 % resist ("Kháng cự"), defence `atk/(atk+def/4)`, defender Giảm ST Cuối (75 % cap), crit × (200 |
+  250 Xạ Thủ + bonus)/100, element table, 10-level gap × 0.2, position modifier on main hits (melee × 0.7 at the Flash slots),
+  Miễn Tử. `criticalDmg` is Go's (200 + bonus). Skill base stays exp_skill (CORE_LOOP decision 4).
+- `combat/strike.ts`: combo chain (≤ 10, retarget), skill single combo, counter in place + chains (≤ 5), miss/resist status texts.
+- Details and the not-ported list: plan `2026-11-04_13_DUNGEONS.md` "Implementation notes (phase E2.-1)".
+
+## M10 E2: NPC skills and boss mechanics (2026-11-05)
+- Every creature with data_tbl_creature_skill rows casts (Go AI order, 30 % roll × NpcKit.chanceScale) in every PvE battle.
+  Engine = `combat/mechanics/` (npc-skills, skill-text, targets, battle-buffs, npc-ai, npc-cast, turn-start, summon, revive,
+  split, death-mark, doomsday, boss-floors); env = `NpcSkillCatalog`. `resolveRound(…, roundCap, env, deathRule)`.
+- Feature builders set `Fighter.npc` (pool, chanceScale, opener, rotation, immunities, controlResist), `summon` (SummonPlan
+  with pending Fighters), `roundRevives`, `doomsday`, `Battle.deathRule`; corpses removed by refill / split go to
+  `Battle.fallen` and are rewarded at settle. Boss rows get the Go defence floors in `fighters.ts` (praDef / praMagDef 30,
+  resiDefy 30, resiCritical 100).
+- NPC damage = Go description ratio; player skills stay exp_skill. Buff icons: buffAdd {id, round, icon} (icon = TBL_BUFF icon_code).
+- Not ported: shields, reflect, life steal, damage-taken / heal-cut, cleanse / guard / type 13 skills, revive skills, cooldowns,
+  confusion retargeting. Full list: plan 2026-11-04_13 "Implementation notes (phase E2)".
+- M10 phase B (2026-11-05): NPC line-ups (`npc-battle.service.ts npcLineup`) fill both enemy rows, `LINEUP_SLOTS` 0,2,1,4,3,5,7,6,9,8
+  (boss_flag 1 in the centre, then row id order; was 5 slots, which dropped units and sometimes the boss row). Random encounters live in
+  `encounter.service.ts` (`EncounterService.tryRandomEncounter`, `addTuner(mapId, enemies)`). A won battle credits quest kills to every
+  connected member, dead ones too (Go quest_kill_party.go); loot stays survivors-only. `startNpcFight(..., { tune })` applies feature kits.
+
+- 2026-11-05 fix: `playback.ts` skips destroyed units / stage (BH_RETURNED removal, summon replacement or a teardown mid-list left `t.x` on a destroyed Pixi container -> "Cannot read properties of null (reading 'x')"); `BattleStage.popup` and `unitTip.refresh` guard `destroyed` too.

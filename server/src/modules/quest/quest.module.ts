@@ -15,6 +15,9 @@ import { QuestProgressService } from './quest-progress.service';
 import { QuestRewardService } from './quest-reward.service';
 import { QuestRpc } from './quest.rpc';
 import { QuestService } from './quest.service';
+import { QuestViewService } from './quest-view.service';
+import { QuestGates } from './quest-gates';
+import { QuestCreditService } from './quest-credit.service';
 
 @Module({
   imports: [
@@ -30,7 +33,7 @@ import { QuestService } from './quest.service';
     PetModule,
     StatsModule,
   ],
-  providers: [QuestService, QuestProgressService, QuestRewardService, QuestRpc],
-  exports: [QuestService, QuestProgressService],
+  providers: [QuestService, QuestProgressService, QuestRewardService, QuestViewService, QuestGates, QuestCreditService, QuestRpc],
+  exports: [QuestService, QuestProgressService, QuestGates, QuestCreditService],
 })
 export class QuestModule {}

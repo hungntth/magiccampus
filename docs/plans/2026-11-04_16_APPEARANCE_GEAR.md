@@ -1,6 +1,6 @@
 # Appearance & gear depth (M13): avatar layers, dress, wings, equipment depth, gear-side growth systems — Implementation Plan
 
-**Date**: 2026-11-04 · **Status**: Draft (awaiting approval)
+**Date**: 2026-11-04 · **Status**: Approved (user, 2026-11-05)
 **Goal**: make what the character wears visible and deep:
 - the avatar shows weapon, dress (Thời trang), wing, flyer, fairy and mount on every client, live (`onEquipOn`, `onSetRes`, `onWingOn`, `onFlyerOn`, flying);
 - the dress system (activate, fake dress, recipes, chips, deco holes/runes/show);

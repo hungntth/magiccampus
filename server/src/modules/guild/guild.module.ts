@@ -17,6 +17,7 @@ import { GuildExtendService } from './guild-extend.service';
 import { GuildSkillService } from './guild-skill.service';
 import { GuildContribService } from './guild-contrib.service';
 import { GuildMemberService } from './guild-member.service';
+import { GuildShopService } from './guild-shop.service';
 import { GuildViewService } from './guild-view.service';
 import { GuildRpc } from './guild.rpc';
 import {
@@ -43,9 +44,9 @@ import { GuildService } from './guild.service';
   ],
   providers: [
     GuildViewService, GuildMemberService, GuildService, GuildContribService, GuildRpc, GuildBankService, GuildExtendService, GuildSkillService,
-    GuildBuildService, GuildEstateRpc,
+    GuildBuildService, GuildEstateRpc, GuildShopService,
   ],
-  exports: [GuildViewService],
+  exports: [GuildViewService, GuildShopService],
 })
 export class GuildModule implements OnModuleInit {
   constructor(

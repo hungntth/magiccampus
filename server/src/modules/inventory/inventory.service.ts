@@ -38,7 +38,9 @@ export class InventoryService {
 
   /** Bag items followed by equipped items (getInitSlot returns both in one map). */
   async list(characterId: number): Promise<BagItem[]> {
-    const docs = await this.items.find({ characterId }).sort({ slotType: 1, slotIndex: 1 }).lean();
+    // Temp-bag rows (Túi Tiện Dụng) have their own payload (tBag) and their slot indexes would collide with bag sids.
+    const docs = await this.items
+      .find({ characterId, slotType: { $nin: [SlotType.TEMP_BAG, SlotType.ESCROW] } }).sort({ slotType: 1, slotIndex: 1 }).lean();
     return this.mapDocs(docs);
   }
 
@@ -176,6 +178,11 @@ export class InventoryService {
     const del = await this.items.deleteOne({ _id: itemId, characterId, slotType: SlotType.BAG });
     if (del.deletedCount !== 1) throw RpcException.notFound('không tìm thấy vật phẩm');
     return { item: toBagItem(doc, tpl), unit };
+  }
+
+  /** Wire items of arbitrary rows (escrow tooltips); same mapping as every other read. */
+  mapRows(docs: CharacterItem[]): Promise<BagItem[]> {
+    return this.mapDocs(docs);
   }
 
   private async mapDocs(docs: CharacterItem[]): Promise<BagItem[]> {

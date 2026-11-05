@@ -25,6 +25,8 @@ export interface QuestTemplate {
   startGrantItem: number; // 0 = none
   startGrantQty: number;
   subType?: string; // "7-<lid>" for loop rounds
+  rt: number; // turn-in cost currency (1 moneyBind, 2 money, 3 goldBind, 4 gold; others unwired)
+  rn: number; // turn-in cost amount
 }
 
 /** data_tbl_quest_require: kind 1 collect item (type 29 item / 19 equipment), 2 kill creature, 3 pet. */
@@ -95,6 +97,8 @@ export function toQuestTemplate(row: Row): QuestTemplate {
     startGrantItem: n(row.start_grant_item),
     startGrantQty: n(row.start_grant_qty),
     subType: s(row.sub_type),
+    rt: n(row.rt),
+    rn: n(row.rn),
   };
 }
 

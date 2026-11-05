@@ -8,6 +8,7 @@ import { GameDataModule } from '../gamedata/gamedata.module';
 import { GuildMemberRow, GuildMemberSchema } from '../guild/guild.schema';
 import { CharacterQuest, CharacterQuestSchema } from '../quest/quest.schema';
 import { QuestModule } from '../quest/quest.module';
+import { NpcScriptModule } from '../npcscript/npcscript.module';
 import { LoopCoreModule } from './loop-core.module';
 import { LoopRpc } from './loop.rpc';
 import { LoopService } from './loop.service';
@@ -21,6 +22,7 @@ import { LoopService } from './loop.service';
     ]),
     GameDataModule,
     LoopCoreModule,
+    NpcScriptModule,
     QuestModule,
   ],
   providers: [LoopService, LoopRpc],

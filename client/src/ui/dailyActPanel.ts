@@ -14,6 +14,8 @@ export interface DailyActHost {
   online(): { minutes: number; gifts: number } | null;
   onChest(tier: number): void;
   onClose(): void;
+  /** M10: opens the "Phó bản" hub */
+  onDungeons(): void;
 }
 
 const el = (cls: string, text?: string, tag = 'div'): HTMLElement => {
@@ -69,7 +71,9 @@ export class DailyActPanel {
 
   private pointsRow(points: number): HTMLElement {
     const row = el('act-row');
-    row.append(el('act-gold', 'Độ năng nổ hôm nay:'), el('act-gold', String(points)));
+    const fb = el('act-btn', 'Phó bản', 'button');
+    fb.onclick = () => this.host.onDungeons();
+    row.append(el('act-gold', 'Độ năng nổ hôm nay:'), el('act-gold', String(points)), fb);
     return row;
   }
 

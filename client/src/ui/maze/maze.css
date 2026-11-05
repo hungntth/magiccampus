@@ -1,0 +1,46 @@
+/* Mê Trận (ui/maze/*): lobby, in-maze HUD with the 6 x 9 minimap, event / shop / lottery / quiz windows. */
+.mz-lobby { width: 460px; }
+.mz-disc { width: 420px; }
+.mz-shop { width: 380px; }
+.mz-lottery { width: 520px; }
+.mz-question { width: 480px; }
+.mz-chest-name { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+.mz-reward, .mz-rules { white-space: pre-wrap; font-size: 12px; color: #d6e6f5; margin: 4px 0 6px; }
+.mz-rules { color: #9fb8cf; max-height: 130px; overflow-y: auto; border-top: 1px solid #3a6489; padding-top: 4px; }
+.mz-line { color: #e6f1fb; font-size: 12px; margin: 2px 0; }
+.mz-old { color: #9fb8cf; font-size: 12px; text-decoration: line-through; }
+.mz-row { display: flex; gap: 6px; margin: 6px 0; flex-wrap: wrap; }
+
+.mz-hud {
+  position: absolute; right: 6px; top: 70px; width: 168px; z-index: 40; padding: 6px;
+  background: rgba(14, 42, 69, 0.92); border: 2px solid #e8c46a; border-radius: 8px;
+  font-family: Tahoma, Verdana, Arial, sans-serif; color: #fff;
+}
+.in-battle .mz-hud { display: none; }
+.mz-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.mz-title { color: #ffe9a8; font-weight: 700; }
+.mz-btn { padding: 2px 6px; border: 1px solid #4f86b3; border-radius: 4px; background: #1c4c7a; color: #fff; font-size: 11px; cursor: pointer; }
+.mz-hud .mz-row { flex-direction: column; gap: 3px; }
+.mz-grid { display: grid; gap: 2px; padding: 3px; background: #0a1c2e; border-radius: 4px; }
+.mz-cell { height: 14px; border-radius: 2px; background: #5c6770; }
+.mz-cell.seen { background: #2f7bd6; }
+.mz-cell.here { background: #ffd23c; box-shadow: 0 0 4px #ffd23c; }
+.mz-cell.start { background: #2f7bd6; border: 1px solid #fff; }
+.mz-cell.start-here { background: #ffd23c; border: 1px solid #fff; }
+.mz-cell.end { background: #8d8d8d; border: 1px solid #ffd23c; }
+.mz-cell.end-here { background: #ffd23c; border: 1px solid #fff; }
+.mz-stats { margin-top: 4px; }
+
+.mz-slot, .mz-card {
+  display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px; margin-bottom: 6px;
+  border: 1px solid #4f86b3; border-radius: 4px; background: rgba(12, 36, 60, 0.6);
+}
+.mz-slot-name { color: #ffe9a8; font-weight: 700; font-size: 12px; text-align: center; }
+.mz-icon { width: 36px; height: 36px; }
+.mz-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.mz-card { margin-bottom: 0; }
+.mz-card.dropped { opacity: 0.35; }
+.mz-options { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.mz-opt { text-align: left; }
+.mz-opt.right { background: #2c7a3d; border-color: #8fe08f; }
+.mz-opt.wrong { background: #7a2c2c; border-color: #e08f8f; }

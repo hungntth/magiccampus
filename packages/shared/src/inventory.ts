@@ -5,7 +5,8 @@ import type { EquipInstanceView } from './forge.js';
 
 export const ItemKind = { ITEM: 1, EQUIP: 2 } as const; // legacy item_type
 // BANK / QUEST_BAG / PET_BAG: sid map in economy.ts. PET_EQUIP: slotIndex = petId * 8 + (pos - 50). Slot type 3 (temp bag) is not ported.
-export const SlotType = { BAG: 0, EQUIP: 1, BANK: 2, QUEST_BAG: 4, PET_BAG: 5, PET_EQUIP: 6 } as const;
+/** ESCROW is server-only (goods parked by a mail / auction row, characterId 0); it is never sent as a sid. */
+export const SlotType = { BAG: 0, EQUIP: 1, BANK: 2, TEMP_BAG: 3, QUEST_BAG: 4, PET_BAG: 5, PET_EQUIP: 6, ESCROW: 90 } as const;
 export const EQUIP_SLOT_COUNT = 22; // equipped sid = template position (1..22), slotIndex = position - 1
 export const BAG_SID_BASE = 2101;
 export const BAG_PAGE_SLOTS = 30;

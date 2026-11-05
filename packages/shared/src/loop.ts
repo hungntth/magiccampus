@@ -49,8 +49,29 @@ export const LOOP_DIARY_TASK: Readonly<Record<number, number>> = { 2: 5, 4: 19, 
 /** 200-vong milestones: completed rounds -> diary task (13..16). */
 export const LOOP_MILESTONE_TASK: Readonly<Record<number, number>> = { 50: 13, 100: 14, 150: 15, 200: 16 };
 
-/** Round quests that only exist through boss summons (`createBoss`); H5 has no boss display, so they are never picked. */
+/** Round quests fought against a loop boss (M9 phase E): Trị An item summons and Trừ Ma map bosses (`createBoss`). */
 export const LOOP_BOSS_QUEST_IDS: readonly number[] = [4671, 7667, 7668, 7669, 7670];
+
+/** A boss on the map: `onCreateBoss` (values of the map keyed by nid) and `onBossOn`. `layer` 3 = air (H5 draws it on the ground). */
+export interface BossRow {
+  id: number;
+  nid: number;
+  name: string;
+  resCode: string; // int64 resource code, as a string
+  posX: number;
+  posY: number;
+  x: number;
+  y: number;
+  type?: number;
+  lv?: number;
+  layer?: number;
+}
+
+/** Push `onCreateBoss(map)`: the reply to `createBoss()`, keyed by nid (`{}` when none). */
+export type CreateBossPush = Record<string, BossRow>;
+
+/** Push `onBossOn(row)`; `onBossOff(nid)` removes it. */
+export type BossOnPush = BossRow & { v?: number };
 
 /** Loop id of a type-7 round (`sub_type` "7-<lid>"), 0 when it is not one. */
 export function loopIdOfSubType(subType: string): number {

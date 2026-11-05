@@ -1,0 +1,28 @@
+/* Khóa Học Đặc Huấn window (ui/txkcPanel.ts): level bar, award list (free + advanced cells), task rows, buy-exp stepper. */
+.txkc-win { width: 560px; top: 4%; }
+.txkc-win .tx-head { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; background: rgba(8, 28, 48, 0.7); border: 1px solid #2f648f; border-radius: 4px; }
+.txkc-win .tx-top { display: flex; justify-content: space-between; align-items: baseline; }
+.txkc-win .tx-bar { position: relative; height: 16px; border: 1px solid #4f86b3; border-radius: 8px; background: rgba(0, 0, 0, 0.45); overflow: hidden; }
+.txkc-win .tx-fill { position: absolute; inset: 0 auto 0 0; background: linear-gradient(#ffd96a, #c98a12); }
+.txkc-win .tx-bar-text { position: relative; text-align: center; line-height: 14px; font-size: 11px; text-shadow: 0 0 2px #000; }
+.txkc-win .tx-actions, .txkc-win .tx-claim, .txkc-win .tx-tabs { display: flex; gap: 6px; margin: 4px 0; }
+.txkc-win .tx-actions > *, .txkc-win .tx-claim > *, .txkc-win .tx-tabs > * { flex: 1; }
+.txkc-win .tx-list { max-height: 330px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.txkc-win .tx-row { display: grid; grid-template-columns: 70px 1fr 1fr; align-items: center; justify-items: center; gap: 6px; padding: 2px 0; background: rgba(8, 28, 48, 0.55); border-radius: 4px; }
+.txkc-win .tx-row.reached .tx-lv { color: #7dff7a; }
+.txkc-win .tx-row.cur { outline: 2px solid #e8c46a; }
+.txkc-win .tx-row.th, .txkc-win .tx-th { color: #ffe9a8; font-size: 12px; }
+.txkc-win .tx-lv { color: #b8d0e6; font-weight: 700; }
+.txkc-win .tx-cell { position: relative; width: 44px; height: 44px; border: 1px solid #2f648f; border-radius: 4px; background: rgba(0, 0, 0, 0.35); }
+.txkc-win .tx-icon { width: 100%; height: 100%; object-fit: contain; }
+.txkc-win .tx-icon.none { display: flex; align-items: center; justify-content: center; }
+.txkc-win .tx-qty { position: absolute; right: 1px; bottom: 0; font-size: 10px; text-shadow: 0 0 2px #000, 0 0 2px #000; }
+.txkc-win .tx-cell.taken { opacity: 0.4; }
+.txkc-win .tx-cell.locked { filter: grayscale(0.8); }
+.txkc-win .tx-tasks { display: flex; flex-direction: column; gap: 4px; max-height: 360px; overflow-y: auto; }
+.txkc-win .tx-task { display: flex; align-items: center; gap: 8px; padding: 4px 8px; background: rgba(8, 28, 48, 0.7); border: 1px solid #2f648f; border-radius: 4px; }
+.txkc-win .tx-task.sp .tx-task-name { color: #ffe9a8; }
+.txkc-win .tx-task.claimed { opacity: 0.6; }
+.txkc-win .tx-task-info { flex: 1; display: flex; flex-direction: column; }
+.txkc-win .tx-buy { display: flex; flex-direction: column; gap: 4px; align-items: center; padding: 6px; background: rgba(8, 28, 48, 0.85); border: 1px solid #e8c46a; border-radius: 4px; }
+.txkc-win .tx-step { display: flex; align-items: center; gap: 12px; }

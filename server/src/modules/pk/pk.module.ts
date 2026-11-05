@@ -1,4 +1,4 @@
-// PK module (M6 phase C): PVPStartClient and uif(apvp). Adds `apvp` to the chooseCharactor payload through CharacterService.addLoginExtra.
+// PK module (M6 phase C): PVPStartClient; PkService (apvp) is exported for the settings module's uif. Adds `apvp` to the chooseCharactor payload through CharacterService.addLoginExtra.
 
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -17,5 +17,6 @@ import { PkService } from './pk.service';
     CharacterModule, CombatModule, GameDataModule, PartyModule, StatsModule,
   ],
   providers: [PkService, PkRpc],
+  exports: [PkService],
 })
 export class PkModule {}

@@ -1,12 +1,13 @@
 // Quest logic + persistence: NPC quest lists/markers, take / finish / cancel, active quest DTOs, kill credit and the
-// login questLog. Collect objectives are counted from the bag and consumed on finish. Rewards: exp (auto level-up < 20),
+// login questLog. Type-6 dailies count as done only when finished today (quest-daily.ts); rt / rn turn-in costs are charged
+// before the collected items are consumed; QuestGates (M10) can block takes. Collect objectives are counted from the bag and consumed on finish. Rewards: exp (auto level-up < 20),
 // money and data_tbl_quest_award items / equipment (quest-reward.service.ts); accept grants start_grant_item.
 
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { loopIdOfSubType, loopRoundReward, MAX_QUEST_NUM, MoneyType, QuestState, QuestType } from '@mc/shared';
-import type { ChaQuest, MoneyKey, QuestRequire, QuestView } from '@mc/shared';
+import { loopIdOfSubType, loopRoundReward, MAX_QUEST_NUM, MoneyType, QuestType } from '@mc/shared';
+import type { ChaQuest, MoneyKey, QuestView } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
 import { AchievementEvents } from '../achievement/achievement-events.service';
 import { Character } from '../character/character.schema';
@@ -15,23 +16,22 @@ import type { QuestTemplate } from '../gamedata/quest-data';
 import { withCharLock } from '../inventory/char-lock';
 import { LoopStateService } from '../loop/loop-state.service';
 import type { Push } from '../inventory/pushes';
-import { allMet, creditKills, initialObjectives, questKillOf } from './quest-progress';
+import { allMet, creditKills, initialObjectives } from './quest-progress';
 import { QuestProgressService } from './quest-progress.service';
 import { QuestRewardService } from './quest-reward.service';
-import { CharacterQuest, QuestHistory, type QuestObjective } from './quest.schema';
+import { CLASS_RANK_REFUSAL, promotedRank, turnInBlocked } from './class-rank';
+import { CharacterQuest, QuestHistory } from './quest.schema';
+import { costRefusal, doneQuestIds, requireCost, type CostKey } from './quest-daily';
+import { QuestGates } from './quest-gates';
+import { QuestViewService, type ActiveRow } from './quest-view.service';
 import {
   acceptBlocker, applyExp, isSupported, npcQuestStates, npcStateOf,
   type ActiveQuestInfo, type ExpResult, type QuestChar,
 } from './quest.rules';
 
-interface ActiveRow {
-  questId: number;
-  takeDate: Date;
-  objectives: QuestObjective[];
-}
-
 /** Per-request snapshot of one character's quest state. */
 export interface QuestCtx {
+  cid: number;
   char: QuestChar;
   active: Map<number, ActiveRow>;
   done: Set<number>;
@@ -46,6 +46,10 @@ export interface FinishOutcome {
   rewardPushes: Push[]; // onAddItem + onAddCharactorSlot for the award items (sent after exp / money)
   /** Set when the finished quest was a loop round: `onFinishLoopQuest {id, ft}` then the next round (if any). */
   loop?: { id: number; ft: number; num: number; name: string; next: ChaQuest | null; nextId: number };
+  /** rt / rn turn-in cost charged by this finish: the new balance goes out in the onUPP. */
+  cost?: { key: CostKey; amount: number; total: number };
+  /** New class rank (M9) when this quest was a promotion chain's final quest; pushed as onUPP {cl}. */
+  cl?: number;
 }
 
 export interface TakeOutcome {
@@ -82,30 +86,35 @@ export class QuestService {
     private readonly rewards: QuestRewardService,
     private readonly achievements: AchievementEvents,
     private readonly loops: LoopStateService,
+    private readonly gates: QuestGates,
+    private readonly views: QuestViewService,
   ) {}
 
   async loadCtx(characterId: number): Promise<QuestCtx> {
     const [doc, rows, hist] = await Promise.all([
       this.characters.findById(characterId, { level: 1, gender: 1, classId: 1 }).lean(),
       this.quests.find({ characterId }).lean(),
-      this.history.find({ characterId }, { questId: 1 }).lean(),
+      this.history.find({ characterId }, { questId: 1, completedAt: 1 }).lean(),
     ]);
     if (!doc) throw RpcException.notFound('character not found');
     const synced = await this.progress.syncRows(characterId, rows);
     return {
+      cid: characterId,
       char: { level: doc.level, gender: doc.gender, classId: doc.classId },
       active: new Map(synced.map((r) => [r.questId, { questId: r.questId, takeDate: r.takeDate, objectives: r.objectives }])),
-      done: new Set(hist.map((h) => h.questId)),
+      done: this.doneOf(hist),
     };
   }
 
   /** Quest id -> state for the quests an NPC shows (offers + turn-ins). */
-  statesForNpc(ctx: QuestCtx, npcId: number): Map<number, number> {
+  async statesForNpc(ctx: QuestCtx, npcId: number): Promise<Map<number, number>> {
     const activeIds = new Set(ctx.active.keys());
-    const offerable = this.gameData
+    const candidates = this.gameData
       .questsByStartNpc(npcId)
       .filter((t) => isSupported(t, this.gameData.questRequire(t.id)))
       .filter((t) => acceptBlocker(ctx.char, t, activeIds, ctx.done, this.gameData.questPre(t.id)) === null);
+    const offerable: QuestTemplate[] = [];
+    for (const t of candidates) if (!this.gates.hasTakeGates || !(await this.gates.takeBlocked(ctx.cid, t))) offerable.push(t);
     const active: ActiveQuestInfo[] = [];
     for (const row of ctx.active.values()) {
       const tpl = this.gameData.getQuest(row.questId);
@@ -117,16 +126,18 @@ export class QuestService {
   /** Head-marker state for each NPC id (one Mongo round trip for the character's state). */
   async npcStates(characterId: number, npcIds: readonly number[]): Promise<Map<number, number>> {
     const ctx = await this.loadCtx(characterId);
-    return new Map(npcIds.map((id) => [id, npcStateOf(this.statesForNpc(ctx, id))]));
+    const out = new Map<number, number>();
+    for (const id of npcIds) out.set(id, npcStateOf(await this.statesForNpc(ctx, id)));
+    return out;
   }
 
   async listForNpc(characterId: number, npcId: number): Promise<{ state: number; list: Record<string, QuestView> }> {
     const ctx = await this.loadCtx(characterId);
-    const states = this.statesForNpc(ctx, npcId);
+    const states = await this.statesForNpc(ctx, npcId);
     const list: Record<string, QuestView> = {};
     for (const [qid, state] of states) {
       const tpl = this.gameData.getQuest(qid);
-      if (tpl) list[String(qid)] = await this.toView(tpl, state, ctx.active.get(qid)?.objectives);
+      if (tpl) list[String(qid)] = await this.views.toView(tpl, state, ctx.active.get(qid)?.objectives);
     }
     return { state: npcStateOf(states), list };
   }
@@ -141,6 +152,8 @@ export class QuestService {
     if (ctx.active.size >= MAX_QUEST_NUM) throw RpcException.forbidden(`Chỉ được nhận tối đa ${MAX_QUEST_NUM} nhiệm vụ`);
     const blocker = acceptBlocker(ctx.char, tpl, new Set(ctx.active.keys()), ctx.done, this.gameData.questPre(questId));
     if (blocker) throw RpcException.forbidden(blocker);
+    const gated = await this.gates.takeBlocked(characterId, tpl);
+    if (gated) throw RpcException.forbidden(gated);
     // Grant items start met, kills at 0; collect objectives are counted from the bag whenever they are read.
     const objectives = initialObjectives(tpl, require);
     const takeDate = new Date();
@@ -152,7 +165,7 @@ export class QuestService {
     }
     const pushes = await this.rewards.grantStart(characterId, tpl);
     const synced = await this.progress.syncObjectives(characterId, tpl, objectives);
-    return { quest: await this.toChaQuest(tpl, { questId, takeDate, objectives: synced }), pushes };
+    return { quest: await this.views.toChaQuest(tpl, { questId, takeDate, objectives: synced }), pushes };
   }
 
   /** Serialized per character: the collected items are consumed first, then the active row is deleted, then the reward. */
@@ -174,9 +187,11 @@ export class QuestService {
     }
     const doc = await this.characters.findById(characterId);
     if (!doc) throw RpcException.notFound('character not found');
+    if (turnInBlocked(questId, doc.cl ?? 0)) throw RpcException.forbidden(CLASS_RANK_REFUSAL);
     // Reward room is checked before anything is spent (Flash QuestPanel.checkBag, QUESTPANEL_S[13]).
     const awards = await this.rewards.plan(tpl, doc.classId, selectId);
     if (!(await this.rewards.canFit(characterId, awards))) throw RpcException.forbidden('Túi không đủ chỗ trống!');
+    const cost = await this.chargeCost(characterId, doc, tpl); // Go require_cost.go: before any item is consumed
     // Go CompleteQuest: the collected items are taken out of the bag before the quest is completed and rewarded.
     const pushes = await this.progress.consumeCollected(characterId, tpl, objectives);
     const lid = tpl.type === QuestType.LOOP ? loopIdOfSubType(tpl.subType ?? '') : 0;
@@ -192,9 +207,8 @@ export class QuestService {
       reward = { ...tpl, awardExp: r.exp, moneyNum: r.silver, moneyType: MoneyType.MONEY_BIND };
       advanced = await this.loops.advance(characterId, lid, questId, doc.level);
     } else {
-      await this.history.create({ characterId, questId }).catch((e: unknown) => {
-        if (!isDupKey(e)) throw e;
-      });
+      // Upsert: a daily finished again refreshes completedAt (done = finished today).
+      await this.history.updateOne({ characterId, questId }, { $set: { completedAt: new Date() } }, { upsert: true });
     }
 
     const exp = applyExp({ level: doc.level, exp: doc.exp, attrPoints: doc.attrPoints }, reward.awardExp);
@@ -214,6 +228,8 @@ export class QuestService {
       doc[field] = (doc[field] ?? 0) + reward.moneyNum;
       money = { key: field, amount: reward.moneyNum, total: doc[field] };
     }
+    const rank = promotedRank(questId, doc.cl ?? 0);
+    if (rank !== null) doc.cl = rank;
     await doc.save();
     this.achievements.record(characterId, 'questsFinished');
     if (exp.leveled) this.achievements.record(characterId, 'level', { value: exp.level });
@@ -223,9 +239,11 @@ export class QuestService {
     const petExp = await this.rewards.grantPetExp(characterId, reward.awardExp); // the active pet gets the full quest exp
     const qn = await this.quests.countDocuments({ characterId });
     const out: FinishOutcome = { tpl, qn, exp, money, pushes, rewardPushes: [...granted.pushes, ...petPushes, ...petExp] };
+    if (rank !== null) out.cl = rank;
+    if (cost) out.cost = { ...cost, total: doc[cost.key] ?? 0 };
     if (advanced) {
       const nextTpl = advanced.next ? this.gameData.getQuest(advanced.next.questId) : undefined;
-      const next = advanced.next && nextTpl ? await this.toChaQuest(nextTpl, advanced.next) : null;
+      const next = advanced.next && nextTpl ? await this.views.toChaQuest(nextTpl, advanced.next) : null;
       out.loop = { id: advanced.def.id, ft: advanced.ft, num: advanced.done ? advanced.ft : advanced.def.num, name: advanced.def.name, next, nextId: advanced.next?.questId ?? 0 };
     }
     return out;
@@ -243,7 +261,7 @@ export class QuestService {
     const row = tpl ? await this.quests.findOne({ characterId, questId }).lean() : null;
     if (!tpl || !row) return null;
     const [synced] = await this.progress.syncRows(characterId, [row]);
-    return this.toChaQuest(tpl, synced);
+    return this.views.toChaQuest(tpl, synced);
   }
 
   async cancel(characterId: number, questId: number): Promise<{ flag: boolean; qn: number; info?: string; tpl?: QuestTemplate }> {
@@ -262,7 +280,7 @@ export class QuestService {
     const out: ChaQuest[] = [];
     for (const r of rows) {
       const tpl = this.gameData.getQuest(r.questId);
-      if (tpl) out.push(await this.toChaQuest(tpl, r));
+      if (tpl) out.push(await this.views.toChaQuest(tpl, r));
     }
     return out;
   }
@@ -285,7 +303,7 @@ export class QuestService {
     for (const row of await this.progress.syncRows(characterId, moved)) {
       const tpl = this.gameData.getQuest(row.questId);
       if (!tpl) continue;
-      out.quests.push(await this.toChaQuest(tpl, row));
+      out.quests.push(await this.views.toChaQuest(tpl, row));
       if (allMet(row.objectives) && tpl.finishNpc > 0) out.finishNpcs.push(tpl.finishNpc);
     }
     return out;
@@ -294,59 +312,31 @@ export class QuestService {
   /** Login fields: questLog "|id|id|" ("|" when none) and qn (active count). */
   async loginInfo(characterId: number): Promise<{ questLog: string; qn: number }> {
     const [hist, qn] = await Promise.all([
-      this.history.find({ characterId }, { questId: 1 }).sort({ completedAt: 1 }).lean(),
+      this.history.find({ characterId }, { questId: 1, completedAt: 1 }).sort({ completedAt: 1 }).lean(),
       this.quests.countDocuments({ characterId }),
     ]);
-    return { questLog: `|${hist.map((h) => `${h.questId}|`).join('')}`, qn };
+    const done = this.doneOf(hist);
+    return { questLog: `|${hist.filter((h) => done.has(h.questId)).map((h) => `${h.questId}|`).join('')}`, qn };
   }
 
-  /** `objectives` = the active row (for questKill); omitted for a quest not taken yet (every kill still remaining). */
-  async toView(tpl: QuestTemplate, state: number, objectives?: readonly QuestObjective[]): Promise<QuestView> {
-    const rows = this.gameData.questRequire(tpl.id);
-    const require: QuestRequire[] = await Promise.all(
-      rows.map(async (r) => ({
-        kind: r.kind, type: r.type, itemId: r.itemId, num: r.num, q: r.q, name: await this.requireName(r.kind, r.type, r.itemId),
-      })),
-    );
-    const start = this.gameData.getNpc(tpl.startNpc);
-    const finish = this.gameData.getNpc(tpl.finishNpc);
-    const finishMap = finish ? this.gameData.getMap(Number(finish.pos_map_id)) : undefined;
-    const startMap = start ? this.gameData.getMap(Number(start.pos_map_id)) : undefined;
-    return {
-      qid: tpl.id,
-      state,
-      data: {
-        id: tpl.id, name: tpl.name, info: tpl.info, type: tpl.type, startText: tpl.startText,
-        completeText: tpl.completeText, awardExp: tpl.awardExp, moneyNum: tpl.moneyNum, moneyType: tpl.moneyType,
-        startNpc: tpl.startNpc, finishNpc: tpl.finishNpc, minLevel: tpl.minLevel, color: tpl.color, at: tpl.at,
-        ...(tpl.type === QuestType.LOOP ? { loopId: loopIdOfSubType(tpl.subType ?? '') } : {}),
-      },
-      require,
-      award: await this.rewards.views(tpl.id),
-      questKill: questKillOf(objectives ?? initialObjectives(tpl, rows)),
-      sName: String(start?.name ?? ''),
-      sMid: Number(start?.pos_map_id ?? 0),
-      sMap: String(startMap?.name ?? ''),
-      fName: String(finish?.name ?? ''),
-      pos: finish
-        ? {
-            map: Number(finish.pos_map_id ?? 0),
-            x: Number(finish.pos_x ?? 0),
-            y: Number(finish.pos_y ?? 0),
-            name: String(finishMap?.name ?? ''),
-          }
-        : null,
-    };
+  /** Go CompletedToday (phụ bản floor gates): a type-6 quest finished today, any other quest finished ever. */
+  async completedToday(characterId: number, questId: number): Promise<boolean> {
+    const h = await this.history.findOne({ characterId, questId }, { questId: 1, completedAt: 1 }).lean();
+    return !!h && this.doneOf([h]).has(questId);
   }
 
-  private async toChaQuest(tpl: QuestTemplate, row: ActiveRow): Promise<ChaQuest> {
-    const state = allMet(row.objectives) ? QuestState.CAN_FINISH : QuestState.TAKEN;
-    return { ...(await this.toView(tpl, state, row.objectives)), takeDate: row.takeDate.getTime() };
+  private doneOf(hist: readonly { questId: number; completedAt?: Date | null }[]): Set<number> {
+    return doneQuestIds(hist, (qid) => this.gameData.getQuest(qid)?.type, Date.now());
   }
 
-  private requireName(kind: number, type: number, id: number): Promise<string> | string {
-    if (kind === 1) return this.gameData.templateName(type, id);
-    return kind === 2 || kind === 3 ? (this.gameData.creature(id)?.name ?? `#${id}`) : `#${id}`;
+  /** Atomic rt / rn charge (refused with Go's "Không đủ <tiền>!"); mirrors the new balance on the loaded document. */
+  private async chargeCost(characterId: number, doc: Character, tpl: QuestTemplate): Promise<{ key: CostKey; amount: number } | null> {
+    const cost = requireCost(tpl);
+    if (!cost) return null;
+    const res = await this.characters.updateOne({ _id: characterId, [cost.key]: { $gte: cost.amount } }, { $inc: { [cost.key]: -cost.amount } });
+    if (res.modifiedCount !== 1) throw RpcException.forbidden(costRefusal(cost.key));
+    doc[cost.key] = (doc[cost.key] ?? 0) - cost.amount;
+    return cost;
   }
 
   npcOnMap(npcId: number, mapId: number): boolean {

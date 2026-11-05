@@ -4,7 +4,8 @@
 import { LEVEL_EXP, type PlayerData } from '@mc/shared';
 import { iconUrl } from '../../assets';
 import type { HudActions } from './mainHud';
-import { div, notReady, place, skinButton, skinImage, std } from './skin';
+import { healButtonState } from '../bloodBagPanel';
+import { div, place, setStates, skinButton, skinImage, std } from './skin';
 
 export class Bar {
   readonly root: HTMLDivElement;
@@ -36,6 +37,7 @@ export class PortraitCanvas {
   private readonly exp: Bar;
   private readonly lvUp: HTMLDivElement;
   private readonly vip: HTMLDivElement;
+  private readonly heal: HTMLDivElement[];
 
   constructor(parent: HTMLElement, actions: HudActions) {
     this.root = place(div('hud-portrait', parent), 2, 5, 192, 57) as HTMLDivElement;
@@ -45,7 +47,7 @@ export class PortraitCanvas {
     this.head.alt = '';
     place(this.head, 5, 5, 49, 47);
     this.head.title = 'Nhấp xem thông tin chi tiết';
-    this.head.onclick = notReady;
+    this.head.onclick = actions.onCharacter;
     this.root.appendChild(this.head);
     this.level = place(div('hud-label hud-level', this.root), 62, 1, 22) as HTMLDivElement;
     this.name = place(div('hud-label hud-name', this.root), 84, 3, 86) as HTMLDivElement;
@@ -55,11 +57,10 @@ export class PortraitCanvas {
     this.mp.root.onclick = () => actions.onRecover('mp');
     this.sp = new Bar(this.root, 'MainStage_CharInfo/SPBar', 80, 41, 105, 4);
     this.exp = new Bar(this.root, 'MainStage_CharInfo/ExpBar', 80, 48, 105, 4);
-    skinButton({ up: 'MainStage_CharInfo/HealEmptyUp', over: 'MainStage_CharInfo/HealEmptyOver' }, this.root, 175, 19,
-      'Sinh Mệnh Hoàn tiện dụng', notReady);
-    skinButton({ up: 'MainStage_CharInfo/HealMPEmptyUp', over: 'MainStage_CharInfo/HealMPEmptyOver' }, this.root, 175,
-      29, 'Pháp Lực Hoàn tiện dụng', notReady);
-    skinButton(std('MainStage_CharInfo/ItemBag'), this.root, 173, 3, 'Vật phẩm nhân vật sử dụng', notReady);
+    // Blood bag buttons (M9): skins follow the pool (empty / half / full) and open the Mua Túi cứu thương window.
+    this.heal = [1, 2].map((bt) => skinButton(std(healButtonState(undefined, bt).skin), this.root, 175, bt === 1 ? 19 : 29, '',
+      () => actions.onBloodBag(bt)));
+    skinButton(std('MainStage_CharInfo/ItemBag'), this.root, 173, 3, 'Vật phẩm nhân vật sử dụng', actions.onBag);
     // "Up" sits outside the body and only shows when the exp bar is full (manual level-up from Lv 20).
     this.lvUp = skinButton(std('MainStage_CharInfo/LevelUp'), this.root, 198, 0, 'Thăng cấp', actions.onLevelUp);
     this.vip = place(div('hud-vip off', this.root, 'VIP'), 198, 30, 46, 22) as HTMLDivElement;
@@ -68,6 +69,11 @@ export class PortraitCanvas {
   }
 
   update(p: PlayerData): void {
+    this.heal.forEach((b, i) => {
+      const s = healButtonState(p.ep, i + 1);
+      setStates(b, std(s.skin));
+      b.title = s.tip;
+    });
     this.head.src = iconUrl(p.iconCode);
     this.level.textContent = String(p.level);
     this.vip.textContent = p.pmLevel ? `VIP${p.pmLevel}` : 'VIP';

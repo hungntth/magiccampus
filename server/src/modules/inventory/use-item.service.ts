@@ -1,14 +1,18 @@
 // Item use (legacy Service.UseItem + FullRecoverByItem), M1 scope: equipment (-> equip), HP/MP potions (501) and
 // food (502). Spend before credit: the stack is decremented with a conditional update first, then HP/MP are credited
 // with a capped atomic update. Gate messages are pushed (not thrown) because the client calls these fire-and-forget.
+// M9: character skill books (type 505) learn through SkillLearnService (book consumed only when the skill can be learned).
 
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { ItemKind, SlotType } from '@mc/shared';
+import { BLOOD_BAG_TEXT, formatEp, ItemKind, SlotType } from '@mc/shared';
+import { addToPool, BLOOD_BAG_ITEMS } from '../combat/blood-bag';
 import { RpcException } from '../../gateway/errors';
+import { ensureBloodBag } from '../character/blood-bag-doc';
 import { Character } from '../character/character.schema';
 import { GameDataService } from '../gamedata/gamedata.service';
+import { ITEM_TYPE_SKILL_BOOK, SkillLearnService } from '../skill/skill-learn.service';
 import { CharacterStatsService, type CharStats } from '../stats/character-stats.service';
 import { withCharLock } from './char-lock';
 import { CharacterItem } from './character-item.schema';
@@ -30,6 +34,19 @@ export interface PetItemHook {
   restoreBlocker(characterId: number, petId: number, reqLevel: number): Promise<string | null>;
   restoreLife(characterId: number, petId: number): Promise<Push[]>;
 }
+/** Implemented by LoopBossService (M9): pushes when `tid` is a loop-boss order item, else null. The item is not consumed. */
+export type OrderItemHook = (characterId: number, templateId: number) => Promise<Push[] | null>;
+/** M10 phase H: a hook claiming a consumable by template (Mật Đạo books). Runs before the level gate; `consume` spends one unit and returns the slot pushes. */
+export interface ItemUseCtx {
+  characterId: number;
+  itemId: number;
+  templateId: number;
+  level: number;
+  reqLevel: number;
+  consume(): Promise<Push[]>;
+}
+/** Pushes when the hook handled the item (it consumes by itself), null to fall through. */
+export type ItemUseHook = (ctx: ItemUseCtx) => Promise<Push[] | null>;
 const note = (msg: string): Push => push('onSystemMidMsgOrNote', msg);
 
 @Injectable()
@@ -41,12 +58,25 @@ export class UseItemService {
     private readonly inventory: InventoryService,
     private readonly equipment: EquipmentService,
     private readonly stats: CharacterStatsService,
+    private readonly skillLearn: SkillLearnService,
   ) {}
 
   private petHook: PetItemHook | null = null;
 
   setPetHook(hook: PetItemHook): void {
     this.petHook = hook;
+  }
+
+  private orderHook: OrderItemHook | null = null;
+
+  setOrderHook(hook: OrderItemHook): void {
+    this.orderHook = hook;
+  }
+
+  private readonly useHooks: ItemUseHook[] = [];
+
+  addUseHook(hook: ItemUseHook): void {
+    this.useHooks.push(hook);
   }
 
   /** useItem(2, petId, itemId): life restore items (type 507). Spend first, then credit the pet. */
@@ -58,6 +88,8 @@ export class UseItemService {
       if (!item || item.itemType !== ItemKind.ITEM) throw RpcException.notFound('Không tìm thấy vật phẩm');
       const tpl = await this.gameData.template(29, item.templateId);
       if (!tpl) throw RpcException.notFound('Không tìm thấy vật phẩm');
+      const refill = BLOOD_BAG_ITEMS[item.templateId];
+      if (refill) return this.refillBloodBag(characterId, itemId, sidOf(item.slotIndex), refill.petPool, refill.amount);
       if (Number(tpl.type) !== ITEM_TYPE_PET_FUNC) return [note('Vật phẩm này không dùng được cho pet')];
       const why = await hook.restoreBlocker(characterId, petId, Number(tpl.req_level ?? 0));
       if (why) return [note(why)]; // H5: nothing is consumed
@@ -117,7 +149,24 @@ export class UseItemService {
     const tpl = await this.gameData.template(29, item.templateId);
     if (!tpl) throw RpcException.notFound('Không tìm thấy vật phẩm');
     const char = await this.chars.findById(characterId, { level: 1, bagSlotNum: 1, bankSlotNum: 1 }).lean();
+    for (const hook of this.useHooks) {
+      const sid = sidOf(item.slotIndex);
+      const claimed = await hook({
+        characterId, itemId, templateId: item.templateId, level: char?.level ?? 1, reqLevel: Number(tpl.req_level ?? 0),
+        consume: async () => {
+          const left = await this.consume(characterId, itemId, 1);
+          if (left === null) throw RpcException.forbidden('Vật phẩm vừa thay đổi, hãy thử lại');
+          return this.slotPushes(characterId, [{ id: itemId, sid, left }]);
+        },
+      });
+      if (claimed) return claimed;
+    }
     if ((char?.level ?? 1) < Number(tpl.req_level ?? 0)) return [note('Cấp độ bạn chưa đủ!')];
+    const refill = BLOOD_BAG_ITEMS[item.templateId];
+    if (refill) return this.refillBloodBag(characterId, itemId, sidOf(item.slotIndex), refill.charPool, refill.amount);
+    if (Number(tpl.type) === ITEM_TYPE_SKILL_BOOK) return this.useSkillBook(characterId, itemId, sidOf(item.slotIndex), String(tpl.name ?? ''));
+    const order = this.orderHook ? await this.orderHook(characterId, item.templateId) : null;
+    if (order) return order;
     const book = planPageBook(item.templateId, char?.bagSlotNum ?? 1, char?.bankSlotNum ?? 1);
     if (book) return this.usePageBook(characterId, itemId, sidOf(item.slotIndex), book);
     const useType = Number(tpl.use_type ?? 0);
@@ -134,6 +183,32 @@ export class UseItemService {
     if (left === null) throw RpcException.forbidden('Vật phẩm vừa thay đổi, hãy thử lại');
     const cur = await this.stats.healCapped(characterId, hp, mp, st.maxHp, st.maxMp);
     return [push('onUPP', cur), ...(await this.slotPushes(characterId, [{ id: itemId, sid: sidOf(item.slotIndex), left }]))];
+  }
+
+  /** Character skill book (type 505, M9): validated first, consumed only when the skill can be learned, then the row is created. */
+  private async useSkillBook(characterId: number, itemId: number, sid: number, bookName: string): Promise<Push[]> {
+    const check = await this.skillLearn.bookSkill(characterId, bookName);
+    if (!check.ok) return [note(check.err)];
+    const left = await this.consume(characterId, itemId, 1);
+    if (left === null) throw RpcException.forbidden('Vật phẩm vừa thay đổi, hãy thử lại');
+    const learned = await this.skillLearn.grantBookSkill(characterId, check.tpl);
+    return [...(await this.slotPushes(characterId, [{ id: itemId, sid, left }])), ...learned, note(`Đã học kỹ năng từ ${bookName}.`)];
+  }
+
+  /** Blood bag refill item (M9): pool full -> kept with the FULL note; else consumed first, then the pool is raised (capped). */
+  private async refillBloodBag(characterId: number, itemId: number, sid: number, pool: number, amount: number): Promise<Push[]> {
+    await ensureBloodBag(this.chars, characterId);
+    const doc = await this.chars.findById(characterId, { bloodBag: 1 }).lean();
+    const cur = Math.max(0, Number(doc?.bloodBag?.[pool] ?? 0));
+    const next = addToPool(cur, amount);
+    if (next === null) return [note(BLOOD_BAG_TEXT.FULL)];
+    const left = await this.consume(characterId, itemId, 1);
+    if (left === null) throw RpcException.forbidden('Vật phẩm vừa thay đổi, hãy thử lại');
+    const saved = await this.chars.findOneAndUpdate(
+      { _id: characterId }, { $max: { [`bloodBag.${pool}`]: next } }, { new: true, projection: { bloodBag: 1 } },
+    ).lean();
+    const ep = formatEp([0, 1, 2, 3].map((i) => Number(saved?.bloodBag?.[i] ?? 0)));
+    return [...(await this.slotPushes(characterId, [{ id: itemId, sid, left }])), push('onUPP', { ep })];
   }
 
   /** Page books (324 bank / 325 bag): the book is consumed first, then the page count is raised ($max keeps it idempotent). */

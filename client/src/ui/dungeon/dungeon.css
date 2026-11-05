@@ -1,0 +1,28 @@
+/* Phụ bản run strip and hub window (M10 phase B). */
+.dg-strip {
+  position: absolute;
+  top: 118px;
+  left: 8px;
+  width: 210px;
+  padding: 6px 8px;
+  background: rgba(18, 12, 6, 0.78);
+  border: 1px solid #a07a3a;
+  border-radius: 4px;
+  color: #f2e6c8;
+  font-size: 12px;
+  line-height: 1.45;
+  pointer-events: none;
+  z-index: 40;
+}
+.dg-strip .dg-name { color: #ffd76a; font-weight: bold; }
+.dg-strip .dg-time { color: #8fe08f; }
+.dg-strip .dg-pending { color: #e8c6a0; }
+
+.fb-hub { width: 420px; }
+.fb-hub .fb-list { display: flex; flex-direction: column; gap: 6px; max-height: 420px; overflow-y: auto; }
+.fb-hub .fb-card { border: 1px solid #6b5230; border-radius: 4px; padding: 6px 8px; background: rgba(40, 28, 14, 0.6); }
+.fb-hub .fb-title { color: #ffd76a; font-weight: bold; }
+.fb-hub .fb-line { color: #e9dcc0; font-size: 12px; }
+.fb-hub .fb-state { font-size: 12px; color: #9fd0ff; }
+.fb-hub .fb-state.open { color: #8fe08f; }
+.fb-hub .fb-state.closed, .fb-hub .fb-state.auto { color: #c9a0a0; }

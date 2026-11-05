@@ -60,7 +60,7 @@ export class UnitTip extends Container {
   refresh(): void {
     const u = this.unit;
     if (!u) return;
-    if (u.hp <= 0) return this.hide();
+    if (u.destroyed || u.hp <= 0) return this.hide();
     this.level.text = `Cấp: ${u.level}`;
     this.boss.visible = u.bossFlag === 1;
     this.boss.position.set(this.level.x + this.level.width + 6, PAD);

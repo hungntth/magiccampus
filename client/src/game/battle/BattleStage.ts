@@ -4,7 +4,7 @@
 // being picked.
 
 import { Container, Graphics, Sprite, Text, TextStyle } from 'pixi.js';
-import type { BattleStart } from '@mc/shared';
+import type { BattleParticipant, BattleStart } from '@mc/shared';
 import { loadSheet } from '../SheetAnim';
 import { BattleUnit } from './BattleUnit';
 import { UnitTip } from './unitTip';
@@ -30,9 +30,11 @@ export class BattleStage extends Container {
   private shakeLeft = 0;
   private picking = false;
   onPick: ((slot: number) => void) | null = null;
+  private readonly guest: boolean;
 
-  constructor(start: BattleStart, selfId?: number) {
+  constructor(start: BattleStart, private readonly selfId?: number) {
     super();
+    this.guest = start.guest;
     // Invisible full-screen catcher: swallows clicks so the map underneath never reacts.
     const catcher = new Graphics().rect(-4000, -4000, 8000, 8000).fill({ color: 0x000000, alpha: 0.001 });
     catcher.eventMode = 'static';
@@ -90,6 +92,26 @@ export class BattleStage extends Container {
     for (const u of this.units.values()) if (slot === undefined || u.slot === slot) u.setWait(false);
   }
 
+  /** M10 E2.2 summon (setBattleCre): a new unit at its slot; the view already there is destroyed first. */
+  addUnit(p: BattleParticipant): BattleUnit {
+    this.removeUnit(p.battleId);
+    const unit = new BattleUnit(p, this.selfId, this.guest);
+    unit.alpha = 0;
+    this.units.set(p.battleId, unit);
+    this.layer.addChild(unit);
+    this.makeInteractive(unit);
+    return unit;
+  }
+
+  /** BH_RETURNED (17000) / a replaced corpse: the unit leaves the stage. */
+  removeUnit(slot: number): void {
+    const old = this.units.get(slot);
+    if (!old) return;
+    this.tip.hide(old);
+    this.units.delete(slot);
+    old.destroy({ children: true });
+  }
+
   /** Enemy units react to clicks / hover only while this is on. */
   setPicking(on: boolean): void {
     this.picking = on;
@@ -98,6 +120,7 @@ export class BattleStage extends Container {
 
   /** Floating number / text above a unit: damage red 32, crit 50 + shake, heal green, miss white 18. */
   popup(unit: BattleUnit, text: string, color: string, size: number): void {
+    if (this.destroyed || unit.destroyed) return;
     const t = new Text({
       text,
       style: new TextStyle({ fontFamily: 'system-ui, sans-serif', fontSize: size, fontWeight: '900', fill: color, stroke: { color: '#000000', width: 4 } }),

@@ -1,0 +1,19 @@
+/* Lật Bài Truyền Thuyết window (ui/flopPassPanel.ts, flopPassTabs.ts): card grid, buttons, reward / rank rows. */
+.flop-win { width: 520px; top: 5%; }
+.flop-win .fp-play { display: flex; flex-direction: column; gap: 6px; }
+.flop-win .fp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.flop-win .fp-card { height: 64px; border: 2px solid #4f86b3; border-radius: 6px; background: linear-gradient(180deg, #2b6aa1, #174569); color: #ffe9a8; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+.flop-win .fp-card:disabled { opacity: 0.55; cursor: default; }
+.flop-win .fp-card.safe { background: linear-gradient(180deg, #3f9a4a, #1f5f29); border-color: #7be07b; color: #fff; }
+.flop-win .fp-card.boss { background: linear-gradient(180deg, #b03131, #6a1313); border-color: #ff9d9d; color: #fff; }
+.flop-win .fp-card.killed { background: #3a3a3a; border-color: #777; color: #aaa; }
+.flop-win .fp-note { min-height: 16px; color: #ffd34d; text-align: center; }
+.flop-win .fp-list { display: flex; flex-direction: column; gap: 3px; max-height: 330px; overflow-y: auto; }
+.flop-win .fp-row { display: flex; align-items: center; gap: 8px; padding: 3px 8px; background: rgba(8, 28, 48, 0.7); border: 1px solid #2f648f; border-radius: 4px; }
+.flop-win .fp-row.me { border-color: #e8c46a; }
+.flop-win .fp-stage { width: 44px; color: #ffe9a8; font-weight: 700; }
+.flop-win .fp-reward { display: flex; align-items: center; gap: 6px; flex: 1; }
+.flop-win .fp-icon { width: 28px; height: 28px; object-fit: contain; }
+.flop-win .fp-name { flex: 0 0 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.flop-win .fp-passes { flex: 0 0 50px; color: #7dff7a; }
+.flop-win .fp-awards { flex: 1; font-size: 11px; color: #cfe3f5; }

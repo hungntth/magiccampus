@@ -1,13 +1,22 @@
 // One battle round (legacy turn_processor.go + turn_builder.go): every living fighter acts once in speed order (random ties),
 // the enemies always basic-attack a random living player-side fighter, the victory check runs after each actor.
 // Pure apart from mutating the fighters (hp / alive / mp); builds the onBattlePlayList groups. A SKILL cast (cmd.skill) spends
-// MP first; melee skills use the attack sequence, ranged / magic cast in place (bid 7), heals target the caster.
+// MP first; melee skills use the attack sequence, ranged / magic cast in place (bid 7), heals target the caster. Strike
+// sequences (combo chain, counter chain, Miễn Tử, miss text) live in strike.ts.
 
 import { BattleAction, BattleBehavior, BattleResult, catchRate, type BattlePlayList, type BattleStep } from '@mc/shared';
-import type { Fighter, PlayerCommand, Rng, SkillCast } from './battle.types';
-import {
-  BASIC_ATTACK, COUNTER_ATTACK, comboAttack, comboChance, counterChance, healAmount, resolveHit, type SkillSpec,
-} from './damage';
+import type { Fighter, PlayerCommand, Rng } from './battle.types';
+import { BASIC_ATTACK } from './damage';
+import { canUseSkill, speedOf } from './mechanics/battle-buffs';
+import { npcAct, type CastCtx } from './mechanics/npc-cast';
+import { restoreBossMana, selectNpcCommand, type NpcCommand, type NpcEnv } from './mechanics/npc-ai';
+import { STATUS } from './mechanics/npc-skills';
+import { doomAtTurnStart } from './mechanics/death-mark';
+import { doomsdaySteps } from './mechanics/doomsday';
+import { applyDeathRule, roundRevives, type DeathRule } from './mechanics/revive';
+import { splitStage } from './mechanics/split';
+import { roundStartExpiry, turnStart } from './mechanics/turn-start';
+import { castInPlace, healSelf, meleeAttack, step, type StrikeCtx } from './strike';
 
 export const MAX_ROUNDS = 30;
 const B = BattleBehavior;
@@ -16,9 +25,8 @@ export interface RoundOutcome {
   groups: BattlePlayList;
   ended: boolean;
   result: number; // BattleResult, valid when ended
+  removed: Fighter[]; // M10 E2.2 / E2.4 corpses taken off the board this round (Battle.fallen)
 }
-
-type Group = BattleStep[];
 
 const alive = (fs: Iterable<Fighter>, side: Fighter['side']): Fighter[] => [...fs].filter((f) => f.alive && f.side === side);
 
@@ -30,88 +38,25 @@ export function checkVictory(fighters: Iterable<Fighter>): number | null {
   return null;
 }
 
-/** Descending speed, ties broken by an RNG draw per fighter. */
+/** Descending speed (Đóng Băng halves it), ties broken by an RNG draw per fighter. */
 export function actOrder(fighters: readonly Fighter[], rng: Rng): Fighter[] {
   return fighters
     .filter((f) => f.alive)
     .map((f) => ({ f, tie: rng() }))
-    .sort((a, b) => b.f.speed - a.f.speed || a.tie - b.tie)
+    .sort((a, b) => speedOf(b.f) - speedOf(a.f) || a.tie - b.tie)
     .map((x) => x.f);
 }
 
-const step = (sid: number, tid: number, bid: number, delay = 0, extra: Partial<BattleStep> = {}): BattleStep => ({
-  sid, tid, bid, delay, ...extra,
-});
-
-interface Ctx {
-  fighters: Map<number, Fighter>;
-  rng: Rng;
-  defending: Set<number>;
-  groups: Group[];
-}
-
-/** One strike a -> t, emitted as the [attack, hurt] pair (or a lone miss). Returns whether it hit. */
-function strike(ctx: Ctx, a: Fighter, t: Fighter, sk: SkillSpec, attackBid: number = B.ATTACK): boolean {
-  const defending = ctx.defending.has(t.slot);
-  const r = resolveHit(a, t, sk, defending, ctx.rng);
-  if (r.miss) {
-    ctx.groups.push([step(a.slot, t.slot, attackBid, 400, { tSObj: { miss: true } })]);
-    return false;
-  }
-  const preHp = t.hp;
-  t.hp = Math.max(0, preHp - r.damage);
-  if (t.hp <= 0) t.alive = false;
-  // hHp is the unclamped new hp so the client popup shows the full damage on overkill.
-  const tSObj = { hHp: preHp - r.damage, ...(r.crit ? { cri: 1 } : {}) };
-  ctx.groups.push([
-    step(a.slot, t.slot, attackBid, 400, { tSObj }),
-    step(t.slot, a.slot, defending ? B.DEFENCE : B.HURT, 100),
-  ]);
-  if (!t.alive) ctx.groups.push([step(t.slot, a.slot, t.kind === 'creature' ? B.DIE : B.DEAD, 200)]);
-  else ctx.groups.push([step(t.slot, -1, B.STAND, 0)]);
-  return true;
-}
-
-/** Full melee sequence: TurnTo, Run, strike, [combo], [counter], Back, TurnBack. */
-function meleeAttack(ctx: Ctx, a: Fighter, t: Fighter | undefined, sk: SkillSpec): void {
-  if (!t || !t.alive) {
-    // The target died before this actor's turn: attack in place, no retarget (Go).
-    ctx.groups.push([step(a.slot, -1, B.ATTACK, 400, { tSObj: {} })], [step(a.slot, a.slot, B.TURNBACK, 300)]);
-    return;
-  }
-  ctx.groups.push([step(a.slot, t.slot, B.TURNTO, 100)], [step(a.slot, t.slot, B.RUN_FAST, 200)]);
-  const hit = strike(ctx, a, t, sk);
-  if (hit && t.alive && ctx.rng() < comboChance(a)) strike(ctx, a, t, comboAttack(sk));
-  if (hit && t.alive && a.alive && ctx.rng() < counterChance(t)) strike(ctx, t, a, COUNTER_ATTACK);
-  if (!a.alive) return;
-  ctx.groups.push([step(a.slot, t.slot, B.BACK, 0)], [step(a.slot, a.slot, B.TURNBACK, 300)]);
-}
-
-/** Ranged / magic skill: face the target, cast in place (bid 7, the hit lands on the cast step), no combo or counter. */
-function castInPlace(ctx: Ctx, a: Fighter, t: Fighter | undefined, sk: SkillSpec): void {
-  if (!t || !t.alive) {
-    ctx.groups.push([step(a.slot, -1, B.MAGIC, 400, { tSObj: {} })], [step(a.slot, a.slot, B.TURNBACK, 300)]);
-    return;
-  }
-  ctx.groups.push([step(a.slot, t.slot, B.TURNTO, 100)]);
-  strike(ctx, a, t, sk, B.MAGIC);
-  if (a.alive) ctx.groups.push([step(a.slot, a.slot, B.TURNBACK, 300)]);
-}
-
-/** Heal skill: the caster is the target; the popup comes from tSObj.rHp. */
-function healSelf(ctx: Ctx, p: Fighter, cast: SkillCast): void {
-  p.hp = Math.min(p.hpMax, p.hp + healAmount(p, cast.spec, ctx.rng));
-  ctx.groups.push([step(p.slot, p.slot, B.MAGIC, 300, { tSObj: { rHp: p.hp } })]);
-}
+type Ctx = StrikeCtx;
 
 /** The player's attack or skill cast; a cast spends MP first and tags its first step with the banner and the new MP. */
 function playerStrike(ctx: Ctx, p: Fighter, cmd: PlayerCommand): void {
   const target = ctx.fighters.get(cmd.targetSlot);
   const cast = cmd.skill;
-  if (!cast) return meleeAttack(ctx, p, target, BASIC_ATTACK);
+  if (!cast || !canUseSkill(p)) return meleeAttack(ctx, p, target, BASIC_ATTACK); // silenced / confused: basic attack
   p.mp = Math.max(0, p.mp - cast.mpCost);
   const start = ctx.groups.length;
-  if (cast.category === 'melee') meleeAttack(ctx, p, target, cast.spec);
+  if (cast.category === 'melee') meleeAttack(ctx, p, target, cast.spec, false);
   else if (cast.category === 'heal') healSelf(ctx, p, cast);
   else castInPlace(ctx, p, target, cast.spec);
   const first = ctx.groups[start]?.[0];
@@ -131,6 +76,7 @@ function catchAct(ctx: Ctx, p: Fighter, cmd: PlayerCommand): void {
   }
   const rate = catchRate({
     catchable: cmd.catch?.catchable ?? 0, room: cmd.catch?.room ?? 0, ownerLevel: p.level, creatureLevel: t.level, hp: t.hp, hpMax: t.hpMax,
+    creatureId: t.refId,
   });
   const caught = rate > 0 && Math.floor(ctx.rng() * 100) < rate;
   ctx.groups.push([step(p.slot, t.slot, B.TURNTO, 100)]);
@@ -179,6 +125,19 @@ function playerAct(ctx: Ctx, p: Fighter, cmd: PlayerCommand): boolean {
 
 const MISSING: PlayerCommand = { action: BattleAction.TIMEOUT, targetSlot: -1 };
 
+/** No skill rows: every creature basic-attacks (tests, PvP). */
+export const NO_NPC_SKILLS: NpcEnv = { skill: () => undefined, creaturePool: () => [] };
+
+/** Go tauntedCommand: a Kích Nộ holder basic-attacks the living opposing caster instead of its command. */
+function taunter(ctx: Ctx, f: Fighter): Fighter | undefined {
+  for (const s of f.statuses ?? []) {
+    if (s.type !== STATUS.TAUNT) continue;
+    const src = ctx.fighters.get(s.sourceSlot);
+    if (src?.alive && src.side !== f.side) return src;
+  }
+  return undefined;
+}
+
 /** A pet without a command attacks a random living enemy (Go: front line); with no target left it just stands. */
 export function petFallbackCommand(fighters: Iterable<Fighter>, rng: Rng, side: Fighter['side'] = 'player'): PlayerCommand {
   const enemies = alive(fighters, side === 'player' ? 'enemy' : 'player');
@@ -194,6 +153,9 @@ export function petFallbackCommand(fighters: Iterable<Fighter>, rng: Rng, side: 
  */
 export function resolveRound(
   fighters: Map<number, Fighter>, cmds: PlayerCommand | ReadonlyMap<number, PlayerCommand>, round: number, rng: Rng,
+  roundCap?: number, // M10 per-battle cap (Battle.ctx.roundCap): no winner by then = loss
+  env: NpcEnv = NO_NPC_SKILLS, // M10 E2: NPC skill rows / pools for the AI
+  deathRule?: DeathRule, // M10 E2.3 Battle.deathRule
 ): RoundOutcome {
   const players = alive(fighters.values(), 'player');
   // Command-driven fighters: every character / pet (PvP: both sides); only creatures run on enemy AI.
@@ -206,31 +168,56 @@ export function resolveRound(
   const cmdOf = (slot: number): PlayerCommand => auto.get(slot) ?? (cmds instanceof Map ? cmds.get(slot) ?? MISSING : (cmds as PlayerCommand));
   const defending = new Set<number>();
   for (const p of actors) if (cmdOf(p.slot).action === BattleAction.DEFENCE) defending.add(p.slot);
-  const ctx: Ctx = { fighters, rng, defending, groups: [] };
+  const ctx: CastCtx = { fighters, rng, defending, groups: [], round, removed: [] };
+  // Go splitRegenActions (round >= 2): same-round revives, then Hydra regeneration, before any command is chosen.
+  ctx.groups.push(...roundRevives(fighters, round), ...splitStage(fighters, round, ctx.removed));
+  const settle = (): number | null => {
+    ctx.groups.push(...applyDeathRule(deathRule, fighters, round));
+    return checkVictory(fighters.values());
+  };
 
-  // Enemy targets are drawn up front like Go's GenerateNPCCommands; a target that died by its turn becomes a miss.
-  const enemyTarget = new Map<number, Fighter>();
-  for (const e of alive(fighters.values(), 'enemy')) {
-    if (e.kind === 'creature' && players.length > 0) enemyTarget.set(e.slot, players[Math.min(players.length - 1, Math.floor(rng() * players.length))]);
+  // Go GenerateNPCCommands: boss mana upkeep, then the AI pick (front line first; a target that died by its turn is a miss).
+  const npcCmds = new Map<number, NpcCommand>();
+  if (players.length > 0) {
+    for (const e of [...fighters.values()].filter((f) => f.alive && f.kind === 'creature')) {
+      restoreBossMana(e, env);
+      npcCmds.set(e.slot, selectNpcCommand(e, fighters, env, rng, round));
+    }
   }
+  roundStartExpiry(ctx, round);
+  const order = actOrder([...fighters.values()], rng);
 
-  let result: number | null = null;
-  for (const actor of actOrder([...fighters.values()], rng)) {
+  // Go doomsdayActions: the world boss wipe runs before any actor, then the victory check.
+  const doom = doomsdaySteps(fighters, round, (id) => env.skill(id)?.name);
+  ctx.groups.push(...doom);
+  let result: number | null = doom.length > 0 ? settle() : null;
+  for (const actor of result === null ? order : []) {
     if (!actor.alive) continue;
-    if (actor.kind !== 'creature') {
+    const ts = turnStart(ctx, actor, round, (f) => doomAtTurnStart(ctx, f));
+    if (ts.died) {
+      result = settle();
+      if (result !== null) break;
+      continue;
+    }
+    if (!ts.canAct) continue;
+    const taunt = taunter(ctx, actor);
+    if (taunt) {
+      meleeAttack(ctx, actor, taunt, BASIC_ATTACK);
+    } else if (actor.kind !== 'creature') {
       if (playerAct(ctx, actor, cmdOf(actor.slot))) {
         // PvE: the flee ends the battle for everyone. PvP: the side that flees loses (the result is from the attacker's view).
         result = pvp ? (actor.side === 'player' ? BattleResult.LOSE : BattleResult.WIN) : BattleResult.FLED;
         break;
       }
     } else {
-      meleeAttack(ctx, actor, enemyTarget.get(actor.slot), BASIC_ATTACK);
+      npcAct(ctx, actor, npcCmds.get(actor.slot) ?? { kind: 'attack' });
     }
-    result = checkVictory(fighters.values());
+    result = settle();
     if (result !== null) break;
   }
-  if (result === null && round >= MAX_ROUNDS) result = pvp ? BattleResult.FLED : BattleResult.LOSE; // round cap: the enemy wins (PvP: a draw)
-  if (result === null) return { groups: ctx.groups, ended: false, result: BattleResult.LOSE };
+  if (result === null && pvp && round >= MAX_ROUNDS) result = BattleResult.FLED; // round cap is PvP only (legacy HasRoundLimit): a draw
+  if (result === null && !pvp && roundCap !== undefined && roundCap > 0 && round >= roundCap) result = BattleResult.LOSE;
+  if (result === null) return { groups: ctx.groups, ended: false, result: BattleResult.LOSE, removed: ctx.removed };
   ctx.groups.push([{ sid: -1, tid: -1, bid: B.STAND, end: true, result }]);
-  return { groups: ctx.groups, ended: true, result };
+  return { groups: ctx.groups, ended: true, result, removed: ctx.removed };
 }

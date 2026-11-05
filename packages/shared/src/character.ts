@@ -49,6 +49,15 @@ export interface ChangePropertyArg {
 /** getCharDetailData reply: the 26 secondary rates (all 0 without gear/buff rates in M1). */
 export type CharDetailData = Record<string, number>;
 
+/** The two rates DetailPropPanel asks for separately (getFinalPraDef / finalPraMagDef and the *Pet variants). */
+export type FinalRateKey = 'finalPraDef' | 'finalPraMagDef';
+
+/** Reply of getFinalPraDef / finalPraMagDef(+Pet) when args[0] is a key string; Go answers a bare number otherwise. */
+export interface FinalRateReply {
+  key: string;
+  value: number;
+}
+
 export const BuffType = { BATTLE: 1, TIMED: 2, PERMANENT: 3, UNIQUE: 10 } as const;
 
 /** initLongBuff value / upLongBuff payload. */

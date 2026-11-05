@@ -34,13 +34,13 @@ export interface ActivityLogin {
 }
 
 /** Activity ids whose system exists in H5 (everything else is hidden from the strip). Phase A: daily activity panel, sign-in. */
-export const ACTIVITY_PORTED_IDS: readonly number[] = [0, 19, 21, 24, 25, 49, 65];
+export const ACTIVITY_PORTED_IDS: readonly number[] = [0, 2, 13, 15, 16, 19, 21, 24, 25, 27, 40, 43, 49, 65, 80, 81];
 
-export const ActivityId = { DAILY_ACTIVITY: 0, VIP_SHOP: 19, LOTTO: 21, PRABUFF: 24, FEAST: 25, BOSS_DAILY: 49, DAILY_SIGNIN: 65 } as const;
+export const ActivityId = { DAILY_ACTIVITY: 0, STAR: 2, NINE_BOSS: 13, WORLD_BOSS: 15, FLOP_PASS: 40, TRIALS: 43, QUIZ: 16, VIP_SHOP: 19, LOTTO: 21, PRABUFF: 24, FEAST: 25, MAZE: 27, BOSS_DAILY: 49, DAILY_SIGNIN: 65, TXKC: 80, HMTXL: 81 } as const;
 
 /** Strip tooltips / captions of the ported ids (the Flash skins are CSS art that was not extracted; H5 draws labelled tiles). */
 export const ACTIVITY_LABEL: Readonly<Record<number, string>> = {
-  0: 'Hoạt động hằng ngày', 19: 'Shop VIP', 21: 'Cây ước nguyện', 24: 'Ma pháp bí trận', 25: 'Lễ hội sôi động', 49: 'Sổ tay ma thú', 65: 'Báo danh nhận quà',
+  0: 'Hoạt động hằng ngày', 2: 'Tinh Giới Thập Nhị Cung', 13: 'Kiếp Nạn Vô Ưu',  15: 'Boss Thế Giới', 40: 'Lật Bài Truyền Thuyết', 43: 'Vùng Đất Rèn Luyện', 16: 'Đố vui có thưởng', 19: 'Shop VIP', 21: 'Cây ước nguyện', 24: 'Ma pháp bí trận', 25: 'Lễ hội sôi động', 27: 'Mê Trận', 49: 'Sổ tay ma thú', 65: 'Báo danh nhận quà', 80: 'Khóa học Đặc Huấn', 81: 'Tu luyện Ảo Ma',
 };
 
 /** Phase D overrides of seed rows: the lotto row is disabled in the seed, the prabuff row is gated by rebirth exp (H5 has no rebirth: level gate). */

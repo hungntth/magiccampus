@@ -68,3 +68,14 @@ test('failure text: rate > 0 shows the percentage, rate 0 the too-low message', 
   assert.equal(catchFailText({ rate: 16, selfCatch: 1 }), 'Bạn có 16% xác suất bắt được pet này, tiếp tục cố gắng nào.');
   assert.equal(catchFailText({ rate: 0, selfCatch: 7 }), 'Điểm bắt Pet của bạn là7，quá thấp nên không thể bắt Pet.');
 });
+
+test('easy catch 625 skips the level gate and has a minimum rate of 60', () => {
+  const hard = { ...base, ownerLevel: 80, creatureLevel: 86 };
+  assert.equal(catchRate(hard), 0);
+  assert.equal(catchRate({ ...hard, creatureId: 626 }), 0);
+  assert.equal(catchRate({ ...hard, creatureId: 625 }), 60); // 20 + 0 - 10 = 10, raised to 60
+  assert.equal(catchRate({ ...hard, creatureId: 625, hp: 1, hpMax: 1000 }), 75); // above the floor: unchanged
+  assert.equal(catchRate({ ...hard, creatureId: 625, room: 0 }), 0); // slot gate still applies
+  assert.equal(catchClientBlocker(0, 6, 86, 80, 625), null);
+  assert.equal(catchClientBlocker(0, 6, 86, 80), CATCH_TOO_HIGH);
+});

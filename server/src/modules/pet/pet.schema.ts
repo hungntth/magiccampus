@@ -69,6 +69,14 @@ export class Pet {
 
   @Prop({ default: 0 })
   element: number;
+
+  // Auto-battle bucket (M9, uif / skillSetBattle with isPet): pet keys only (bs/bt even slots, bs10, p6..p9).
+  @Prop({ type: Object, default: {} })
+  battleSetting: Record<string, number>;
+
+  /** Escrow owner while the pet is parked by a mail / auction row (characterId 0): 'mail:<id>' or 'auction:<id>'. */
+  @Prop({ type: String, index: true, sparse: true })
+  escrowRef?: string;
 }
 
 export type PetDocument = HydratedDocument<Pet>;

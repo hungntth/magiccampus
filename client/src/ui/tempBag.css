@@ -1,0 +1,62 @@
+/* Túi Tiện Dụng window (tempBagPanel.ts) and Túi tạm thời window (temporaryBagPanel.ts + HUD notice). Reuses the bag skin (bag.css). */
+.temp-bag-panel {
+  left: calc(50% - 430px);
+  width: 270px;
+  padding-bottom: 8px;
+}
+
+.temp-bag-panel .tb-body { display: flex; flex-direction: column; gap: 6px; }
+.tb-tabs { display: flex; gap: 3px; }
+.tb-tabs .bag-tab { flex: 1 1 0; width: auto; }
+.tb-label { font-size: 11px; color: #cfeaf0; margin-bottom: 3px; }
+.tb-holders { flex-direction: column; gap: 3px; }
+.tb-holder-row { display: flex; gap: 4px; }
+.tb-holder { width: 34px; height: 34px; flex: 0 0 34px; }
+.tb-holder.locked, .bag-cell.locked { opacity: 0.35; background: #0b1c28; }
+.tb-holder.expired img { filter: grayscale(1); opacity: 0.6; }
+.tb-open {
+  width: 100%; height: 100%; padding: 0; border: 1px solid #fff0a0; border-radius: 4px; cursor: pointer;
+  background: linear-gradient(180deg, #ffe58a 0, #e8b232 50%, #c48a0c 100%); color: #5a3a00; font-weight: 700; font-size: 11px;
+}
+.tb-items-wrap { display: flex; flex-direction: column; gap: 3px; }
+.tb-pager { display: flex; justify-content: center; align-items: center; gap: 8px; font-size: 11px; }
+.tb-page { width: 22px; height: 18px; padding: 0; border: 1px solid #3fa9b8; border-radius: 3px; background: #123a52; color: #fff; cursor: pointer; }
+.tb-page:disabled { opacity: 0.4; cursor: default; }
+.tb-foot-wrap { display: flex; flex-direction: column; gap: 4px; }
+.tb-foot { display: flex; align-items: center; gap: 6px; }
+.tb-cur { margin-right: auto; font-size: 11px; color: #cfeaf0; }
+.tb-btn {
+  padding: 2px 8px; border: 1px solid #fff0a0; border-radius: 4px; cursor: pointer; font-size: 11px;
+  background: linear-gradient(180deg, #ffe58a 0, #e8b232 50%, #c48a0c 100%); color: #5a3a00; font-weight: 700;
+}
+.tb-btn:disabled { opacity: 0.5; cursor: default; }
+.tb-dire { font-size: 11px; display: flex; align-items: center; gap: 3px; cursor: pointer; }
+.tb-hint { font-size: 10px; line-height: 13px; color: #cfeaf0; }
+
+/* Túi tạm thời */
+.temporary-bag-panel { left: calc(50% - 135px); width: 270px; padding-bottom: 8px; }
+.temporary-bag-panel .tmp-note { margin: 0 4px 6px; font-size: 11px; line-height: 14px; color: #cfeaf0; }
+.temporary-bag-panel .tmp-warn { margin: 6px 4px 0; font-size: 10px; line-height: 13px; color: #ffd36a; }
+.temporary-bag-panel .tmp-foot { display: flex; align-items: center; justify-content: space-between; margin: 6px 4px 0; }
+.temporary-bag-panel .bag-cell.filled { cursor: pointer; }
+
+.tmp-notice {
+  position: absolute; right: 232px; top: 146px; z-index: 30; pointer-events: auto; cursor: pointer;
+  width: 30px; height: 30px; box-sizing: border-box; border: 2px solid #fff; border-radius: 6px;
+  background: #3a8fd8; color: #fff; font: 700 14px/26px Tahoma, Verdana, Arial, sans-serif; text-align: center;
+  animation: tmp-blink 1s infinite;
+}
+.tmp-notice .cnt {
+  position: absolute; right: -8px; top: -8px; min-width: 14px; padding: 0 3px; border-radius: 8px; background: #d93a2b;
+  font-size: 11px; line-height: 14px; font-weight: 700;
+}
+.in-battle .tmp-notice { display: none; }
+@keyframes tmp-blink { 50% { opacity: 0.45; } }
+
+/* Bank "Sắp xếp" button + Vứt bỏ multi-select marks (bag / bank windows) */
+.bank-sort { margin-left: 6px; padding: 1px 8px; border: 1px solid #fff0a0; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 700;
+  background: linear-gradient(180deg, #ffe58a 0, #e8b232 50%, #c48a0c 100%); color: #5a3a00; }
+.bank-sort:disabled { opacity: 0.5; cursor: default; }
+.bag-cell.del-selected { box-shadow: 0 0 0 2px #ff5a5a, inset 0 0 8px rgba(255, 90, 90, 0.6); }
+.bag-temp-btn { margin: 0 4px 4px; padding: 3px 8px; border: 1px solid #fff0a0; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 700;
+  background: linear-gradient(180deg, #ffe58a 0, #e8b232 50%, #c48a0c 100%); color: #5a3a00; }

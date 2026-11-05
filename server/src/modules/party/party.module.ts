@@ -6,9 +6,10 @@ import { CharacterModule } from '../character/character.module';
 import { PartyManager } from './party.manager';
 import { PartyRpc } from './party.rpc';
 import { PartyService } from './party.service';
+import { PermissionModule } from '../settings/permission.module';
 
 @Module({
-  imports: [ActivityEventsModule, CharacterModule],
+  imports: [ActivityEventsModule, CharacterModule, PermissionModule],
   providers: [PartyManager, PartyService, PartyRpc],
   exports: [PartyManager, PartyService],
 })

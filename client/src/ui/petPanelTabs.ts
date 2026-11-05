@@ -1,7 +1,7 @@
 // Attributes tab of the pet window (free-point allocation, changePetProperty) and the shared `el` helper; the skills and
 // equipment tabs live in petSkillTab.ts / petEquipTab.ts.
 
-import { PET_LEVEL_EXP, PetLimits, petExpOfLevel, petLevelOfExp, type ChangePetPropertyArg, type PetView } from '@mc/shared';
+import { PET_LEVEL_EXP, PetLimits, PetState, petExpOfLevel, petLevelOfExp, type ChangePetPropertyArg, type PetView } from '@mc/shared';
 
 type AttrKey = 'Strength' | 'Agility' | 'Stamina' | 'Intelligence' | 'Energy';
 const ATTRS: [AttrKey, string][] = [
@@ -41,6 +41,8 @@ export class PetAllocation {
 export interface StatsTabContext {
   onChange(): void;
   onSubmit(add: ChangePetPropertyArg): void;
+  /** "Chi tiết" (M9): the detail rates window; offered for the fighting pet only (the *Pet RPCs read it). */
+  onDetail(): void;
 }
 
 const num = (v: number | undefined): string => String(Math.round(v ?? 0));
@@ -109,6 +111,11 @@ export function renderStatsTab(body: HTMLElement, pet: PetView, alloc: PetAlloca
   ok.disabled = alloc.total() === 0;
   ok.onclick = () => submit(alloc, ctx);
   foot.append(chk, ok);
+  if (pet.state === PetState.BATTLE) {
+    const detail = el('button', 'pet-btn', 'Chi tiết');
+    detail.onclick = () => ctx.onDetail();
+    foot.appendChild(detail);
+  }
   right.appendChild(foot);
   body.append(left, right);
 }

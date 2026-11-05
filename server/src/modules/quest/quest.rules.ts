@@ -6,9 +6,9 @@ import type { QuestPreRow, QuestRequireRow, QuestTemplate } from '../gamedata/qu
 
 const GENDER_ANY = 2;
 
-/** Quest types the H5 slice offers (newbie, main, world, growup; loop rounds are granted by the loop module, never offered by an NPC). */
+/** Quest types the H5 slice offers (newbie, main, world, daily (M10), growup; loop rounds are granted by the loop module, never offered by an NPC). */
 export const SUPPORTED_QUEST_TYPES: ReadonlySet<number> = new Set([
-  QuestType.NEWHAND, QuestType.MAIN, QuestType.WORLD, QuestType.GROWUP, QuestType.LOOP,
+  QuestType.NEWHAND, QuestType.MAIN, QuestType.WORLD, QuestType.DAILY, QuestType.GROWUP, QuestType.LOOP,
 ]);
 
 export interface QuestChar {
@@ -70,6 +70,7 @@ export function isSupported(tpl: QuestTemplate, require: readonly QuestRequireRo
   return require.every((r) => {
     if (r.kind === 1 && tpl.startGrantItem > 0 && r.itemId === tpl.startGrantItem) return true;
     if (r.kind === 1) return r.type === 29 && r.q < 0 && r.num > 0;
+    if (r.kind === 6) return r.num > 0; // M10: "use" objectives credited by the server (QuestCreditService; Lang Huyệt only)
     return (r.kind === 2 || r.kind === 3) && r.type === 12 && r.num > 0;
   });
 }

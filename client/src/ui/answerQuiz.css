@@ -1,0 +1,31 @@
+/* Daily answer (AnswerPanel) and quiz event (QuestioningPanel) windows, M10 phase G. Built on the .act-win frame. */
+.aq-win { top: 8%; }
+.aq-answer { width: 460px; left: calc(50% - 230px); }
+.aq-quiz { width: 640px; left: calc(50% - 320px); }
+.aq-win .aq-count { color: #b8d0e6; font-size: 12px; margin-bottom: 4px; }
+.aq-win .aq-question { color: #ffe9a8; font-weight: 700; min-height: 36px; margin-bottom: 6px; line-height: 1.4; }
+.aq-win .aq-opt { display: block; width: 100%; text-align: left; margin: 3px 0; padding: 5px 8px; white-space: normal; }
+.aq-win .aq-timer { color: #8fe08f; margin: 6px 0 2px; min-height: 16px; font-size: 12px; }
+.aq-win .aq-info { color: #ffe9a8; margin: 8px 0 4px; min-height: 18px; }
+.aq-win .aq-cost { margin-bottom: 4px; }
+.aq-win .aq-next { margin-top: 4px; padding: 4px 14px; }
+.aq-cols { display: flex; gap: 10px; }
+.aq-main { flex: 1 1 60%; min-width: 0; }
+.aq-side { flex: 0 0 210px; display: flex; flex-direction: column; gap: 4px; }
+.aq-bar { height: 8px; background: #0a1c2e; border: 1px solid #3f6a92; border-radius: 4px; overflow: hidden; }
+.aq-bar-fill { height: 100%; width: 0; background: linear-gradient(90deg, #4fbf6a, #e8c46a); transition: width 0.25s linear; }
+.aq-items { display: flex; gap: 4px; margin: 8px 0; }
+.aq-items .aq-item { flex: 1; padding: 4px 2px; font-size: 12px; }
+.aq-notes { min-height: 64px; background: rgba(0, 0, 0, 0.3); border: 1px solid #3f6a92; border-radius: 4px; padding: 4px 6px; font-size: 12px; color: #d8e6f2; }
+.aq-self { color: #ffe9a8; font-size: 12px; }
+.aq-rank { flex: 1; max-height: 250px; overflow-y: auto; background: rgba(0, 0, 0, 0.3); border: 1px solid #3f6a92; border-radius: 4px; }
+.aq-row { padding: 2px 6px; font-size: 12px; color: #d8e6f2; cursor: pointer; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+.aq-row.aq-head { color: #e8c46a; cursor: default; }
+.aq-row.sel { background: #3e7fb5; color: #fff; }
+.aq-drop { margin-top: 4px; }
+.aq-warn {
+  position: absolute; top: 118px; right: 16px; z-index: 41; padding: 6px 10px; cursor: pointer;
+  background: #1d4a72; border: 2px solid #e8c46a; border-radius: 16px; color: #ffe9a8; font: 700 13px Tahoma, Verdana, sans-serif;
+  box-shadow: 0 0 8px rgba(232, 196, 106, 0.8); animation: aq-pulse 1.2s ease-in-out infinite alternate;
+}
+@keyframes aq-pulse { from { transform: scale(1); } to { transform: scale(1.12); } }

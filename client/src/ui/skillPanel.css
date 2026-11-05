@@ -1,0 +1,13 @@
+/* "Kỹ năng" window (ui/skillPanel.ts) inside the shared .act-win frame. */
+.skill-win { width: 420px; top: 10%; }
+.skill-tabs { display: flex; gap: 4px; margin-bottom: 6px; }
+.skill-tab { padding: 3px 12px; color: #cfe7ff; background: #12395a; border: 1px solid #4b86b5; border-radius: 4px 4px 0 0; cursor: pointer; }
+.skill-tab.on { color: #ffde00; background: #1f5a88; }
+.skill-wallet { margin-bottom: 6px; color: #9fe39f; white-space: pre; }
+.skill-list { display: flex; flex-direction: column; gap: 3px; min-height: 260px; }
+.skill-row { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 6px; padding: 2px 6px; background: rgba(8, 28, 48, 0.7); border: 1px solid #2f648f; border-radius: 4px; }
+.skill-row[draggable='true'] { cursor: grab; }
+.skill-icon { width: 30px; height: 30px; }
+.skill-btn { min-width: 64px; }
+.skill-empty { color: #9fc7e6; padding: 8px; }
+.skill-nav { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 6px; }

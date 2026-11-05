@@ -51,6 +51,14 @@
   text-shadow: -1px 0 #5a3a00, 1px 0 #5a3a00, 0 -1px #5a3a00, 0 1px #5a3a00;
 }
 
+/* "Chi tiết" (legacy showDetailProp) at the left of the drag strip. */
+.char-detail {
+  position: absolute;
+  top: 7px;
+  left: 10px;
+  z-index: 2;
+}
+
 .char-close {
   z-index: 2;
   position: absolute;

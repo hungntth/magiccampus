@@ -3,6 +3,7 @@
 
 import type { QuestKill } from './battle.js';
 import type { CharProperty } from './character.js';
+import type { InterfaceData } from './autoBattle.js';
 import type { PetLoginInfo, PetSceneView } from './pet.js';
 import type { GuildInfo, GuildMember } from './guild.js';
 import type { GuildSlot } from './guildBank.js';
@@ -15,6 +16,7 @@ import type { VipLogin } from './vip.js';
 import type { OfflineLogin } from './offline.js';
 import type { MountLogin } from './mount.js';
 import type { StarsData } from './zodiac.js';
+import type { TBag } from './tempBag.js';
 
 export type ClientMessage = { t: 'call'; id: number; m: string; a: unknown[] };
 
@@ -108,6 +110,18 @@ export interface PlayerData extends PetLoginInfo, Partial<AwakenLogin>, Partial<
   gi?: Record<string, GuildSlot>;
   /** PK opt-in (uif apvp); the minimap PK button shows selected = closed when false. */
   apvp?: boolean;
+  /** Interface settings (M9): auto-battle keys (character bucket merged with the active pet bucket, defaults filled). */
+  interfaceData?: InterfaceData;
+  /** Skill exp pool (M9 phase B): exp above the current level's floor (legacy Character.Experience). */
+  expSkill?: number;
+  /** Unread mail count (M11, Thùng Thư); the HUD notice blinks while > 0. */
+  mailUnread?: number;
+  /** Túi Tiện Dụng snapshot (M11 phase C): normal + Ma Tâm temp bags, holders, dire flag. */
+  tBag?: TBag;
+  /** Class rank 0..5 (CLASS_RANK_NAMES). */
+  cl?: number;
+  /** Blood bag pools "|charHp|charMp|petHp|petMp" (M9 phase D, parseEp). */
+  ep?: string;
   /** Progression (M7): special currencies, active titles (`t`, `actT`) and owned title lists (`ct` "|a|b|", `cts` "a|b|"). */
   currencies?: Currencies;
   t?: number;
@@ -167,6 +181,7 @@ export interface SceneNpc {
   type: number;
   subType: string; // raw sub_type: "-1", "13|1720|1721", "all"
   questState: number; // H5 extension: initial head marker (QuestState or -1); later via onSetNpcState
+  nid?: number; // M10 instance NPCs: template id (art / name) when `id` is a per-viewer instance id
 }
 
 export interface MapInfo {
@@ -284,9 +299,12 @@ export interface OpenShop {
 //         onAddMoney(charId, key: MoneyKey, amount, newTotal) · onUPP(PlayerUpdate) · onPlayerLevelUp(PlayerLevelUp)
 
 export const QuestState = { ENOUGH_LEVEL: 101, CAN_TAKE: 102, TAKEN: 103, CAN_FINISH: 104 } as const;
-export const QuestType = { NEWHAND: 1, MAIN: 2, CLASS: 3, WORLD: 4, LOOP: 7, CALLBOARD: 9, GROWUP: 10 } as const;
+/** DAILY (6, Mỗi ngày): re-takeable the next day (done = finished today, UTC+7); M10 dungeon openers and floor quests. */
+export const QuestType = { NEWHAND: 1, MAIN: 2, CLASS: 3, WORLD: 4, DAILY: 6, LOOP: 7, CALLBOARD: 9, GROWUP: 10 } as const;
 export const MoneyType = { MONEY_BIND: 1, MONEY: 2, GOLD_BIND: 3, GOLD: 4 } as const;
 export const MAX_QUEST_NUM = 25;
+/** Minimum character level for mail / auction / trade between players (0 = stock Flash; the legacy Open Beta used 60). */
+export const PLAYER_EXCHANGE_MIN_LEVEL = 0;
 /** QuestData.at: 1 every award row, 2 the player picks one (finishQuest s = award row id), 3 items of the player's class. */
 export const QuestAwardMode = { ALL: 1, CHOOSE_ONE: 2, CLASS: 3 } as const;
 /** data_tbl_quest_award.kind (GamePredef.QUEST_AWARD_*). */
@@ -395,9 +413,13 @@ export type PlayerUpdate = Partial<
     PlayerData,
     | 'level' | 'exp' | 'money' | 'moneyBind' | 'gold' | 'goldBind' | 'exPoint' | 'attrPoints' | 'currentHp' | 'currentMp'
     | 'maxHp' | 'maxMp' | 'attStrength' | 'attAgility' | 'attStamina' | 'attIntelligence' | 'attEnergy' | 'property' | 'petMaxNum' | 'bagSlotNum'
-    | 'bankSlotNum' | 'selectedMoneyType' | 'selectedGoldType' | 'name' | 'currencies' | 'pmLevel'
+    | 'bankSlotNum' | 'selectedMoneyType' | 'selectedGoldType' | 'name' | 'currencies' | 'pmLevel' | 'expSkill' | 'cl' | 'ep'
   >
->;
+> & {
+  /** Guild shop purchases (M11 phase E): the member's normal / donate contribution after the spend (Go onUPP{guildContrib, donateContrib}). */
+  guildContrib?: number;
+  donateContrib?: number;
+};
 
 export interface PlayerLevelUp {
   id: number;

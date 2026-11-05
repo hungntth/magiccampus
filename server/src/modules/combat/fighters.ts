@@ -7,6 +7,7 @@ import type { BattlePet } from '../pet/pet-battle.service';
 import type { CharStats } from '../stats/character-stats.service';
 import type { Fighter } from './battle.types';
 import { capToPlayer, creatureStatsAt, spawnLevel, withDefaults, type CreatureCombat } from './creature-stats';
+import { bossDefenseFloor } from './mechanics/boss-floors';
 
 /** The solo player: current HP/MP from the document, everything else from the effective stats (gear + buffs). */
 export function playerFighter(slot: number, st: CharStats, resCode: string): Fighter {
@@ -20,11 +21,12 @@ export function playerFighter(slot: number, st: CharStats, resCode: string): Fig
     sp: 0, spMax: p.finalSp, resCode, bossFlag: 0, alive: st.doc.currentHp > 0, expBase: -1,
     classId: st.doc.classId, gender: st.doc.gender,
     attack: p.finalAttack, magicAttack: p.finalMAttack, defense: p.finalDefence, magicDefense: p.finalMDefence,
-    hit: p.finalHit, dodge: p.finalDodge, critical: p.finalCritical, criticalDmg: 150 + (r.finalCriticalDamage ?? 0),
+    hit: p.finalHit, dodge: p.finalDodge, critical: p.finalCritical, criticalDmg: 200 + (r.finalCriticalDamage ?? 0),
     speed: p.finalSpeed, combo: r.finalCombo ?? 0, counter: r.finalCounter ?? 0, resiCritical: r.finalResiCritical ?? 0,
     resiDefy: r.finalResiDefy ?? 0, praDef: r.finalPraDef ?? 0, praMagDef: r.finalPraMagDef ?? 0,
     reduceHurt1: r.finalReduceHurt1 ?? 0, reduceHurt2: r.finalReduceHurt2 ?? 0,
     enhPhyHurt: r.finalEnhPhyHurt ?? 0, enhMagicHurt: r.finalEnhMagicHurt ?? 0,
+    defy: r.finalDefy ?? 0, rebornRate: r.finalRebornRate ?? 0, breakReborn: r.finalBreakReborn ?? 0,
   };
 }
 
@@ -37,21 +39,23 @@ export function petFighter(ownerSlot: number, pet: BattlePet): Fighter {
     alive: true, expBase: -1, ownerCid: pet.ownerCid, tid: pet.tid, colorCode: pet.colorCode, iconCode: pet.iconCode,
     element: pet.element, skills: pet.skills, skillList: pet.skillList,
     attack: s.attack, magicAttack: s.magicAttack, defense: s.defense, magicDefense: s.magicDefense, hit: s.hit, dodge: s.dodge,
-    critical: s.critical, criticalDmg: 150, speed: s.speed, combo: 0, counter: 0, resiCritical: 0, resiDefy: 0, praDef: 0,
+    critical: s.critical, criticalDmg: 200, speed: s.speed, combo: 0, counter: 0, resiCritical: 0, resiDefy: 0, praDef: 0,
     praMagDef: 0, reduceHurt1: 0, reduceHurt2: 0, enhPhyHurt: 0, enhMagicHurt: 0,
   };
 }
 
 function enemyOf(slot: number, tpl: CreatureTemplate, s: CreatureCombat, bossFlag: number, expBase: number): Fighter {
-  return {
+  const f: Fighter = {
     ...s, slot, side: 'enemy', kind: 'creature', refId: tpl.id, name: tpl.name, hp: s.hpMax, mp: s.mpMax, sp: 0, spMax: 0,
-    resCode: tpl.resCode, bossFlag, alive: true, expBase,
+    resCode: tpl.resCode, bossFlag, alive: true, expBase, element: tpl.element,
   };
+  bossDefenseFloor(f); // M10 E2.10: every boss row (Go buildEnemyParticipant)
+  return f;
 }
 
-/** An enemy at an explicit level (quest battles, phase B: no player-level cap, no spawn row). */
-export function creatureFighter(slot: number, tpl: CreatureTemplate, level: number): Fighter {
-  return enemyOf(slot, tpl, withDefaults(creatureStatsAt(tpl, level)), 0, -1);
+/** An enemy at an explicit level (quest battles, hitNpc line-ups: no player-level cap). */
+export function creatureFighter(slot: number, tpl: CreatureTemplate, level: number, bossFlag = 0, expBase = -1): Fighter {
+  return enemyOf(slot, tpl, withDefaults(creatureStatsAt(tpl, level)), bossFlag, expBase);
 }
 
 /** Random-encounter enemy from a spawn row: row level (with fallbacks), capped to the player's level + 5. */

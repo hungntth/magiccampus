@@ -40,7 +40,7 @@ export function creatureStatsAt(c: CreatureTemplate, level: number): CreatureCom
     dodge: trunc(A * 0.11) + c.propDodge,
     speed: 100 + trunc(A * 1.7) + c.propSpeed,
     critical: trunc(A * 0.1) + c.propCritical,
-    criticalDmg: 150,
+    criticalDmg: 200, // Go npc_stats.go: BaseCriticalDamage (bonus 0, crit × 2.0)
     combo: 0, counter: 0, resiCritical: 0, resiDefy: 0, praDef: 0, praMagDef: 0,
     reduceHurt1: 0, reduceHurt2: 0, enhPhyHurt: 0, enhMagicHurt: 0,
   };

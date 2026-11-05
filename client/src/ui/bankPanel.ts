@@ -13,6 +13,8 @@ import { toast } from './screens';
 import { stageEl } from './stage';
 import './bag.css';
 
+const SORT_COOLDOWN_MS = 30_000;
+
 export interface BankPanelHost {
   items(): Iterable<BagItem>;
   player(): PlayerData;
@@ -72,9 +74,15 @@ export class BankPanel {
     this.grid.className = 'bag-grid';
     box.appendChild(this.grid);
     root.appendChild(box);
+    const sort = document.createElement('button');
+    sort.className = 'bank-sort';
+    sort.textContent = 'Sắp xếp';
+    sort.title = 'Sắp xếp kho (30 giây mỗi lần)';
+    sort.onclick = () => this.sortBank(sort);
     const hint = document.createElement('div');
     hint.className = 'bank-hint';
     hint.textContent = 'Kéo vật phẩm vào ô kho, hoặc nhấp đôi để chuyển giữa túi đồ và kho.';
+    hint.appendChild(sort);
     root.appendChild(hint);
 
     stageEl().appendChild(root);
@@ -117,8 +125,17 @@ export class BankPanel {
     };
     if (!item) return c;
     fillItemCell(c, item, { level: this.host.player().level }, 'bag');
-    c.ondblclick = () => this.host.actions.moveToPage(item, PageType.BAG, this.host.bagPage());
+    c.ondblclick = () => this.host.actions.bagToBank(item, false);
     return c;
+  }
+
+  /** Sắp xếp: confirm, then the button stays disabled for 30 s (legacy BankPanel). */
+  private sortBank(btn: HTMLButtonElement): void {
+    this.host.actions.bankSort(() => {
+      btn.disabled = true;
+      const timer = window.setTimeout(() => (btn.disabled = false), SORT_COOLDOWN_MS);
+      this.offs.push(() => window.clearTimeout(timer));
+    });
   }
 
   private dragged(): BagItem | undefined {

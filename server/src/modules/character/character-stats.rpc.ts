@@ -1,10 +1,12 @@
-// Character stat RPCs: getCharAttributes, getCharDetailData, changeProperty (free point allocation), lvUp (manual
-// level-up from level 20). Pushes (self): onUPP (stat refresh), onSystemMidMsgOrNote, onPlayerLevelUp.
+// Character stat RPCs: getCharAttributes, getCharDetailData, getFinalPraDef / finalPraMagDef (M9 detail panel), changeProperty
+// (free point allocation), lvUp (manual level-up from level 20). Pushes (self): onUPP (stat refresh), onSystemMidMsgOrNote, onPlayerLevelUp.
 
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { ATTR_POINTS_PER_LEVEL, type CharDetailData, type PlayerLevelUp, type PlayerUpdate } from '@mc/shared';
+import {
+  ATTR_POINTS_PER_LEVEL, type CharDetailData, type FinalRateKey, type FinalRateReply, type PlayerLevelUp, type PlayerUpdate,
+} from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
 import { AchievementEvents } from '../achievement/achievement-events.service';
 import { Rpc } from '../../gateway/rpc.decorator';
@@ -12,6 +14,7 @@ import type { Session } from '../../gateway/session';
 import { CharacterStatsService } from '../stats/character-stats.service';
 import { canManualLevelUp, expForNextLevel, parseChangeProperty } from './character-points';
 import { detailData } from './character-stats';
+import { finalRateReply, rateOf } from './final-rate';
 import { Character } from './character.schema';
 
 @Injectable()
@@ -34,6 +37,21 @@ export class CharacterStatsRpc {
     const requested = Number(args[0]);
     const id = args[0] !== undefined && args[0] !== null && Number.isInteger(requested) ? requested : session.characterId!;
     return detailData((await this.stats.compute(id)).rates);
+  }
+
+  /** getFinalPraDef(key, value, cid): the caller's aggregated finalPraDef (the value and cid arguments are ignored, as in Go). */
+  @Rpc('getFinalPraDef', { requireCharacter: true })
+  getFinalPraDef(session: Session, args: unknown[]): Promise<FinalRateReply | number> {
+    return this.finalRate(session, args, 'finalPraDef');
+  }
+
+  @Rpc('finalPraMagDef', { requireCharacter: true })
+  finalPraMagDef(session: Session, args: unknown[]): Promise<FinalRateReply | number> {
+    return this.finalRate(session, args, 'finalPraMagDef');
+  }
+
+  private async finalRate(session: Session, args: unknown[], key: FinalRateKey): Promise<FinalRateReply | number> {
+    return finalRateReply(args[0], rateOf((await this.stats.compute(session.characterId!)).rates, key));
   }
 
   /** Fire-and-forget on the client. All-or-nothing: the sum must fit the free points. Returns null. */

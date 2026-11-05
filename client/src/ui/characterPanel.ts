@@ -59,6 +59,8 @@ export interface CharacterPanelHost {
   onRepairMagicWeapons(): void;
   /** "Thú cưỡi" tab (legacy tabBtn4 -> showMount). */
   onMount(): void;
+  /** "Chi tiết" (legacy showDetailProp): toggles the detail rates window. */
+  onDetail(): void;
   onClose(): void;
 }
 
@@ -85,6 +87,9 @@ export class CharacterPanel {
     const root = el('div', 'char-panel');
     const header = el('div', 'char-header');
     header.appendChild(el('div', 'char-title', 'Nhân vật'));
+    const detail = el('button', 'char-ok char-detail', 'Chi tiết');
+    detail.onclick = () => this.host.onDetail();
+    header.appendChild(detail);
     root.appendChild(header);
     const x = el('button', 'char-close', '×');
     x.title = 'Đóng';

@@ -1,0 +1,70 @@
+/* Credit point shop window (legacy NpcShopPanel): tab row, balance + hint strip, 6 exchange rows, pager. Frame styles come from shop.css. */
+.shop-panel.credit-panel { width: 520px; }
+
+.credit-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 3px;
+}
+
+.credit-tab {
+  flex: none;
+  min-width: 96px;
+  padding: 3px 10px;
+  background: linear-gradient(180deg, #2b6a98, #14385a);
+  border: 1px solid #4f86b3;
+  border-radius: 4px 4px 0 0;
+  color: #fff;
+  font-size: 12px;
+}
+
+.credit-tab:hover { border-color: #7fb4dd; }
+.credit-tab.selected { background: linear-gradient(180deg, #f0a83a, #d6892b); border-color: #e8c46a; }
+
+.credit-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 24px;
+  padding: 3px 8px;
+  margin-bottom: 4px;
+  background: #0d2d4a;
+  border: 1px solid #4f86b3;
+  border-radius: 6px;
+}
+
+.credit-balance { color: #ffff00; font-weight: 700; }
+.credit-hint { font-size: 11px; color: #bcd6ec; text-align: right; }
+
+.credit-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: 58px;
+  gap: 4px;
+  min-height: 182px;
+  padding: 6px;
+  background: #0d2d4a;
+  border: 1px solid #4f86b3;
+  border-radius: 8px;
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+.credit-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 3px 5px;
+  background: #081a2c;
+  border: 1px solid #25506f;
+  border-radius: 6px;
+}
+
+.credit-row:hover { border-color: #7fb4dd; }
+.credit-text { flex: 1; min-width: 0; line-height: 1.3; }
+.credit-cost { color: #ffe9a8; }
+.credit-limit { font-size: 11px; color: #ffff00; }
+.credit-limit.out { color: #ff4040; }
+.credit-btn { align-self: center; }
+.credit-empty { grid-column: 1 / -1; align-self: center; text-align: center; color: #bcd6ec; }

@@ -11,6 +11,8 @@ export const BattleAction = {
 export const BattleBehavior = {
   STAND: 0, RUN_FAST: 1, RUN_NORMAL: 2, ATTACK: 3, DEAD: 4, HURT: 5, DEFENCE: 6, MAGIC: 7,
   BACK: 10080, TURNBACK: 10100, TURNTO: 10110, DIE: 10120, ESCAPE: 10130, CATCHED: 10160,
+  // M10 E2 (BattleStage.globalBehavior / BattleCreatureView): stand up after a revive, summon cast, unit removed, unit fades in
+  RELIVE: 12000, SUMMON: 16000, RETURNED: 17000, SUMMONED: 18000,
 } as const;
 
 export const BattleParticipantType = { CHARACTER: 2, CREATURE: 12, PET: 39 } as const;
@@ -79,8 +81,22 @@ export interface BattleStateObj {
   uMp?: number; // resource cost: new mp, no popup
   cri?: number; // truthy = critical hit
   skill?: string; // banner text
-  miss?: boolean; // H5 extension: attack dodged ("Né" popup)
+  miss?: boolean; // H5 extension: attack dodged or resisted (no damage)
+  /** GamePredef.BS_STATUS text floated over the unit ("Né tránh", "Kháng cự", "Vô hiệu"), or {text, color, size}. */
+  status?: string | { text: string; color?: number; size?: number };
+  reborn?: number; // Miễn Tử saved the unit (or a revive): its new hp, "Miễn tử" popup
   catchF?: CatchFailed; // failed catch (-70): the client of `cid` shows the rate text
+  // M10 E2 buff icons (BattleCreatureView.battleState): add one, drop ids, drop every icon (death / revive)
+  buffAdd?: BattleBuffAdd;
+  buffDel?: number | number[];
+  buffClear?: number;
+}
+
+/** sSObj / tSObj buffAdd (Go buffAddState): TBL_BUFF id, rounds shown (+1, Go), icon = H5 extension (TBL_BUFF icon_code). */
+export interface BattleBuffAdd {
+  id: number;
+  round: number;
+  icon?: string;
 }
 
 /** sSObj.catchF (GamePredef.BS_CATCH_FAILED): rate > 0 = "Bạn có {rate}% xác suất...", rate 0 = "Điểm bắt Pet của bạn là {selfCatch}...". */
@@ -107,6 +123,9 @@ export interface BattleStep {
   end?: boolean;
   result?: number; // BattleResult, on the end marker
   report?: BattleReport;
+  // M10 E2.2 summon cast (bid 16000): type 2 and the new units (Go buildNPCSummonActions)
+  type?: number;
+  creList?: BattleParticipant[];
 }
 
 /** onBattlePlayList payload: groups run in order, the steps of one group run together. */
@@ -126,5 +145,26 @@ export interface QuestKill {
   num: number;
 }
 
-/** reliveSwitch() result: 0 = nothing to do, 2 = free revive dialog (legacy BattleStage.onReliveSwitch). */
-export type ReliveSwitchResult = 0 | 2;
+/** reliveSwitch() result (M9): 0 = alive / in battle, else the map relive mode 1 Hình Nhân, 2 free, 3 gold (world boss). */
+export type ReliveSwitchResult = 0 | 1 | 2 | 3;
+
+/** Push `onWatch(start)` (M9 spectate): the watched battle's onBattleStart payload; `onWatchEnd()` closes the stage. */
+export type WatchPush = BattleStart & { watch: true };
+
+/** startWatch(targetCid) refusals (Go combat/watch.go), replied as `{success:false, error}` plus onSystemSay. */
+export const WATCH_ERR = {
+  INVALID: 'Không thể xem trận chiến này.',
+  SELF_IN_BATTLE: 'Bạn đang trong trận chiến.',
+  OFFLINE: 'Người chơi không trực tuyến.',
+  OTHER_MAP: 'Người chơi không ở cùng bản đồ.',
+  NOT_IN_BATTLE: 'Người chơi không trong trận chiến.',
+  ENDED: 'Trận chiến đã kết thúc.',
+} as const;
+
+export interface StartWatchReply {
+  success: boolean;
+  error?: string;
+}
+
+/** Delay between the watched battle's end marker and onWatchEnd. */
+export const WATCH_END_DELAY_MS = 5000;

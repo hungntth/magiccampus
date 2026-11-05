@@ -1,22 +1,65 @@
-// Combat RPCs: cbom(x, y), battleUpdateCmd([cmd]), battlePlayEnd(). Pushes (self): onSetCharState, onBattleStart,
+// Combat RPCs: cbom(x, y), battleUpdateCmd([cmd]), battlePlayEnd(), hitNpc(npcId) / clickBoss(npcId) (M9, the same NPC line-up fight;
+// M10 hit hooks claim feature NPCs first). Pushes (self): onSetCharState, onBattleStart,
 // onBattlePlayList, onUPP, and at the end onAddMoney / onPlayerLevelUp. All replies are null; results travel as pushes.
 
 import { Injectable } from '@nestjs/common';
 import { RpcException } from '../../gateway/errors';
 import { Rpc } from '../../gateway/rpc.decorator';
 import type { Session } from '../../gateway/session';
+import { GameDataService } from '../gamedata/gamedata.service';
+import { InstanceNpcService } from '../npcscript/instance-npcs.service';
+import { NpcHookRegistry, type NpcRef } from '../npcscript/npc-hooks.registry';
 import { CombatService } from './combat.service';
+import { EncounterService } from './encounter.service';
+import { NpcBattleService } from './npc-battle.service';
 
 @Injectable()
 export class CombatRpc {
-  constructor(private readonly combat: CombatService) {}
+  constructor(
+    private readonly combat: CombatService,
+    private readonly encounters: EncounterService,
+    private readonly npcBattles: NpcBattleService,
+    private readonly hooks: NpcHookRegistry,
+    private readonly instances: InstanceNpcService,
+    private readonly gameData: GameDataService,
+  ) {}
 
   /** Random encounter check, sent by the client every >= 100 px of walking (throttled to 1 s). Fire-and-forget. */
   @Rpc('cbom', { requireCharacter: true })
   async cbom(session: Session, args: unknown[]): Promise<null> {
     if (!Number.isFinite(Number(args[0])) || !Number.isFinite(Number(args[1]))) throw RpcException.invalidArgs('x/y');
-    await this.combat.tryRandomEncounter(session);
+    await this.encounters.tryRandomEncounter(session);
     return null;
+  }
+
+  @Rpc('hitNpc', { requireCharacter: true, forbidInBattle: true })
+  async hitNpc(session: Session, args: unknown[]): Promise<null> {
+    return this.npcFight(session, args);
+  }
+
+  /** Go registers clickBoss on the hitNpc handler (the later registration wins). */
+  @Rpc('clickBoss', { requireCharacter: true, forbidInBattle: true })
+  async clickBoss(session: Session, args: unknown[]): Promise<null> {
+    return this.npcFight(session, args);
+  }
+
+  private async npcFight(session: Session, args: unknown[]): Promise<null> {
+    const npcId = Number(args[0]);
+    if (!Number.isInteger(npcId) || npcId <= 0) throw RpcException.invalidArgs('npcId');
+    const ref = await this.refOf(session, npcId);
+    if (ref && (await this.hooks.runHit(session, ref))) return null; // M10 feature fights (dungeon floors, towers)
+    await this.npcBattles.hit(session, npcId);
+    return null;
+  }
+
+  /** The static NPC on the caller's map, or a per-viewer instance NPC, as a hit-hook target. */
+  private async refOf(session: Session, npcId: number): Promise<NpcRef | null> {
+    const row = this.gameData.getNpc(npcId);
+    if (row && Number(row.pos_map_id) === session.mapId) {
+      return { id: npcId, nid: npcId, mapId: session.mapId, x: Number(row.pos_x ?? 0), y: Number(row.pos_y ?? 0), type: Number(row.type ?? 0) };
+    }
+    const n = await this.instances.find(session, npcId); // dungeon spawns reuse template ids that live on another map
+    return n ? { id: n.id, nid: n.nid, mapId: n.map, x: n.posX, y: n.posY, type: n.type, instance: n } : null;
   }
 
   @Rpc('battleUpdateCmd', { requireCharacter: true })
@@ -26,8 +69,8 @@ export class CombatRpc {
   }
 
   @Rpc('battlePlayEnd', { requireCharacter: true })
-  async battlePlayEnd(session: Session): Promise<null> {
-    await this.combat.endBattle(session);
-    return null;
+  /** Reply null, or the battle's feature reply (M10 BattleHooks.onReply, e.g. the star instance report). */
+  async battlePlayEnd(session: Session): Promise<unknown> {
+    return this.combat.endBattle(session);
   }
 }

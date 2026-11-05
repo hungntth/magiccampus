@@ -13,6 +13,7 @@ import { CharacterItem, CharacterItemSchema } from '../inventory/character-item.
 import { InventoryModule } from '../inventory/inventory.module';
 import { PetBattleService } from './pet-battle.service';
 import { PetBonusService } from './pet-bonus.service';
+import { PetDetailRpc } from './pet-detail.rpc';
 import { PetEquipService } from './pet-equip.service';
 import { PetGearRpc } from './pet-gear.rpc';
 import { PetGoldService } from './pet-gold.service';
@@ -39,7 +40,7 @@ import { PetService } from './pet.service';
   ],
   providers: [
     PetService, PetFollowService, PetBattleService, PetCatchService, PetObjectiveService, PetRpc,
-    PetBonusService, PetEquipService, PetGoldService, PetSkillService, PetSlotService, PetGearRpc,
+    PetBonusService, PetEquipService, PetGoldService, PetSkillService, PetSlotService, PetGearRpc, PetDetailRpc,
   ],
   exports: [PetService, PetFollowService, PetBattleService, PetCatchService, PetObjectiveService],
 })

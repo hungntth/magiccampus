@@ -34,3 +34,5 @@ Channel 2 is live: `say(2, msg)` reaches online guild members (`guild.md`).
 - Log UI: the log is click-through (map clicks pass), so `.hud-chat-rail` is a clickable mirror scrollbar synced
   with it. `onAddItem` lines are "[Thông báo] Nhận: [name] xN" with a clickable tag; the tooltip is `itemTooltip` of
   a held copy of the template (BagController.itemInfo), else just the name.
+
+- M9 phase G: see `settings.md` (tray Thiết lập / Bản đồ / Trợ giúp, keys P / M / H, chat emotion popup and typed emotion codes).

@@ -5,7 +5,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
-  CharState, DEFAULT_PAYMENT, applyMoneyType, openBagPages, openBankPages, paymentKeys, type CharListEntry, type MoneyKey, type PetLoginInfo, type PlayerData,
+  CharState, DEFAULT_PAYMENT, isMazeTemplateMap, applyMoneyType, openBagPages, openBankPages, paymentKeys, skillPool, formatEp, type CharListEntry, type MoneyKey, type PetLoginInfo, type PlayerData,
   type SceneCharacter,
 } from '@mc/shared';
 import { Character, type CharacterDocument } from './character.schema';
@@ -105,6 +105,7 @@ export class CharacterService {
   }
 
   async updatePosition(id: number, mapId: number, x: number, y: number, dir: number): Promise<void> {
+    if (isMazeTemplateMap(mapId)) return; // M10 maze copies are never persisted: a relog lands at the return point
     await this.characters.updateOne({ _id: id }, { $set: { mapId, posX: x, posY: y, dir, lastActive: new Date() } });
   }
 
@@ -205,6 +206,9 @@ export class CharacterService {
       gold: doc.gold,
       goldBind: doc.goldBind ?? 0,
       exPoint: doc.exPoint ?? 0,
+      expSkill: skillPool(doc.exp, doc.level),
+      cl: doc.cl ?? 0,
+      ep: formatEp(doc.bloodBag ?? []),
       bagSlotNum: openBagPages(doc.bagSlotNum ?? 1),
       bankSlotNum: openBankPages(doc.bankSlotNum ?? 1),
       selectedMoneyType: doc.selectedMoneyType ?? DEFAULT_PAYMENT.selectedMoneyType,

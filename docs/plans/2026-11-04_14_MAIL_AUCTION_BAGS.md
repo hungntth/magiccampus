@@ -1,6 +1,6 @@
 # Mail, Auction, Bags (M11) — Implementation Plan
 
-**Date**: 2026-11-04 · **Status**: Draft
+**Date**: 2026-11-04 · **Status**: Approved (user, 2026-11-05) · Implemented A–E (2026-11-05)
 **Goal**: port the legacy Thùng Thư (mail with gift / COD / one attachment, system mail as a reward channel), the
 auction house (list items and pets, bid, buy-out, cancel, expiry, PM batch), the Túi Tiện Dụng temp bags (normal + Ma Tâm),
 the volatile Túi tạm thời, bank sort / quick move, pets in trade, and the remaining shop RPCs (credit point shops, guild
@@ -486,12 +486,12 @@ No migration script: new character fields default on read.
 | server | `inventory/char-lock.ts`, `inventory/escrow.service.ts`, `character-item.schema.ts`, `pet/pet.schema.ts`, `pet/pet-transfer.ts` (+test), `modules/mail/*`, `npc/npc.rpc.ts`, `trade/trade.manager.ts` (`isLocked`), `app.module.ts` |
 | client | `game/MailController.ts`, `ui/mail/*`, `ui/hud/mailNotice.ts`, `ui/npcDialog.ts`, `main.ts` wiring |
 
-- [ ] shared mail types + helpers + tests; rebuild shared
-- [ ] escrow service + pet transfer rule (+tests on pure parts)
-- [ ] mail schema, rules (+test), view, service, system API, sweeper, RPCs, NPC type 3, login notice
-- [ ] client panel (list / read / compose / take / delete / batch), notice icon
-- [ ] dev check: a GM `sendSystemMail` path exercised by a `requireGm` RPC `devSendMail(name, templateId, count)` (H5 dev tool)
-- [ ] `docs/memory/mail.md` + index link
+- [x] shared mail types + helpers + tests; rebuild shared
+- [x] escrow service + pet transfer rule (+tests on pure parts)
+- [x] mail schema, rules (+test), view, service, system API, sweeper, RPCs, NPC type 3, login notice
+- [x] client panel (list / read / compose / take / delete / batch), notice icon
+- [x] dev check: a GM `sendSystemMail` path exercised by a `requireGm` RPC `devSendMail(name, templateId, count)` (H5 dev tool)
+- [x] `docs/memory/mail.md` + index link
 
 ### Phase B — Auction (needs A)
 
@@ -501,10 +501,10 @@ No migration script: new character fields default on read.
 | server | `modules/auction/*`, `npc/npc.rpc.ts` (type 5), `vip/pm-state.service.ts` (export `levelOf`), `gamedata` (`creature(id).class_id`) |
 | client | `game/AuctionController.ts`, `ui/auction/*` |
 
-- [ ] rules + tests (fee, validation, bid ordering, settle outcomes over a fake store)
-- [ ] listing / bid / settle services, sweeper, RPCs, NPC hook
-- [ ] client search / sell / bid / buy-out / cancel / PM batch
-- [ ] `docs/memory/auction.md` + index link
+- [x] rules + tests (fee, validation, bid ordering, settle outcomes over a fake store)
+- [x] listing / bid / settle services, sweeper, RPCs, NPC hook
+- [x] client search / sell / bid / buy-out / cancel / PM batch
+- [x] `docs/memory/auction.md` + index link
 
 ### Phase C — Temp bags, Túi tạm thời, bank sort
 
@@ -514,11 +514,11 @@ No migration script: new character fields default on read.
 | server | `character.schema.ts` (`tempBag`), `modules/tempbag/*`, `gateway/session.ts` (`temporaryBag`), `combat/battle-loot.service.ts`, `inventory/bank.service.ts`, `inventory/bag-ops.service.ts` + `.rpc.ts` (`delBagItems`), `inventory/inventory.service.ts` (exclude TEMP_BAG / ESCROW from `list`) |
 | client | `game/TempBagController.ts`, `ui/tempBagPanel.ts`, `ui/temporaryBagPanel.ts`, `ui/bagPanel.ts`, `ui/bankPanel.ts`, `game/BagController.ts`, `ui/hud/mainHud.ts` |
 
-- [ ] rules + tests; payload builder matches §2.3 keys
-- [ ] 19 temp-bag RPCs (`oneKeyOpenAllMXTemp` refusal), login `tBag`, VIP right 5
-- [ ] loot routing + Túi tạm thời (offer / take / take all, cleared on disconnect)
-- [ ] `bankSort`, `bagToBank`, `delBagItems`
-- [ ] client panels; update `docs/memory/inventory.md`, `economy.md`; new `docs/memory/temp-bag.md`
+- [x] rules + tests; payload builder matches §2.3 keys
+- [x] 19 temp-bag RPCs (`oneKeyOpenAllMXTemp` refusal), login `tBag`, VIP right 5
+- [x] loot routing + Túi tạm thời (offer / take / take all, cleared on disconnect)
+- [x] `bankSort`, `bagToBank`, `delBagItems`
+- [x] client panels; update `docs/memory/inventory.md`, `economy.md`; new `docs/memory/temp-bag.md`
 
 ### Phase D — Trade pets
 
@@ -528,8 +528,8 @@ No migration script: new character fields default on read.
 | server | `trade/trade-rules.ts` (+test), `trade-swap.ts` (+test), `trade-swap.service.ts`, `trade.service.ts`, `pet/pet-transfer.ts` |
 | client | `ui/tradePanel.ts`, `game/TradeController.ts` |
 
-- [ ] pet offer validation + room check (+tests), pet saga steps before items, pushes
-- [ ] client pet slots + picker; update `docs/memory/trade.md`
+- [x] pet offer validation + room check (+tests), pet saga steps before items, pushes
+- [x] client pet slots + picker; update `docs/memory/trade.md`
 
 ### Phase E — Shop leftovers
 
@@ -539,10 +539,10 @@ No migration script: new character fields default on read.
 | server | `shop/credit-shop.*`, `shop/shop-buy.ts` (+test special 20/21), `shop/shop.rpc.ts`, `shop/mall.rpc.ts` + `mall.service.ts`, `character.schema.ts`/`.service.ts` (`points`), `guild/guild.service.ts` (`spendContribution`, membership level), `gamedata.service.ts` (credit cache), `npc/npc.rpc.ts` |
 | client | `ui/creditShopPanel.ts`, `ui/mallPanel.ts` (cart), `ui/shopPanel.ts`, `ui/shopCell.ts`, `game/MallController.ts` |
 
-- [ ] credit shops (2318 → shop 2), `exchangeItem`, `updateLimit`, points API
-- [ ] guild shop 83 gate + contribution prices
-- [ ] `buyItemClient`, `shopClosePanel`, `openShopDirect`, `buySystemItemMulti`, `getShopAwardStr`, `getLimitTimeShop`, `buyLimitTimeItem`
-- [ ] client credit panel, mall cart; update `docs/memory/shop.md`, `economy.md`
+- [x] credit shops (2318 → shop 2), `exchangeItem`, `updateLimit`, points API
+- [x] guild shop 83 gate + contribution prices
+- [x] `buyItemClient`, `shopClosePanel`, `openShopDirect`, `buySystemItemMulti`, `getShopAwardStr`, `getLimitTimeShop`, `buyLimitTimeItem`
+- [x] client credit panel, mall cart; update `docs/memory/shop.md`, `economy.md`
 
 Order: A → B; C, D, E independent of each other and of A/B (D and C reuse the escrow-free saga only).
 
@@ -591,3 +591,58 @@ Order: A → B; C, D, E independent of each other and of A/B (D and C reuse the 
    CSS until a `swfui` render is done.
 8. **Mounted pets**: H5 mounts are a separate module; confirm no pet can be "mounted" so `pet-transfer.ts` needs no mount
    check.
+
+### Implementation notes (phase A)
+
+Built 2026-11-05. Full contract and file map: `docs/memory/mail.md`.
+
+- **Shared**: `mail.ts` (+`mail.test.ts`, appended to the shared test script), `SlotType.TEMP_BAG = 3` / `ESCROW = 90`, `PlayerData.mailUnread`, `PLAYER_EXCHANGE_MIN_LEVEL = 0`.
+- **Server**: `inventory/char-lock.ts` (`withKeyLock`, `withCharLocks`), `inventory/escrow.service.ts` (items and pets, startup self-check log), `pet/pet-transfer.ts`, `trade` (`TradeBook.isLocked`, `TradeManager` exported), `modules/mail/*`, NPC type 3 in `npc.rpc.ts`.
+- **Client**: `game/MailController.ts`, `ui/mail/*`, `ui/hud/mailNotice.ts`, `npcDialog.ts` label.
+- **Public API for phase B**: `MailSystemService.sendSystemMail({ receiverId, title, text, senderName?, money?, gold?, item?, escrow?: { fromRef, itemId | petId }, source? })`. `escrow.fromRef` is new (the plan's `escrow?: {itemId}|{petId}` could not know which ref the goods are parked under): the service retags them `fromRef -> mail:<newId>`. `source` is idempotent (a duplicate re-runs the retag and returns the existing mail). `EscrowService`: `escrowItem / releaseItem / restoreItem / destroyItem / retagItem`, `escrowPet / releasePet / restorePet / destroyPet / retagPet`, `peekItem / peekPet`, `destroyRef / refsOf`, `registerOwner(prefix, liveIds)` (phase B must register `'auction'` so the self-check does not flag its refs).
+- **Deviations**: (1) sagas return outcome unions (`SendOutcome` / `TakeOutcome`) and the RPC maps them to pushes; (2) saga ordering / undo is unit-tested through the pure `UndoStack` (`mail-saga.ts`) rather than fakes of the Mongoose-bound services; the real saga is covered by the ws smoke test; (3) `MailSystemService.send()` returns the stored document for internal callers, `sendSystemMail` the `MailView`; (4) `MailView.receiverName` is '' except on the sender's own echo; (5) delete / expiry run under the receiver's char lock and create the return mail BEFORE deleting the original (the unique `source` `mail:<id>:return` makes a crash retry harmless); (6) `takeMail` never un-claims after the goods were delivered (a later failure is logged, goods are never duplicated); (7) a taken mail keeps its row (Go zeroes the columns): the view zeroes money / gold / attachment when `claimed`.
+- **Decisions on the open questions**: Q1 level gate constant 0 (checked only when > 0); Q2-Q8 as decided by the parent (Q6: expiry destroys unclaimed system goods; Q8: pets cannot be mounted).
+- **Rewards wired to mail (extra scope)**: quiz settlement (bags, Go `rewards.go`), world boss unclaimed bags (Go `exit.go mailPendingAward`); see `docs/memory/mail.md` for the list of Go senders that have no H5 feature yet and the places deliberately left alone.
+
+### Implementation notes (phase B)
+
+Built 2026-11-05. Full contract and file map: `docs/memory/auction.md`.
+
+- **Shared**: `auction.ts` (+`auction.test.ts`, appended to the shared test script): types, `AUCTION` constants, `AUCTION_TEXT` (Go strings), `auctionFee`, `auctionLastTime`, `petAuctionType`, `AUCTION_KINDS` (search tree), `AuctionRow` with H5 `iconCode` / `item` / `pet`.
+- **Server**: `modules/auction/*` (schema, rules + test, gate, listing / bid / settle / sweep / view services, rpc, module), NPC type 5 in `npc.rpc.ts` (+ `NpcModule` imports `AuctionModule`), `GameDataService.creatureClassId`. 8 RPCs: the 7 Flash ones plus the GM dev tool `devAuctionEnd(id[, seconds])`; none quiet. Registered RPC count 381 -> 389.
+- **Client**: `game/AuctionController.ts`, `ui/auction/*` (search with kind / type tree, bid bar, sell tab, own listings, PM batch), wired in `GameScene`.
+- **Deviations**: (1) the settle / bid sagas are driven by the listing row as the saga log (`status`, `mailed`, `refundDue`, `bidSeq`) instead of a transaction, and the sweeper retries owed mails; (2) saga ordering is unit-tested through pure `plan*` transitions (guard + patch) replayed over an in-memory fake store with a source-deduping mail sink, the Mongo-bound services are covered by the ws smoke test; (3) `vip/pm-state.service.ts` already exported `levelOf`, and `GameDataService.petTemplate(id).classId` already carried `class_id`: only a thin `creatureClassId` accessor was added; (4) cancel is not level / trade gated (Go); (5) the first bid must be strictly above the start price (Go `amount <= current`); (6) a refused listing burns an auction counter id.
+- **Decisions on open questions**: as in phase A (Q6: system mail expiry also destroys unclaimed auction wins).
+- **Smoke test** (two bots hudtest / watchbot + lhbot): listing of an item, equipment and pet, refusals (duration, price pair, buy-out < start, bound item, none, PM batch without PM 3), search by kind / type / level / name, bid refusals (own, low, over buy-out, already top), outbid with refund mail, buy-out after bids (goods mail to the buyer, price mail to the seller, refund of the previous bidder, seller `onDelAuction`), gold pet auction with a pet delivered by mail, cancel (foreign refused, with bid refused, without bid returns goods), expiry with and without a bid via `devAuctionEnd` + the real sweeper, PM batch (11 entries refused, 3 items + 1 pet listed, bound item reported), recovery of a settled-unmailed listing and a pending refund by the sweeper. Wallet deltas exact (fee 11 / 5 / 15 from moneyBind, never refunded); no auction escrow left afterwards (only the two phase A mail refs).
+
+### Implementation notes (phase C)
+
+Built 2026-11-05. Full contract and file map: `docs/memory/temp-bag.md`.
+
+- **Shared**: `tempBag.ts` (+`tempBag.test.ts`, appended to the shared test script): constants, `TBag` types, texts, `tempIndex` / `tempPos`, accept rules, `BankQuickMove`, `BAG_DELETE_MAX`; `PlayerData.tBag`.
+- **Server**: `modules/tempbag/*` (state, moves, holders, temporary bag, loot, rules + test, rpc, module; 21 RPCs = the 19 temp-bag ones + `addSingleItemToBag` / `addAllToBag`), `Character.tempBag`, `Session.temporaryBag`, `InventoryService.list` excludes TEMP_BAG / ESCROW, `inventory/bank.service.ts` (`bankSort`, `bagToBank`), `BagOpsService.delBagItems`, `slot-writes.ts` (`mergeInto`, `applySortPlan`, shared by bagSort / bankSort / temp moves), `combat/battle-loot.service.ts` + `BattleLoot.pushes`, the `GameDataService` template projection gained `t`. Registered RPC count 389 -> 413; none quiet.
+- **Client**: `game/TempBagController.ts`, `ui/tempBagPanel.ts` (+`tempBag.css`), `ui/temporaryBagPanel.ts`, `ui/hud/temporaryNotice.ts`, bag toolbar button, bank Sắp xếp / double-click / `onBankSort`, Vứt bỏ multi-select, `DragPayload` 'temp' | 'mx'.
+- **Deviations**: (1) payloads carry H5 display extras (`TempSlotData.item`, `TempHolder.name / iconCode / slots`) because the client has no static tables; (2) the HUD icon is its own component (`temporaryNotice.ts`, like the mail notice), not part of `mainHud.ts`; (3) `openTempSlot` with too little gold rejects with the note "Vàng không đủ!" through `onSystemMidMsgOrNote` (H5 has no `onSystemMsgCode` handler); (4) `delBagItems` has no trade-lock gate (InventoryModule cannot import TradeModule; a locked trade whose item vanished fails cleanly in the swap saga); (5) no `updateTempBags` push on a PM level change (the panel re-reads `getTBag` when opened); (6) Túi tạm thời grants only template-table-29 entries (H5 battle loot has no equipment drops); (7) saga ordering of the Mongo-bound moves is covered by the ws smoke test and a 120-call race test, the pure planners by `tempbag-rules.test.ts`.
+- **Decisions**: when even the Túi tạm thời is full (30) a drop is lost with "Túi tạm thời đã đầy, vật phẩm rơi ra đã mất." (Go); loot goes to a temp bag first only when the whole count fits one stack, else the bag; Ma Tâm that does not fit the Ma Tâm bag falls back to the bag, then the Túi tạm thời; `tempBagSort` does not merge (Go); `dire` uses Go's `IsRewardTempTemplate` eligibility (client rule + types 523 / 524).
+- **Smoke test** (ws bot as hudtest + a script driving `BattleLootService.credit` over the compiled server and real Mongo): gold holder slots 10 / 50 / 100, holder placement and replacement refusals, put / merge / move / swap / split / take (auto and targeted) / destroy / sort in both bags, Ma Tâm vs material refusals, VIP right 5 capacity (+12 at PM 3), dire flag, loot into the temp bag and the Ma Tâm bag, bag-full overflow into the Túi tạm thời (30 cap, lost note, single / all take, a bag-full take keeps the entry), bankSort, bagToBank both ways, delBagItems; 120 racing calls kept every template total constant; no orphan escrow; browser check of the temp bag, bank and Vứt bỏ flows.
+
+### Implementation notes (phase D)
+
+Built 2026-11-05. Contract and rules: `docs/memory/trade.md`.
+
+- **Shared**: `trade.ts`: `TRADE_MAX_PETS = 5`, `TradeOffer.pets`, `TargetLock.petIds` (padded to 5 with -1, the Flash shape) + `petList: PetWrapper[]`.
+- **Server** (`modules/trade/`): `trade-rules.ts` (`parseOffer` reads `pets` or Flash `petIds`, `validatePets`, `hasTradePetRoom`, Go texts), `trade-swap.ts` (`planPetMoves`, `PetMoveStore`, `petMoveStep`), new `trade-pets.service.ts` (pet reads, live-row check, wrappers, conditional `give` / `giveBack`), `trade-swap.service.ts` (check, then debits -> pet moves -> item moves -> credits), `trade.service.ts` (lock validation, `onTargetLock` pets, `onDelPet` / `onAddPet` pushes), `trade.module.ts` imports `PetModule`. No new RPCs (registered count unchanged at 413); `tradeAddItem` / `tradeRemoveItem` / `tradeSetMoney` stay unregistered; trade RPCs are still not quiet.
+- **Client**: `ui/tradePanel.ts` (5 pet slots per side, Thêm pet button, double click removes), new `ui/tradePets.ts` (slots + picker, reuses `attachablePets` of the mail compose), `tradePanel.css`, `game/TradeController.ts` (own pet list from `player.petList`; `onDelPet` / `onAddPet` are handled by the existing `PetController`).
+- **Deviations / decisions**: (1) pets keep their id (decision 4), Go creates a copy with a new id; (2) the room rule `pets + incoming - outgoing <= petMaxNum` is authoritative at execute time (live rows, under both char locks, text `Không đủ Ô Pet!` via `onTradeFail`) and checked best-effort at lock time only once the peer has locked; (3) the saga pet step also requires no `escrowRef` and no pet gear in the conditional filter; (4) Go's guard-slot / pet-arena busy check has no H5 counterpart yet (no guard or arena feature); (5) no other module locks a pet offered in a trade (Go does): a pet that changed after the lock fails the swap cleanly (re-checked, then conditional write), and mail / auction already refuse while `TradeBook.isLocked`; (6) saga ordering / undo of pet moves is unit-tested over an in-memory `PetMoveStore`, the Mongo store by the ws smoke test.
+- **Smoke test** (hudtest cid 1 + watchbot cid 5 on map 30, script `trade_bot.mjs`, fixtures removed afterwards): lock refusals (bound, battle state, pet gear, following, foreign pet, missing id, duplicate, 6 pets), two-way trade of 2 pets vs 1 pet together with an item each and silver / gold (Flash `petIds` shape for one side; owners, items and wallets verified in Mongo, push order slots -> onDelPet -> onAddPet -> onAddMoney / onUPP -> onTradeSuccess), reverse trade restoring everything, receiver room full (lock refused when the peer locked first, 1-for-1 swap allowed when full), execute-time failures (room filled after both locked; pet sent to battle after the lock) leaving pets, item and wallets unchanged. Final: no duplicate pet ids, no escrow pets, owners as before. Not verified: the browser panel (lint only) and a mid-saga failure with real Mongo (unit-tested).
+
+### Implementation notes (phase E)
+
+Built 2026-11-05. Contract, rules and file map: `docs/memory/shop.md` (credit / guild / proxy buys) and `docs/memory/economy.md` (trolley).
+
+- **Shared**: `creditShop.ts` (+`creditShop.test.ts`, appended to the shared test script): `CREDIT_SHOPS` (NPCSHOP_CONFIG strings), `CREDIT_CTYPE_PROP`, `creditCurrency`, `CREDIT_SHOP_NPCS`, `creditPeriodKey` (reuses `dayKey / weekKey / monthKey`), `CreditSlotView`, `OpenCreditShop`, `CreditLimits`, `creditLeft`, `CREDIT_TEXT`; `payment.ts`: `BuySystemItemMultiReply`, `SHOP_DIRECT_IDS`, `GUILD_SHOP_ID`, `GuildPriceType`, `GUILD_PRICE_NAMES`; `PlayerUpdate` + `guildContrib` / `donateContrib`; `CURRENCY_IDS` + 5 credit currencies.
+- **Server**: `modules/shop/credit-shop.*` (schema `character_credit_limits`, service, rpc), `credit-shop-rules.ts` (+test), `mall-cart.service.ts`, `shop-buy.ts` (`ContribPrice`, special 20 / 21, +tests), `shop.service.ts` (`settle` takes a money or contribution price; `BuyResult.update` replaces `key / total`), `shop.rpc.ts` (`buyItemClient`, `shopClosePanel`, `openShopDirect`), `mall.rpc.ts` (`buySystemItemMulti`, `getShopAwardStr`, `getLimitTimeShop`, `buyLimitTimeItem`), `mall-rules.ts` (`parseCart`, `cartTotals`), `guild/guild-shop.service.ts` (gate + contribution wallet), `npc/npc.rpc.ts` (NPC 2318, shop 83 gate), `training/txkc.rpc.ts` (`openTXKCShop` -> `openShopById(7)`), `GameDataService.creditRows / credit`. Registered RPC count 413 -> 422 (`updateLimit`, `exchangeItem`, `buyItemClient`, `shopClosePanel`, `openShopDirect`, `buySystemItemMulti`, `getShopAwardStr`, `getLimitTimeShop`, `buyLimitTimeItem`); none quiet.
+- **Client**: `ui/creditShopPanel.ts` (+`creditShop.css`), `ui/mallCart.ts`, mall `Thêm vào xe` / `Xe hàng`, `shopCell.ts` guild price badges, shop close -> `shopClosePanel`, `NpcPanels` owns the credit panel (`openShopById`, balance from `onUPP.currencies`), `GuildController` mirrors `onUPP{guildContrib, donateContrib}`.
+- **Deviations from the plan**: (1) no `Character.points` map, `PlayerData.points`, `CharacterService.addPoints / spendPoints`: M7 already has `Character.currencies` + `CurrencyService` (conditional `$inc`, `onUPP{currencies}`) and the corridor / TXKC rewards credit `couragePoint` / `txkc2508p` there, so a second balance store would split the points; five missing keys were added to `CURRENCY_IDS` and the shops read / spend through `CurrencyService`. (2) shops 8 / 9 (`dmbk2509p`, `tkyyhpointV2`) have no currency (Go refuses c_type 70 / 72 too): browsable, exchange refused. (3) `NpcPanels` (not `GameScene`) registers `openShopById`; no `MallController` cart state (the cart lives in `MallPanel.cart`). (4) the gate texts of shop 83 go through `onSystemMidMsgOrNote` (the H5 client has no handler for Go's `a` callback) and the gate also guards the buy (H5 hardening, Go only gates the open). (5) a mall cart refusal pushes `onRedMsg` (Go sends nothing) and still replies `{success: false, items: []}`. (6) `GuildShopService` is a small new service (the plan's `GuildService.spendContribution`) so ShopModule imports GuildModule without touching `GuildService`.
+- **Decisions on open questions**: Q4: confirmed in Go, `p_type 20` = `guildContrib` = member `normalContrib`, `21` = `donateContrib`; a slot with both spends both (`GuildShopService.spend` is one conditional update), the bought item is unbound (Go `binded` only for currency 1 / 3). Q3: balances start at 0 (decided by the parent).
+- **Smoke test** (ws bot as hudtest cid 1 on maps 9 / 49, fixtures restored from a before / after snapshot of the character document and bag rows, character_vip untouched): credit shop from NPC 2318 with 0 points (panel payload, empty limits, refusals: not enough points, bad args, unknown credit), then 1000 points granted: exchange 3, week limit 80 (3 + 78 refused, 77 accepted, 1 more refused, counters `{101: 80}`), month limit (253: 2 ok, 9 more refused, `monthDict {253: 2}`), unlimited equipment row (amount forced to 1), full bag (item and equipment refusals, points and counters untouched), `npcFuncClick` and `openTXKCShop` opening shops 2 and 7; guild shop 83 gate (no guild, level 2, level 3 opens), `buyItemClient` 3449 (300 + 5000 spent together, `onUPP{guildContrib: 100, donateContrib: 1000}`, unbound item), short-wallet refusals for 3449 and 4130 (wallet unchanged), cross-map refusal; `openShopDirect` 98 (50 slots, buy refused with the special-currency text), non-whitelisted and bad ids, `shopClosePanel`, `getShopAwardStr`, `getLimitTimeShop`, `buyLimitTimeItem`; mall cart: empty / unknown / malformed carts, 4 new stacks with 3 free slots refused (nothing charged), insufficient gold refused, 2-row cart (19 kim phiếu charged exactly), Go list form, full-bag refusal. Browser: credit panel from NPC 2318 (tabs, balance, limit texts, amount dialog, confirm, balance 100 -> 95 and limit 80 -> 79), mall `Thêm vào xe` and the Xe hàng window. Not verified: day limits (the seed has none, covered by the period-key unit tests), the limit release after a failure past the reservation (no way to force it with real Mongo; ordering follows Go), the kim phiếu warning dialog and the cart Mua button in the browser (the RPC itself was smoke tested).

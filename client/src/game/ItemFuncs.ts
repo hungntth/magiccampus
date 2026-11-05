@@ -62,6 +62,12 @@ export class ItemFuncs {
     });
   }
 
+  /** World map pin click (legacy Player.mapTrans): the same scroll / gold confirm as the picker; a party leader brings the party. */
+  travelTo(mapId: number, group: boolean): void {
+    const owns = (group ? TRANSPORT_SENIOR : TRANSPORT_PRIORITY).some((tid) => this.countOf(tid) > 0);
+    askConfirm(this.confirmText(owns, group), () => this.travel(mapId, group, owns));
+  }
+
   openRename(): void {
     askNewName((name) => {
       if (!this.allow('rename', RPC_DELAY.useItem)) return;

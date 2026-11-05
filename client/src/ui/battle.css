@@ -1,6 +1,6 @@
-/* Battle DOM layer (ui/battleMenu.ts, ui/reviveDialog.ts). While #stage has .in-battle the HUD is hidden; chat stays.
+/* Battle DOM layer (ui/battleMenu.ts, ui/reviveDialog.ts). While #stage has .in-battle the HUD is hidden; chat and the hotbar stay.
    The command column redraws the Flash CrystalBlueButton / BasicTitleLabel skins with CSS (no converted skin exists). */
-#stage.in-battle > *:not(.battle-ui):not(.battle-side):not(.hud-chat-bar):not(.hud-chat-menu):not(.confirm-dialog):not(.revive-dialog) {
+#stage.in-battle > *:not(.battle-ui):not(.battle-side):not(.hud-chat-bar):not(.hud-chat-menu):not(.hud-userbar):not(.battle-watch-quit):not(.confirm-dialog):not(.revive-dialog) {
   display: none !important;
 }
 
@@ -199,4 +199,49 @@
 
 .amount-dialog.revive-dialog .revive-count {
   color: #ff4d4d;
+}
+
+/* ---- Auto banner (AutoBattleCanva): top centre of the stage, clickable stop button ---- */
+#stage > .battle-ui > .battle-auto {
+  position: absolute;
+  left: 50%;
+  top: 8px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 10px;
+  background: rgba(0, 30, 40, 0.75);
+  border: 1px solid #0e6670;
+  border-radius: 6px;
+  color: #fff;
+  font: 12px Tahoma, Verdana, sans-serif;
+  pointer-events: auto;
+}
+
+.battle-auto-title {
+  font-weight: 900;
+  font-size: 16px;
+  color: #ffde00;
+}
+
+.battle-auto .battle-btn {
+  width: auto;
+  padding: 0 8px;
+}
+
+/* Spectate "Thoát" (game/battle/watchMode.ts, BATTLESTAGE_U[0]). */
+#stage > .battle-watch-quit {
+  position: absolute;
+  right: 24px;
+  top: 120px;
+  z-index: 50;
+  padding: 4px 16px;
+  border: 1px solid #ffe08a;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #2a86c8 0%, #12507e 100%);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
 }

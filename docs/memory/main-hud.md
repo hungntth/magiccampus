@@ -70,3 +70,5 @@ Legacy now lives at E:/mcgame. Newer seed dumps:  uses  (imported as the import 
   Quay lại (`logout`, back to login on the same socket), "Tạo lại pass" = toast (setDeletePass not ported).
 - Skins: `client/public/ui/LoginStage_LoginStage/*` extracted with `swfui -match '_embed_css_.*LoginStage_'` into a scratch
   dir, folder copied and its entries appended to `ui/index.json` (swfui rewrites index.json, never point it at public/ui).
+
+- M9 phase G: see `settings.md` (tray Thiết lập / Bản đồ / Trợ giúp, keys P / M / H, chat emotion popup and typed emotion codes).

@@ -23,7 +23,8 @@ export class PetStep {
   /** The local player's pet slot in this battle, -1 when it has none. */
   slot = -1;
   private name = '';
-  private skills: readonly LearnedSkill[] = [];
+  /** The pet's skills from the onBattleStart cList (read by the auto round). */
+  skills: readonly LearnedSkill[] = [];
   private menu: PetCmdMenu | null = null;
   private ownerCmd: BattleCommand | null = null;
   private pendingSkill: LearnedSkill | null = null;
@@ -92,6 +93,13 @@ export class PetStep {
     this.menu = null;
     this.ownerCmd = null;
     this.pendingSkill = null;
+  }
+
+  /** Hotbar cast during the pet step; false when the pet does not have the skill. */
+  castById(sid: number): boolean {
+    const sk = this.menu ? this.skills.find((s) => s.sid === sid) : undefined;
+    if (sk) this.useSkill(sk);
+    return sk !== undefined;
   }
 
   private useSkill(sk: LearnedSkill): void {

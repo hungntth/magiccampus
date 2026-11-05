@@ -1,17 +1,29 @@
 // Quest-battle NPCs (clickNpc on type 10 / 19 / 20): starts a battle against the creatures of the character's active kill
 // objectives, through the same start path as random encounters. Returns false when the NPC should open its normal dialog.
+// Loop bosses (M9, sub_type "all") fall back to their paired round (Go npc/quest_battle.go LoopBossNpcQuest).
 
 import { Injectable } from '@nestjs/common';
 import { BATTLE_ENEMY_SLOTS } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
 import type { Session } from '../../gateway/session';
 import { GameDataService, type Row } from '../gamedata/gamedata.service';
+import { lifeDivisor } from '../loop/loop-boss';
+import { LoopBossService } from '../loop/loop-boss.service';
+import { incompleteKillTargets } from '../quest/quest-progress';
 import { QuestService } from '../quest/quest.service';
 import { CharacterStatsService } from '../stats/character-stats.service';
 import type { Fighter } from './battle.types';
 import { CombatService } from './combat.service';
 import { creatureFighter } from './fighters';
 import { QUEST_BATTLE_NPC_TYPES, questBattleLevel, questBattleTargets } from './quest-battle';
+
+interface Pick {
+  questId: number;
+  creatureIds: number[];
+  /** Item-summoned loop bosses fight at the character's level with divided HP; 0 = the quest-battle level. */
+  bossLevel: number;
+  boss: boolean;
+}
 
 @Injectable()
 export class QuestBattleService {
@@ -20,12 +32,25 @@ export class QuestBattleService {
     private readonly quests: QuestService,
     private readonly stats: CharacterStatsService,
     private readonly combat: CombatService,
+    private readonly bosses: LoopBossService,
   ) {}
+
+  private async pick(session: Session, npc: Row): Promise<Pick | null> {
+    const cid = session.characterId!;
+    const ctx = await this.quests.loadCtx(cid);
+    const plain = questBattleTargets(String(npc.sub_type ?? ''), [...ctx.active.values()]);
+    if (plain) return { ...plain, bossLevel: 0, boss: false };
+    const spec = await this.bosses.present(cid, session.mapId, Number(npc.id));
+    const row = spec && ctx.active.get(spec.questId);
+    const creatureIds = row ? incompleteKillTargets(row.objectives) : [];
+    if (!spec || creatureIds.length === 0) return null;
+    const level = spec.itemId > 0 ? ((await this.stats.compute(cid)).doc.level) : 0;
+    return { questId: spec.questId, creatureIds, bossLevel: level, boss: true };
+  }
 
   async tryStart(session: Session, npc: Row): Promise<boolean> {
     if (!QUEST_BATTLE_NPC_TYPES.has(Number(npc.type))) return false;
-    const ctx = await this.quests.loadCtx(session.characterId!);
-    const pick = questBattleTargets(String(npc.sub_type ?? ''), [...ctx.active.values()]);
+    const pick = await this.pick(session, npc);
     if (!pick) return false;
     const minLevel = this.gameData.getQuest(pick.questId)?.minLevel ?? 0;
     const map = this.gameData.getMap(session.mapId);
@@ -34,7 +59,11 @@ export class QuestBattleService {
     for (const creatureId of pick.creatureIds) {
       const tpl = this.gameData.creature(creatureId);
       const slot = BATTLE_ENEMY_SLOTS[enemies.length];
-      if (tpl && slot !== undefined) enemies.push(creatureFighter(slot, tpl, questBattleLevel(minLevel, tpl.useLevel, mapLevel)));
+      if (!tpl || slot === undefined) continue;
+      const f = creatureFighter(slot, tpl, pick.bossLevel || questBattleLevel(minLevel, tpl.useLevel, mapLevel));
+      if (pick.boss) f.bossFlag = 1;
+      if (pick.bossLevel > 0) f.hp = f.hpMax = Math.max(1, Math.floor(f.hpMax / lifeDivisor(pick.questId)));
+      enemies.push(f);
     }
     if (enemies.length === 0) return false;
     const st = await this.stats.compute(session.characterId!);

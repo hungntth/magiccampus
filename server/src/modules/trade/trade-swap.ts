@@ -45,6 +45,41 @@ export function planSwap(a: SwapSideInput, b: SwapSideInput, capacity: number): 
   return { ok: true, moves };
 }
 
+export interface PetMove {
+  id: number;
+  from: number;
+  to: number;
+}
+
+/** Pets keep their id and only change owner (decision 4 of the M11 plan); a-out then b-out, in offer order. */
+export function planPetMoves(a: { cid: number; pets: readonly number[] }, b: { cid: number; pets: readonly number[] }): PetMove[] {
+  return [
+    ...a.pets.map((id) => ({ id, from: a.cid, to: b.cid })),
+    ...b.pets.map((id) => ({ id, from: b.cid, to: a.cid })),
+  ];
+}
+
+/** Persistence of one pet move; both calls are single conditional writes (true = the row changed). */
+export interface PetMoveStore {
+  /** Moves the pet to `to` only while it is still `from`'s, unbound, resting and not following (clears `following`). */
+  give(m: PetMove): Promise<boolean>;
+  /** Undo of give: back to `from` only while it is still `to`'s. */
+  giveBack(m: PetMove): Promise<boolean>;
+}
+
+/** Saga step moving one pet; a lost race (the pet changed since lock) throws `refusal`. Placed before the item moves. */
+export function petMoveStep(m: PetMove, store: PetMoveStore, refusal: Error): SagaStep {
+  return {
+    name: `move pet ${m.id}`,
+    run: async () => {
+      if (!(await store.give(m))) throw refusal;
+    },
+    undo: async () => {
+      if (!(await store.giveBack(m))) throw new Error(`pet ${m.id} could not be returned to ${m.from}`);
+    },
+  };
+}
+
 export interface SagaStep {
   name: string;
   run: () => Promise<void>;

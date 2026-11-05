@@ -11,6 +11,9 @@ import { DailyActPanel } from '../ui/dailyActPanel';
 import { ActivityStrip } from '../ui/hud/activityStrip';
 import { DailySystemsController } from './DailySystemsController';
 import { StoreSystemsController } from './StoreSystemsController';
+import { TowerController } from './TowerController';
+import { TrialsController } from './TrialsController';
+import { TrainingController } from './TrainingController';
 import type { Entity } from './Entity';
 import { VipController } from './VipController';
 import { SignInPanel } from '../ui/signInPanel';
@@ -23,6 +26,14 @@ export interface ActivityHost {
   /** map entity of a character (mount sprite swap) */
   entityOf(id: number): Entity | undefined;
   bagCount(templateId: number): number;
+  /** M10 "Phó bản" hub (button in the daily window) */
+  openDungeons(): void;
+  /** M10 phase E: strip icon 2 (Tinh Giới Thập Nhị Cung window) */
+  openStar(): void;
+  /** M10 phase G: strip icon 27 (Mê Trận lobby window) */
+  openMaze(): void;
+  /** M10 phase G: strip icon 16 (Đố Vui Có Thưởng) */
+  openQuiz(): void;
 }
 
 const fail = (e: unknown): void => toast((e as Error).message, true);
@@ -33,6 +44,9 @@ export class ActivityController {
   private readonly signIn: SignInPanel;
   private readonly vip: VipController;
   private readonly daily2: DailySystemsController;
+  private readonly training: TrainingController;
+  private readonly towers: TowerController;
+  private readonly trials: TrialsController;
   private readonly stores: StoreSystemsController;
   private readonly offs: (() => void)[] = [];
   private catalog: DiaryEntry[] = [];
@@ -55,11 +69,14 @@ export class ActivityController {
     });
     this.vip = new VipController({ client, player, refreshHud: host.refreshHud });
     this.daily2 = new DailySystemsController({ client, player });
+    this.training = new TrainingController({ client, player });
+    this.towers = new TowerController({ client, player });
+    this.trials = new TrialsController(client);
     this.stores = new StoreSystemsController({ client, player, entityOf: host.entityOf, bagCount: host.bagCount });
     this.strip.setList(player.startedActList ?? {});
     this.daily = new DailyActPanel({
       catalog: () => this.catalog, data: () => this.diary, online: () => this.online,
-      onChest: (tier) => this.claimChest(tier), onClose: () => this.closeDaily(),
+      onChest: (tier) => this.claimChest(tier), onClose: () => this.closeDaily(), onDungeons: () => host.openDungeons(),
     });
     this.signIn = new SignInPanel({
       legacy: () => this.legacy, calendar: () => this.calendar, consumeTotal: () => this.consume,
@@ -97,12 +114,24 @@ export class ActivityController {
     this.signIn.close();
     this.vip.destroy();
     this.daily2.destroy();
+    this.training.destroy();
+    this.towers.destroy();
+    this.trials.destroy();
     this.stores.destroy();
   }
 
   /** Strip icon dispatch (phase D ids: 21 wish tree, 24 magic array, 25 festival, 49 daily boss). */
   private openActivity(id: number): void {
     if (id === ActivityId.DAILY_SIGNIN) this.openSignIn(1);
+    else if (id === ActivityId.STAR) this.host.openStar();
+    else if (id === ActivityId.MAZE) this.host.openMaze();
+    else if (id === ActivityId.QUIZ) this.host.openQuiz();
+    else if (id === ActivityId.WORLD_BOSS) void this.host.client.call('canEnterWbMap', this.host.player.id).catch(fail); // M10 I: the server teleports + initWbView
+    else if (id === ActivityId.TXKC) this.training.openTxkc();
+    else if (id === ActivityId.HMTXL) this.training.openHmtxl();
+    else if (id === ActivityId.NINE_BOSS) this.towers.openNine();
+    else if (id === ActivityId.FLOP_PASS) this.towers.openFlop();
+    else if (id === ActivityId.TRIALS) this.trials.toggle();
     else if (id === ActivityId.VIP_SHOP) this.openVip('shop');
     else if (id === ActivityId.BOSS_DAILY) this.daily2.openBoss();
     else if (id === ActivityId.FEAST) this.daily2.openFeast();

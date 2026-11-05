@@ -17,6 +17,13 @@ const PING_INTERVAL_MS = 10_000;
 const FUN_TOP = 'max(135px, calc(50% - 131px))';
 const FUNCTIONS = ['Nạp', 'Chế tạo', 'Luyện', 'Sản xuất', 'Auto', 'Ủy thác', 'Trang Viên', 'Đấu Pet', 'Bay'];
 
+/** Top-right tray buttons wired in M9 phase G (system settings, world map, help). */
+export interface MiniMapTray {
+  settings?: () => void;
+  worldMap?: () => void;
+  help?: () => void;
+}
+
 export class MiniMapCanvas {
   private readonly title: HTMLDivElement;
   private readonly delay: HTMLDivElement;
@@ -28,7 +35,7 @@ export class MiniMapCanvas {
   private pkBtn: HTMLElement | null = null;
 
   constructor(parent: HTMLElement, private readonly client: GameClient, onShop: () => void, onForge: (tab?: string) => void,
-    onRank: () => void = notReady, onOffline: () => void = notReady) {
+    onRank: () => void = notReady, onOffline: () => void = notReady, onAuto: () => void = notReady, trayActs: MiniMapTray = {}) {
     const root = div('hud-minimap', parent);
 
     const titleStrip = skinImage('MainStage_LocationBar/LocationIndicator', root, 59, 0);
@@ -55,9 +62,9 @@ export class MiniMapCanvas {
     this.pkBtn = pk;
     this.setPk(pk);
     skinButton({ up: `${TRAY}/MouseUp`, over: `${TRAY}/Mouseover`, down: `${TRAY}/MouseDown` }, tray, 89.4, 2,
-      'Thiết lập', notReady);
-    skinButton(std(`${TRAY}/Earth`), tray, 38.6, 38.5, 'Bản đồ', notReady);
-    skinButton(std(`${TRAY}/Help`), tray, 76.8, 39.5, 'Trợ giúp', notReady);
+      'Thiết lập hệ thống (Phím tắt: P)', trayActs.settings ?? notReady);
+    skinButton(std(`${TRAY}/Earth`), tray, 38.6, 38.5, 'Bản đồ thế giới (Phím tắt: M)', trayActs.worldMap ?? notReady);
+    skinButton(std(`${TRAY}/Help`), tray, 76.8, 39.5, 'Hệ thống hỗ trợ (Phím tắt: H)', trayActs.help ?? notReady);
 
     const shopTray = skinImage(`${TRAY}/Tray2`, root, 158, 53);
     skinButton({ up: `${TRAY}/shopup`, over: `${TRAY}/ShopOver`, down: `${TRAY}/ShopDown` }, shopTray, 4, 10, 'Shop',
@@ -75,7 +82,7 @@ export class MiniMapCanvas {
     FUNCTIONS.forEach((label, i) => {
       const b = place(div('hud-red-btn', fun, label), 6, 6 + i * 28, 73, 24);
       b.onclick = label === 'Chế tạo' ? () => onForge() : label === 'Luyện' ? () => onForge('star')
-        : label === 'Ủy thác' ? () => onOffline() : notReady;
+        : label === 'Ủy thác' ? () => onOffline() : label === 'Auto' ? () => onAuto() : notReady;
     });
     const hideFun: SkinStates = std(`${TRAY}/RightButtonsHide`);
     const showFun: SkinStates = std(`${TRAY}/RightButtonsShow`);

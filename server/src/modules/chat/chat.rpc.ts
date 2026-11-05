@@ -20,18 +20,18 @@ export class ChatRpc {
   }
 
   @Rpc('wisper', { requireCharacter: true })
-  wisper(session: Session, args: unknown[]): null {
+  async wisper(session: Session, args: unknown[]): Promise<null> {
     if (typeof args[0] !== 'string') throw RpcException.invalidArgs('targetName');
     if (typeof args[1] !== 'string') throw RpcException.invalidArgs('text');
-    this.chat.wisper(session, args[0], args[1]);
+    await this.chat.wisper(session, args[0], args[1]);
     return null;
   }
 
   @Rpc('p2pWisper', { requireCharacter: true })
-  p2pWisper(session: Session, args: unknown[]): null {
+  async p2pWisper(session: Session, args: unknown[]): Promise<null> {
     const targetId = Number(args[1]);
     if (!Number.isInteger(targetId) || targetId <= 0) throw RpcException.invalidArgs('targetId');
-    this.chat.p2pWisper(session, targetId, args[0]);
+    await this.chat.p2pWisper(session, targetId, args[0]);
     return null;
   }
 }

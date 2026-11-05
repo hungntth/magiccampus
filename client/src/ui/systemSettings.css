@@ -1,0 +1,39 @@
+/* "Hệ thống" window (ui/systemSettingsPanel.ts, legacy UserSystemSetPanel 420x302). */
+.act-win.sys-win {
+  left: calc(50% - 210px);
+  width: 420px;
+}
+
+.sys-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+  padding: 4px 2px 8px;
+}
+
+.sys-check {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.sys-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 2px;
+  font-size: 12px;
+}
+
+.sys-line input[type='number'] {
+  width: 56px;
+}
+
+.sys-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 8px;
+}

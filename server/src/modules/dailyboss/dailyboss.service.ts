@@ -123,7 +123,8 @@ export class DailyBossService {
       if (st.doc.currentHp <= 0) throw RpcException.forbidden('Bạn đã kiệt sức, hãy hồi sinh trước');
       const next = bossDailyAfterStart(counters, bossId, counters.day, now);
       await this.save(cid, next, { ...done, [String(bossId)]: bossId }); // spend before the battle exists
-      const battle = this.combat.start(session, st, enemies, bossId, await this.combat.loadPets([cid]));
+      // M10 I: the daily ctx lets the battle loot add the boss's data_tbl_boss_loot rows (source filter 'daily')
+      const battle = this.combat.startGroup([session], [st], enemies, bossId, await this.combat.loadPets([cid]), { source: 'daily', bossNid: bossId });
       if (!battle) {
         await this.save(cid, counters, done); // lost a race with another battle start: refund the attempt
         throw RpcException.forbidden('Bạn đang trong trận chiến');

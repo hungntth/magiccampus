@@ -12,11 +12,12 @@ import {
 import type { BagActions } from '../game/bagActions';
 import { BagWallet } from './bagWallet';
 import { TabStrip, type TabDef } from './bagTabs';
-import { endDrag, dragging, fillItemCell } from './itemCell';
+import { endDrag, dragging, fillItemCell, type DragPayload } from './itemCell';
 import { closeOnEscape, makeDraggable } from './panelBehavior';
 import { toast } from './screens';
 import { stageEl } from './stage';
 import './bag.css';
+import './tempBag.css';
 
 export { NAME_COLORS } from './itemCell';
 
@@ -38,7 +39,7 @@ type ToolMode = 'use' | 'drop' | 'split' | 'repair';
 const TOOLS: { skin: string; tip: string; mode?: ToolMode; sort?: true }[] = [
   { skin: 'button_use', mode: 'use', tip: 'Sử dụng: Nhấp vào biểu tượng rồi nhấp vào vật phẩm trong túi đồ để sử dụng' },
   { skin: 'button_Discarded', mode: 'drop',
-    tip: 'Vứt bỏ: Nhấp vào biểu tượng rồi nhấp vào vật phẩm trong túi đồ để vứt bỏ' },
+    tip: 'Vứt bỏ: Nhấp vào biểu tượng, chọn các vật phẩm rồi nhấp lại biểu tượng để xóa các vật phẩm đã chọn' },
   { skin: 'button_Resolution', mode: 'split',
     tip: 'Tách rời: Nhấp vào biểu tượng rồi nhấp vào vật phẩm trong túi đồ để tách rời' },
   { skin: 'button_repair', mode: 'repair',
@@ -59,6 +60,10 @@ export interface BagPanelHost {
   /** A payment checkbox of the wallet was clicked (changeMoneyType 1..4). */
   onPickPayment(type: number): void;
   onClose(): void;
+  /** Bag toolbar button "Túi tiện dụng" (M11 phase C): toggles the Túi Tiện Dụng window. */
+  onTempBag(): void;
+  /** A Túi Tiện Dụng slot was dropped on bag slot `sid` (addItemFromTemp, Shift = ask the amount). */
+  onDropTemp(d: DragPayload, sid: number, shift: boolean): void;
 }
 
 export class BagPanel {
@@ -67,6 +72,8 @@ export class BagPanel {
   private tabs: TabStrip | null = null;
   private readonly wallet: BagWallet;
   private mode: ToolMode | null = null;
+  /** Vứt bỏ multi-select: item ids picked across the pages (cleared when the mode ends). */
+  private readonly picked = new Set<number>();
   private repairMode: 1 | 2 = 1;
   private page = 1;
   private readonly toolButtons = new Map<ToolMode, HTMLElement>();
@@ -126,6 +133,10 @@ export class BagPanel {
     root.appendChild(petBox);
 
     root.appendChild(this.toolbar());
+    const temp = el('button', 'bag-temp-btn', 'Túi tiện dụng');
+    temp.title = 'Túi Tiện Dụng: cất nguyên liệu, bảo thạch, lông vũ, Ma Tâm';
+    temp.onclick = () => this.host.onTempBag();
+    root.appendChild(temp);
     root.appendChild(this.wallet.element);
     stageEl().appendChild(root);
     this.root = root;
@@ -141,6 +152,7 @@ export class BagPanel {
     this.grid = null;
     this.tabs = null;
     this.mode = null;
+    this.picked.clear();
     this.toolButtons.clear();
   }
 
@@ -212,6 +224,7 @@ export class BagPanel {
         this.toolButtons.set(mode, b);
         b.onclick = () => {
           this.repairMode = 1;
+          if (mode === 'drop' && this.mode === 'drop' && this.picked.size > 0) return this.deletePicked();
           this.setMode(this.mode === mode ? null : mode);
         };
       } else b.disabled = true;
@@ -222,6 +235,10 @@ export class BagPanel {
 
   private setMode(mode: ToolMode | null): void {
     this.mode = mode;
+    if (mode !== 'drop' && this.picked.size > 0) {
+      this.picked.clear();
+      this.render();
+    }
     for (const [m, b] of this.toolButtons) b.classList.toggle('active', m === mode);
     this.grid?.classList.toggle('tool-mode', mode !== null);
     this.grid?.classList.toggle('drop-mode', mode === 'drop');
@@ -238,6 +255,7 @@ export class BagPanel {
     };
     if (!item) return c;
     fillItemCell(c, item, { level: this.host.player().level, hint: true }, 'bag');
+    c.classList.toggle('del-selected', this.picked.has(item.id));
     c.onclick = () => this.onToolClick(item);
     c.ondblclick = (e) => {
       if (this.mode || this.host.interceptUse?.(item)) return;
@@ -250,9 +268,9 @@ export class BagPanel {
   private onToolClick(item: BagItem): void {
     const mode = this.mode;
     if (!mode) return;
+    if (mode === 'drop') return this.togglePick(item);
     this.setMode(null);
     if (mode === 'use') this.host.actions.use(item);
-    else if (mode === 'drop') this.host.actions.drop(item);
     else if (mode === 'repair') this.host.actions.repair(item, this.repairMode);
     else if (item.stackNum < 2) toast('Vật phẩm này không thể tách rời');
     else {
@@ -263,10 +281,22 @@ export class BagPanel {
     }
   }
 
+  /** Vứt bỏ: click toggles the pick; the next click on the tool deletes every picked item (delBagItems). */
+  private togglePick(item: BagItem): void {
+    if (!this.picked.delete(item.id)) this.picked.add(item.id);
+    this.render();
+  }
+
+  private deletePicked(): void {
+    const items = [...this.host.items()].filter((i) => this.picked.has(i.id));
+    this.host.actions.deleteItems(items, () => this.setMode(null));
+  }
+
   private onDrop(sid: number, target: BagItem | undefined, shift: boolean): void {
     const d = dragging();
     endDrag();
     if (!d) return;
+    if (d.from === 'temp' || d.from === 'mx') return this.host.onDropTemp(d, sid, shift);
     const items = [...this.host.items()];
     const src = items.find((i) => i.id === d.id);
     if (!src) return;

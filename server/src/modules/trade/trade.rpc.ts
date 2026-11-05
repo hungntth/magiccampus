@@ -14,7 +14,7 @@ export class TradeRpc {
   constructor(private readonly trade: TradeService) {}
 
   @Rpc('newTrade', { requireCharacter: true, forbidInBattle: true })
-  newTrade(session: Session, args: unknown[]): TradeReply {
+  newTrade(session: Session, args: unknown[]): Promise<TradeReply> {
     const cid = Number(args[0]);
     if (!Number.isInteger(cid) || cid <= 0) throw RpcException.invalidArgs('cid');
     return this.trade.newTrade(session, cid);

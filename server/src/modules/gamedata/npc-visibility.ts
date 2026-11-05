@@ -21,6 +21,8 @@ const UNCLICKABLE_MATERIAL = [
 const OWNER_HIDDEN = [1727, 1859, 2525];
 // Gated by features not ported yet; legacy shows them only during their run (dongxuan: 1799 Vệ Sĩ Gia Tộc).
 const FEATURE_GATED = [1799];
+// Shown by their dungeon hooks at another spot: Lục Tiên 975 Khảo Quan Gian Lận wanders the maze (per-viewer instance NPC).
+const DUNGEON_RELOCATED = [975];
 
 const HIDDEN_NPC_IDS: ReadonlySet<number> = new Set([
   ...UNCLICKABLE_DECOR,
@@ -29,6 +31,7 @@ const HIDDEN_NPC_IDS: ReadonlySet<number> = new Set([
   ...UNCLICKABLE_MATERIAL,
   ...OWNER_HIDDEN,
   ...FEATURE_GATED,
+  ...DUNGEON_RELOCATED,
 ]);
 
 export function isHiddenNpc(id: number): boolean {

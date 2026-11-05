@@ -1,5 +1,4 @@
-// Combat flow: random encounter start (cbom, rolled for the party leader or a solo player; the roster is the party's eligible
-// members), command intake -> round -> playlist, deadline rounds and disconnects. Battles are in memory (BattleManager); rewards
+// Combat flow: battle start (rosters for encounters / NPC fights; random encounters are EncounterService), command intake -> round -> playlist, deadline rounds and disconnects. Battles are in memory (BattleManager); rewards
 // are settled by BattleSettleService when the result is decided, per-member end pushes by BattleEndService.
 // Pushes: onUpdatePet(petId, currentHp / currentMp) then onSetCharState and onBattleStart (every participant; an owner's battle
 // pet fights at owner slot + 5), onCmdReady(slot) (all participants, group battles), onUPP and onBattlePlayList (per recipient:
@@ -7,7 +6,7 @@
 
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import {
-  BattleAction, BattleResult, BATTLE_ENEMY_SLOTS, BATTLE_PET_SLOT_OFFSET, CharState, type BattleCmdReady, type BattlePlayList, type BattleStart,
+  BattleAction, BattleResult, BATTLE_PET_SLOT_OFFSET, CharState, type BattleCmdReady, type BattlePlayList, type BattleStart,
 } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
 import { GameGateway } from '../../gateway/game.gateway';
@@ -24,12 +23,14 @@ import { BattleManager, roundMs } from './battle.manager';
 import { BattleCommandService, parseCommands } from './battle-command.service';
 import { BattleEndService, pushCharState } from './battle-end.service';
 import { BattleSettleService } from './battle-settle.service';
-import type { Battle, BattleMember, Fighter, Rng } from './battle.types';
-import { ENCOUNTER_COOLDOWN_MS, rollEncounter } from './encounter';
-import { petFighter, playerFighter, spawnFighter, toParticipant } from './fighters';
+import type { Battle, BattleContext, BattleMember, Fighter, Rng } from './battle.types';
+import { ENCOUNTER_COOLDOWN_MS } from './encounter';
+import { petFighter, playerFighter, toParticipant } from './fighters';
 import { endStepFor } from './pvp-rules';
 import { PvpService } from './pvp.service';
+import { SpectateService } from './spectate.service';
 import { missingCommands, playerSlot, selectRoster, type RosterCandidate } from './roster';
+import { NpcSkillCatalog } from './npc-skill-catalog';
 import { resolveRound, type RoundOutcome } from './round';
 
 @Injectable()
@@ -51,43 +52,13 @@ export class CombatService implements OnModuleInit {
     private readonly trades: TradeService,
     private readonly petBattle: PetBattleService,
     private readonly pvp: PvpService,
+    private readonly spectate: SpectateService,
+    private readonly npcSkills: NpcSkillCatalog,
   ) {}
 
   onModuleInit(): void {
     this.manager.setExpiryHandler((battle) => this.onDeadline(battle));
     this.gateway.onDisconnect((session) => this.onSessionClosed(session));
-  }
-
-  /**
-   * cbom(x, y): rolls a random encounter for the session's map; silently does nothing when none starts. Only the party leader
-   * (or a solo / AFK player) rolls; a follower's cbom is ignored. The roster is the leader's eligible members.
-   */
-  async tryRandomEncounter(session: Session): Promise<void> {
-    if (session.battleId !== null || Date.now() < session.encounterUntil) return;
-    const cid = session.characterId!;
-    const party = this.parties.partyOf(cid);
-    if (party && party.leaderId !== cid && !party.afk.has(cid)) return;
-    const map = this.gameData.getMap(session.mapId);
-    if (!map || Number(map.safe_flag ?? 0) > 0) return;
-    const lead = party?.leaderId ?? null;
-    // The enemy count depends on the roster size, so a first roster (HP unknown) is picked before the encounter roll.
-    const pre = selectRoster(cid, session.mapId, this.candidates(session, party, () => 1), lead);
-    const rows = rollEncounter(Number(map.basic_battle_rate ?? 0), this.gameData.mapCreatures(session.mapId), this.rng, pre.length);
-    if (!rows) return;
-    const sts = new Map(await Promise.all(pre.map(async (id): Promise<[number, CharStats]> => [id, await this.stats.compute(id)])));
-    const hpOf = (id: number): number => sts.get(id)?.doc.currentHp ?? 0;
-    if (hpOf(cid) <= 0) return; // H5: a dead character cannot be attacked
-    const roster = selectRoster(cid, session.mapId, this.candidates(session, party, hpOf), lead);
-    const sessions = roster.map((id) => this.scenes.findByCharacter(id)).filter((s): s is Session => s !== undefined);
-    const mapLevel = Number(map.level) > 0 ? Number(map.level) : Number(map.lv ?? 0);
-    const enemies: Fighter[] = [];
-    for (const row of rows) {
-      const tpl = this.gameData.creature(row.creatureId);
-      const slot = BATTLE_ENEMY_SLOTS[enemies.length];
-      if (tpl && slot !== undefined) enemies.push(spawnFighter(slot, row, tpl, mapLevel, sts.get(cid)!.doc.level));
-    }
-    if (enemies.length === 0) return;
-    this.startGroup(sessions, sessions.map((s) => sts.get(s.characterId!)!), enemies, 0, await this.loadPets(roster));
   }
 
   /** The fighting pet (state 1, life > 0) of each character that has one, by owner id. */
@@ -100,12 +71,25 @@ export class CombatService implements OnModuleInit {
     return out;
   }
 
-  private candidates(session: Session, party: Party | undefined, hpOf: (cid: number) => number): RosterCandidate[] {
+  /** Party members as roster candidates (the encounter roll and NPC line-up fights). */
+  candidates(session: Session, party: Party | undefined, hpOf: (cid: number) => number): RosterCandidate[] {
     if (!party || party.leaderId !== session.characterId) return [];
     return party.members.map((cid) => {
       const s = this.scenes.findByCharacter(cid);
       return { cid, afk: party.afk.has(cid), online: s !== undefined, mapId: s?.mapId ?? -1, hp: hpOf(cid), inBattle: s !== undefined && s.battleId !== null };
     });
+  }
+
+  /** The leader's eligible party members on its map with their stats (hitNpc line-ups); just the caller when solo. */
+  async roster(session: Session): Promise<{ sessions: Session[]; sts: CharStats[] }> {
+    const cid = session.characterId!;
+    const party = this.parties.partyOf(cid);
+    const lead = party?.leaderId ?? null;
+    const pre = selectRoster(cid, session.mapId, this.candidates(session, party, () => 1), lead);
+    const sts = new Map(await Promise.all(pre.map(async (id): Promise<[number, CharStats]> => [id, await this.stats.compute(id)])));
+    const ids = selectRoster(cid, session.mapId, this.candidates(session, party, (id) => sts.get(id)?.doc.currentHp ?? 0), lead);
+    const sessions = ids.map((id) => this.scenes.findByCharacter(id)).filter((s): s is Session => s !== undefined && sts.has(s.characterId!));
+    return { sessions, sts: sessions.map((s) => sts.get(s.characterId!)!) };
   }
 
   /** A solo battle (quest-battle NPCs stay solo). */
@@ -120,6 +104,7 @@ export class CombatService implements OnModuleInit {
    */
   startGroup(
     sessions: Session[], sts: CharStats[], enemies: Fighter[], nid: number, pets: ReadonlyMap<number, BattlePet> = new Map(),
+    ctx?: BattleContext,
   ): Battle | null {
     const picks = sessions.map((s, i) => ({ s, st: sts[i] })).filter((p) => p.s.battleId === null);
     if (picks.length === 0 || picks[0].s !== sessions[0]) return null; // lost a race with a concurrent start
@@ -128,6 +113,10 @@ export class CombatService implements OnModuleInit {
     picks.forEach((p, i) => {
       const cid = p.s.characterId!;
       const f = playerFighter(playerSlot(i), p.st, this.characters.resCode(p.st.doc.classId, p.st.doc.gender));
+      if (ctx?.atkMul && ctx.atkMul !== 1) {
+        f.attack = Math.round(f.attack * ctx.atkMul); // M10 I: world boss cheer scales the character, not the pet
+        f.magicAttack = Math.round(f.magicAttack * ctx.atkMul);
+      }
       fighters.set(f.slot, f);
       const bp = pets.get(cid);
       if (bp) fighters.set(f.slot + BATTLE_PET_SLOT_OFFSET, petFighter(f.slot, bp));
@@ -141,7 +130,7 @@ export class CombatService implements OnModuleInit {
     const leaderId = picks[0].s.characterId!;
     const battle: Battle = {
       id: `${now}_${leaderId}`, characterId: leaderId, members, commands: new Map(), mapId: picks[0].s.mapId, nid, fighters,
-      round: 1, ended: false, result: BattleResult.LOSE, busy: false, deadline: now + roundMs(),
+      round: 1, ended: false, result: BattleResult.LOSE, busy: false, deadline: now + roundMs(), ...(ctx ? { ctx } : {}),
     };
     this.manager.add(battle);
     const cList: BattleStart['cList'] = {};
@@ -149,7 +138,9 @@ export class CombatService implements OnModuleInit {
     const start: BattleStart = {
       battleFieldId: battle.id, nid, cList, bossFlag: enemies.some((e) => e.bossFlag > 0) ? 1 : 0, sneakFlag: 0, guest: false, airBattle: false,
     };
+    battle.start = start; // shown to spectators (onWatch)
     for (const { s } of picks) {
+      this.spectate.release(s.characterId!); // a watcher that starts its own battle stops watching
       s.battleId = battle.id;
       this.trades.stopFor(s.characterId!, true); // a battle ends any open trade
       s.encounterUntil = now + ENCOUNTER_COOLDOWN_MS;
@@ -193,7 +184,7 @@ export class CombatService implements OnModuleInit {
   }
 
   /** battlePlayEnd(): this client finished its end marker; push its own rewards and return the character to the map. */
-  endBattle(session: Session): Promise<void> {
+  endBattle(session: Session): Promise<unknown> {
     return this.ends.end(session);
   }
 
@@ -212,7 +203,8 @@ export class CombatService implements OnModuleInit {
     try {
       const cmds = new Map(battle.commands);
       battle.commands.clear();
-      const out = resolveRound(battle.fighters, cmds, battle.round, this.rng);
+      const out = resolveRound(battle.fighters, cmds, battle.round, this.rng, battle.ctx?.roundCap, this.npcSkills, battle.deathRule);
+      if (out.removed.length) (battle.fallen ??= []).push(...out.removed);
       battle.round++;
       battle.deadline = Date.now() + roundMs(battle); // H5: re-armed after every round, timeout rounds included
       if (out.ended) await this.settleService.settle(battle, out.result);
@@ -236,6 +228,7 @@ export class CombatService implements OnModuleInit {
       }
       s.callback('onBattlePlayList', groups);
     }
+    this.spectate.playlist(battle, out.groups, out.ended);
   }
 
   private pushAll(battle: Battle, method: string, ...args: unknown[]): void {
@@ -255,7 +248,8 @@ export class CombatService implements OnModuleInit {
     if (session.characterId === null) return;
     const battle = this.manager.ofCharacter(session.characterId);
     const member = battle?.members.get(session.characterId);
-    if (!battle || !member) return;
+    // A kicked session (same character logged in again) must not take the new session's battle with it.
+    if (!battle || !member || session.battleId !== battle.id) return;
     session.battleId = null;
     if (battle.ended) return void this.manager.detach(battle, member.cid);
     if (battle.pvp) return this.pvp.onLeave(battle, member); // the leaver loses
@@ -263,6 +257,7 @@ export class CombatService implements OnModuleInit {
     if (others.length === 0) {
       await this.settleService.settle(battle, BattleResult.FLED);
       this.manager.remove(battle);
+      this.spectate.finish(battle); // cancelled: watchers get onWatchEnd
       return;
     }
     const own = battle.fighters.get(member.slot)!;

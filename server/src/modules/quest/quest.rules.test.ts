@@ -53,7 +53,8 @@ test('canAccept: pre quests AND / OR / ignored, item pre rejects', () => {
 
 test('isSupported', () => {
   assert.equal(isSupported(tpl(), []), true);
-  assert.equal(isSupported(tpl({ type: 6 }), []), false);
+  assert.equal(isSupported(tpl({ type: 6 }), []), true); // M10: daily quests
+  assert.equal(isSupported(tpl({ type: 3 }), []), false); // class quests stay out
   const granted = tpl({ id: 160, startGrantItem: 335, startGrantQty: 1 });
   assert.equal(isSupported(granted, [{ qid: 160, kind: 1, type: 29, itemId: 335, num: 1, q: -1 }]), true);
   assert.equal(isSupported(granted, [{ qid: 160, kind: 1, type: 29, itemId: 336, num: 1, q: -1 }]), true); // plain collect
@@ -70,7 +71,7 @@ test('isSupported: quests 47-50 (collect 516 / 30 / 1684, kill creature 157)', (
   assert.equal(isSupported(tpl({ id: 48, minLevel: 3 }), collect(48, 30)), true);
   assert.equal(isSupported(tpl({ id: 49, minLevel: 3 }), collect(49, 1684)), true);
   assert.equal(isSupported(tpl({ id: 50, minLevel: 5 }), [{ qid: 50, kind: 2, type: 12, itemId: 157, num: 1, q: 1 }]), true);
-  assert.equal(isSupported(tpl({ id: 50, type: 6 }), [{ qid: 50, kind: 2, type: 12, itemId: 157, num: 1, q: 1 }]), false);
+  assert.equal(isSupported(tpl({ id: 50, type: 3 }), [{ qid: 50, kind: 2, type: 12, itemId: 157, num: 1, q: 1 }]), false);
 });
 
 test('applyExp: level-up thresholds and cap', () => {

@@ -1,7 +1,8 @@
 // Pure trade rules: offer parsing / validation and the in-memory TradeBook (session registry + the
 // normal -> lock -> confirm state machine). No I/O; the service binds it to sessions, Mongo and pushes.
 
-import { TRADE_MAX_ITEMS, type TradeOffer } from '@mc/shared';
+import { TRADE_MAX_ITEMS, TRADE_MAX_PETS, type TradeOffer } from '@mc/shared';
+import { petTransferNote, type PetTransferFacts, type PetTransferTexts } from '../pet/pet-transfer';
 
 export const TRADE_NOTE = {
   SELF: 'Không thể giao dịch với chính mình',
@@ -20,7 +21,18 @@ export const TRADE_NOTE = {
   NO_GOLD: 'Không đủ Vàng',
   BAG_FULL: 'Không có đủ không gian túi đồ!',
   CHANGED: 'Vật phẩm đã thay đổi, giao dịch thất bại',
+  // Pets (Go application/trade/errors.go, verbatim)
+  TOO_MANY_PETS: 'Chỉ có thể giao dịch tối đa 5 pet!',
+  DUP_PET: 'Pet giao dịch bị trùng!',
+  PET_NOT_FOUND: 'Pet giao dịch không tồn tại!',
+  PET_FULL: 'Không đủ Ô Pet!',
 } as const;
+
+export const TRADE_PET_TEXTS: PetTransferTexts = {
+  bound: 'Không thể giao dịch pet đã khóa!',
+  active: 'Pet đang xuất chiến, đi theo hoặc được cưỡi, hãy cho pet nghỉ ngơi trước khi giao dịch!',
+  equipped: 'Pet đang mang trang bị, hãy tháo trang bị pet trước khi giao dịch!',
+};
 
 const asCount = (v: unknown): number | null => {
   if (v === undefined || v === null) return 0;
@@ -28,9 +40,22 @@ const asCount = (v: unknown): number | null => {
   return Number.isInteger(n) && n >= 0 ? n : null;
 };
 
+/** Positive ids of an array or Flash `{ "1": id, ... }` map (values <= 0 are empty slots); null on a non-integer value. */
+function idList(raw: unknown): number[] | null {
+  const list: unknown[] = Array.isArray(raw) ? raw : typeof raw === 'object' && raw !== null ? Object.values(raw) : [];
+  const out: number[] = [];
+  for (const v of list) {
+    const n = Number(v);
+    if (!Number.isInteger(n)) return null;
+    if (n > 0) out.push(n);
+  }
+  return out;
+}
+
 /**
- * Normalises the tradeLock argument. `items` may be an array or Flash's `{ "1": id, ... }` map; values <= 0 are empty slots.
- * Returns null on a malformed shape (caller throws invalidArgs); duplicates / >5 are left for validateOffer to refuse.
+ * Normalises the tradeLock argument. `items` / `pets` may be arrays or Flash's `{ "1": id, ... }` map; values <= 0 are empty
+ * slots. Pets come from H5 `pets` or the Flash `petIds` (5 slots, -1 empty). Returns null on a malformed shape (caller throws
+ * invalidArgs); duplicates / >5 are left for validateOffer / validatePets to refuse.
  */
 export function parseOffer(raw: unknown): TradeOffer | null {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return null;
@@ -38,16 +63,28 @@ export function parseOffer(raw: unknown): TradeOffer | null {
   const money = asCount(o.money);
   const gold = asCount(o.gold);
   if (money === null || gold === null) return null;
-  const list: unknown[] = Array.isArray(o.items)
-    ? o.items
-    : typeof o.items === 'object' && o.items !== null ? Object.values(o.items) : [];
-  const items: number[] = [];
-  for (const v of list) {
-    const n = Number(v);
-    if (!Number.isInteger(n)) return null;
-    if (n > 0) items.push(n);
+  const items = idList(o.items);
+  const pets = idList(o.pets ?? o.petIds);
+  if (!items || !pets) return null;
+  return { money, gold, items, pets };
+}
+
+/** Refusal text for the pets of an offer (count, duplicates, ownership, transfer rule), or null. `owned` = caller's pet rows. */
+export function validatePets(pets: readonly number[], owned: ReadonlyMap<number, PetTransferFacts>): string | null {
+  if (pets.length > TRADE_MAX_PETS) return TRADE_NOTE.TOO_MANY_PETS;
+  if (new Set(pets).size !== pets.length) return TRADE_NOTE.DUP_PET;
+  for (const id of pets) {
+    const p = owned.get(id);
+    if (!p) return TRADE_NOTE.PET_NOT_FOUND;
+    const note = petTransferNote(p, TRADE_PET_TEXTS);
+    if (note) return note;
   }
-  return { money, gold, items };
+  return null;
+}
+
+/** Go `pets + incoming <= petMaxNum`, where pets this side gives away in the same trade free their rooms first. */
+export function hasTradePetRoom(count: number, max: number, incoming: number, outgoing: number): boolean {
+  return count + incoming - outgoing <= max;
 }
 
 export interface OwnedItem {
@@ -95,6 +132,12 @@ export class TradeBook {
 
   sessionOf(cid: number): TradeSession | undefined {
     return this.byChar.get(cid);
+  }
+
+  /** True while the character has locked an offer in a running trade (mail / auction refuse goods moves then). */
+  isLocked(cid: number): boolean {
+    const session = this.byChar.get(cid);
+    return !!session && this.sideOf(session, cid).offer !== null;
   }
 
   peerOf(session: TradeSession, cid: number): number {

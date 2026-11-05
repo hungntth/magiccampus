@@ -1,5 +1,5 @@
 // Bottom-right menu buttons of SystemBarCanvas (sysBtnBar right0/bottom-8, 40x45 icons) and their keyboard
-// shortcuts from the SYSTEMBARCANVAS_S tooltips. Character (C), bag (B), pets (W), friends (K), guild (E) and achievements (R) open panels, PK (A) arms the PK click mode; the rest toast "not ready".
+// shortcuts from the SYSTEMBARCANVAS_S tooltips. Character (C), bag (B), pets (W), friends (K), guild (E) and achievements (R) open panels, PK (A) arms the PK click mode, skills (S, M9) open the skill window; the rest toast "not ready".
 
 import { div, notReady, skinButton, type SkinStates } from './skin';
 
@@ -38,12 +38,12 @@ export class SystemBar {
   private readonly onKey: (e: KeyboardEvent) => void;
 
   /** `typing()` tells whether a text field has focus, so letters go to it instead of the shortcuts. */
-  constructor(parent: HTMLElement, private readonly typing: () => boolean, onBag: () => void, onCharacter: () => void,
-    onFriend: () => void, onPet: () => void, onGuild: () => void, onPk: () => void, onAchieve: () => void, onDaily: () => void) {
+  /** keyed: actions by shortcut key (buttons without one toast notReady); keys with no button (digits, P, M, H) work too. */
+  constructor(parent: HTMLElement, private readonly typing: () => boolean, keyed: Readonly<Record<string, () => void>>, onDaily: () => void) {
     const bar = div('hud-sysbar', parent);
-    const actions = new Map<string, () => void>();
+    const actions = new Map<string, () => void>(Object.entries(keyed));
     for (const b of BUTTONS) {
-      const act = b.daily ? onDaily : b.key === 'b' ? onBag : b.key === 'c' ? onCharacter : b.key === 'k' ? onFriend : b.key === 'w' ? onPet : b.key === 'e' ? onGuild : b.key === 'a' ? onPk : b.key === 'r' ? onAchieve : notReady;
+      const act = b.daily ? onDaily : (b.key && keyed[b.key]) || notReady;
       skinButton(b.skin, bar, b.x, b.y, b.tip, act);
       if (b.key) actions.set(b.key, act);
     }

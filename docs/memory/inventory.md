@@ -102,3 +102,9 @@ Bank, bag pages, repair, payment radios and the mall are in `economy.md`; crafti
 - `fillItemCell(cell, item, { level, equipped?, hint? }, from)` attaches it (bag, bank, character, trade, chaInfo).
   `itemTooltip()` stays as the plain-text version for chat item links.
 - Equipment has no "Loại" line yet: the bag DTO sends `tplType = 0` for equipment (page gate relies on it).
+
+## Temp bags and bank extras (M11 phase C)
+`InventoryService.list` (getInitSlot) excludes slot types TEMP_BAG (3) and ESCROW (90): the Túi Tiện Dụng has its own payload (`tBag`) and its slot indexes would collide with bag sids. New RPCs on the bag side: `bankSort`, `bagToBank(sid, dir)`, `delBagItems(ids[, md5])` (Vứt bỏ multi-select: the tool click toggles picks, the next click on the tool confirms and deletes; owned bag / quest / pet-page rows only, one note "Đã xóa N vật phẩm."). `slot-writes.ts` gained `mergeInto` (delete the source, raise the target, restore on failure) and `applySortPlan` (shared by bagSort and bankSort). See `temp-bag.md`.
+
+## Escrow (M11 phase A)
+Rows parked by a mail / auction live at `characterId 0`, `slotType 90` (`SlotType.ESCROW`), `slotIndex = itemId`, with `escrowRef` (`mail:<id>`); every bag query filters by `characterId`, so they never show in a bag. See `memory/mail.md`.

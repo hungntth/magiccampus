@@ -1,8 +1,10 @@
 // Chat (legacy ChatCanvas left1/bottom38 + the chat row of SystemBarCanvas), styled in plain CSS: channel tabs, log
-// filtered by tab, channel picker "Hiện tại↑", input, "Gửi" and emoji button. `/w <name> <text>` whispers, other `/cmd` go to onCommand.
+// filtered by tab, channel picker "Hiện tại↑", input, "Gửi" and the emotion popup (M9). `/w <name> <text>` whispers, an emotion code
+// (`/laugh`) is sent as chat, other `/cmd` go to onCommand.
 
-import { ChatChannel, ChatLimits, type SayPush, type WisperPush } from '@mc/shared';
+import { ChatChannel, ChatLimits, emotionOf, type SayPush, type WisperPush } from '@mc/shared';
 import { div, notReady } from './hud/skin';
+import { toggleEmojiPopup } from './emojiPopup';
 
 const MAX_LINES = 100;
 const MIN_H = 140;
@@ -118,7 +120,9 @@ export class ChatBox {
       this.submit();
     };
     chatButton(bar, 'Gửi', '', () => this.submit()).classList.add('hud-chat-send');
-    chatButton(bar, '☺', 'Biểu cảm', notReady).classList.add('hud-chat-emote');
+    // Flash EmotionCanvas sends on channel 0 (current map) whatever channel is picked.
+    chatButton(bar, '☺', 'Biểu cảm', () => toggleEmojiPopup(bar, 130, -134, (code) => this.handlers.onSend(ChatChannel.LOCAL, code)))
+      .classList.add('hud-chat-emote');
     this.resize(0);
 
     window.addEventListener('keydown', (e) => {
@@ -175,8 +179,8 @@ export class ChatBox {
   }
 
   /** "[Thông báo] Nhận: [name] xN" with a clickable item tag; `info` gives the tooltip text at click time. */
-  noticeItem(name: string, count: number, info: () => string): void {
-    const line = div('line notice', undefined, '[Thông báo] Nhận: ');
+  noticeItem(name: string, count: number, info: () => string, prefix = '[Thông báo] Nhận: '): void {
+    const line = div('line notice', undefined, prefix + (prefix.endsWith(' ') ? '' : ' '));
     const tag = document.createElement('span');
     tag.className = 'item';
     tag.textContent = `[${name}]`;
@@ -211,7 +215,7 @@ export class ChatBox {
       this.handlers.onWhisper(whisper[1], whisper[2]);
       return;
     }
-    if (text.startsWith('/')) {
+    if (text.startsWith('/') && !emotionOf(text)) {
       const [cmd, ...args] = text.slice(1).split(/\s+/);
       if (cmd.toLowerCase() === 'w') this.system('Dùng: /w <tên> <nội dung>');
       else this.handlers.onCommand(cmd.toLowerCase(), args);

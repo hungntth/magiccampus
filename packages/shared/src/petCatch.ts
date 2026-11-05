@@ -10,10 +10,19 @@ export const CATCH_TOO_HIGH = 'Pet cao hơn bạn 5 cấp, không thể bắt!';
 /** Creatures up to this many levels above the owner can still be caught (Go catch.go, Flash checkCatchValid). */
 export const CATCH_LEVEL_MARGIN = 5;
 
+/**
+ * Easy catches (Go combat catch_luctien.go, M10 Lục Tiên): creature id -> minimum rate in percent. Such a creature skips the
+ * 5-level gate (Phù Thủy Hắc Ám 625 meets lv 83-86 encounters), the rate is raised to at least the value; the free pet slot
+ * and catchable gates still apply.
+ */
+export const EASY_CATCH_MIN_RATE: Readonly<Record<number, number>> = { 625: 60 };
+
 /** Client pre-check before sending -70: the pet bag is full, or target.level - 5 >= player.level. Null = allowed. */
-export function catchClientBlocker(petCount: number, petMaxNum: number, targetLevel: number, playerLevel: number): string | null {
+export function catchClientBlocker(
+  petCount: number, petMaxNum: number, targetLevel: number, playerLevel: number, creatureId = 0,
+): string | null {
   if (petCount >= petMaxNum) return CATCH_PET_FULL;
-  if (targetLevel - CATCH_LEVEL_MARGIN >= playerLevel) return CATCH_TOO_HIGH;
+  if (targetLevel - CATCH_LEVEL_MARGIN >= playerLevel && !(creatureId in EASY_CATCH_MIN_RATE)) return CATCH_TOO_HIGH;
   return null;
 }
 
@@ -24,6 +33,7 @@ export interface CatchInput {
   hp: number;
   hpMax: number;
   room: number; // free pet slots, counting pets already caught earlier in this battle
+  creatureId?: number; // creature template id; listed in EASY_CATCH_MIN_RATE = easy catch
 }
 
 /** Level term of the rate: +min(5, lv - clv) when the owner is at or above the creature, else -2 * min(5, clv - lv). */
@@ -34,11 +44,15 @@ export function catchLevelTerm(ownerLevel: number, creatureLevel: number): numbe
 /**
  * Success chance in percent (Go AttemptCatch): 0 when any gate fails (not catchable == 1, creature more than 5 levels above the
  * owner, no free pet slot), else clamp(20 + round((1 - hp / hpMax) * 65) + levelTerm, 5, 95). The roll is `rand(100) < rate`.
+ * An easy-catch creature skips the level gate and gets at least its listed rate.
  */
 export function catchRate(i: CatchInput): number {
-  if (i.catchable !== 1 || i.room <= 0 || i.creatureLevel > i.ownerLevel + CATCH_LEVEL_MARGIN || i.hpMax <= 0) return 0;
+  const easy = i.creatureId !== undefined ? EASY_CATCH_MIN_RATE[i.creatureId] : undefined;
+  if (i.catchable !== 1 || i.room <= 0 || i.hpMax <= 0) return 0;
+  if (i.creatureLevel > i.ownerLevel + CATCH_LEVEL_MARGIN && easy === undefined) return 0;
   const missing = Math.round((1 - Math.max(0, Math.min(i.hp, i.hpMax)) / i.hpMax) * 65);
-  return Math.max(5, Math.min(95, 20 + missing + catchLevelTerm(i.ownerLevel, i.creatureLevel)));
+  const rate = Math.max(5, Math.min(95, 20 + missing + catchLevelTerm(i.ownerLevel, i.creatureLevel)));
+  return easy !== undefined ? Math.max(rate, easy) : rate;
 }
 
 /** The facts of one owned pet that decide a pet objective (the client PetView carries all of them). */

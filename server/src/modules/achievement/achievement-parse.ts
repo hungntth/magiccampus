@@ -3,7 +3,7 @@
 
 export type AchieveKind =
   | 'level' | 'silver' | 'gold' | 'petsOwned' | 'titlesOwned' | 'guildJoined' | 'friends' | 'heiyaoshiFigures' // absolute values (current value)
-  | 'questsFinished' | 'creatureKill' | 'petCaught' | 'loginDays'; // incremental counters
+  | 'questsFinished' | 'creatureKill' | 'petCaught' | 'loginDays' | 'quizJoined' | 'quizFirst'; // incremental counters
 
 export type AchieveMode = 'abs' | 'inc';
 
@@ -12,7 +12,7 @@ const HEIYAOSHI_FIRST_REQ_ID = 699;
 
 export const KIND_MODE: Record<AchieveKind, AchieveMode> = {
   level: 'abs', silver: 'abs', gold: 'abs', petsOwned: 'abs', titlesOwned: 'abs', guildJoined: 'abs', friends: 'abs', heiyaoshiFigures: 'abs',
-  questsFinished: 'inc', creatureKill: 'inc', petCaught: 'inc', loginDays: 'inc',
+  questsFinished: 'inc', creatureKill: 'inc', petCaught: 'inc', loginDays: 'inc', quizJoined: 'inc', quizFirst: 'inc',
 };
 
 export interface RequireRow {
@@ -90,6 +90,8 @@ export function classifyRequirement(
     }
     case 1:
       return /^Hoàn thành \d+ nhiệm vụ$/i.test(d) ? spec('questsFinished', target) : { reason: 'type1-specific-quest' };
+    case 38: // M10 quiz event counters: 389 "Số lần tham gia" (3), 390 first place (1), 391 "Số lần đạt hạng nhất" (10)
+      return req.name === 'Số lần tham gia' ? spec('quizJoined', target) : spec('quizFirst', target ?? 1);
     case 21:
       return /^Gia nhập thành công \d+ bang hội$/i.test(d) ? spec('guildJoined', 1) : { reason: 'type21-guild-contribution' };
     case 22:

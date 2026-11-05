@@ -2,6 +2,7 @@
 // Flash keys are kept (petName, aptStrengthEx, skill1..15, equ1..8, attLastPoint ...); resource codes are strings.
 
 import type { PetSkillInfoMap } from './petGear.js';
+import type { AutoBattleSettings } from './autoBattle.js';
 
 export const PetState = { BATTLE: 1, FOLLOW: 2, REST: 3 } as const;
 export type PetStateValue = (typeof PetState)[keyof typeof PetState];
@@ -97,6 +98,8 @@ export interface PetView extends Record<PetSkillKey, number>, Record<PetEquKey, 
   property: PetProperty;
   /** H5: display facts of the learned skill ids (skillN > 0), keyed by skill id. */
   skillInfo?: PetSkillInfoMap;
+  /** H5 (M9): this pet's auto-battle bucket (pet keys only). */
+  pi?: AutoBattleSettings;
 }
 
 export interface PetWrapper {

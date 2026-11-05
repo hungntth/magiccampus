@@ -312,7 +312,7 @@
   left: 50%;
   top: 38%;
   transform: translateX(-50%);
-  z-index: 5;
+  z-index: 60; /* above every window (act-win 46): confirms of the skill / world map / settings windows */
   width: 190px;
   padding: 10px 12px;
   box-sizing: border-box;

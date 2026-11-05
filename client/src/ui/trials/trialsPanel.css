@@ -1,0 +1,26 @@
+/* Vùng Đất Rèn Luyện window (ui/trials/trialsPanel.ts) and the run card (trialsTimer.ts). */
+.tr-win { width: 520px; top: 5%; }
+.tr-win .tr-tabs { display: flex; gap: 4px; margin-bottom: 6px; }
+.tr-win .tr-main, .tr-win .tr-week, .tr-win .tr-rules { display: flex; flex-direction: column; gap: 6px; }
+.tr-win .tr-left { text-align: center; }
+.tr-win .tr-tiles { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.tr-win .tr-tile { display: flex; flex-direction: column; gap: 4px; align-items: center; padding: 8px 2px; border: 2px solid #4f86b3; border-radius: 6px; background: linear-gradient(180deg, #2b6aa1, #174569); color: #ffe9a8; font: inherit; font-size: 11px; cursor: pointer; }
+.tr-win .tr-tile.on { border-color: #ffd34d; box-shadow: 0 0 6px #e8c46a; }
+.tr-win .tr-tile.locked { filter: grayscale(1); opacity: 0.6; }
+.tr-win .tr-stars { color: #ffd34d; letter-spacing: 2px; font-size: 14px; }
+.tr-win .tr-info { line-height: 16px; min-height: 64px; }
+.tr-win .tr-rewards { display: flex; flex-wrap: wrap; gap: 6px; }
+.tr-win .tr-reward { display: flex; align-items: center; gap: 4px; padding: 2px 6px; background: rgba(8, 28, 48, 0.7); border: 1px solid #2f648f; border-radius: 4px; }
+.tr-win .tr-icon { width: 28px; height: 28px; object-fit: contain; }
+.tr-win .tr-rname { font-size: 11px; color: #cfe3f5; }
+.tr-win .tr-actions { justify-content: flex-start; }
+.tr-win .tr-wrow { display: flex; align-items: center; gap: 8px; padding: 4px 8px; background: rgba(8, 28, 48, 0.7); border: 1px solid #2f648f; border-radius: 4px; }
+.tr-win .tr-wrow.cur { border-color: #e8c46a; box-shadow: 0 0 5px #e8c46a; }
+.tr-win .tr-wname { width: 34px; color: #ffe9a8; font-weight: 700; }
+.tr-win .tr-rules { font-size: 12px; line-height: 17px; }
+
+.tr-strip { position: absolute; top: 118px; left: 8px; width: 190px; padding: 6px 8px; background: rgba(18, 12, 6, 0.78); border: 1px solid #a07a3a; border-radius: 4px; color: #f2e6c8; font-size: 12px; line-height: 1.5; z-index: 20; }
+.tr-strip .tr-sname { color: #ffd76a; font-weight: bold; }
+.tr-strip .tr-time { color: #8fe08f; }
+.tr-strip .tr-life { color: #ff9d9d; font-weight: bold; }
+.tr-strip .tr-quit { margin-top: 4px; padding: 2px 10px; border: 1px solid #a07a3a; border-radius: 3px; background: #5a3a1a; color: #ffe9a8; font: inherit; cursor: pointer; }

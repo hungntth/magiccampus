@@ -1,6 +1,6 @@
 # Life skills, idle systems and quest leftovers (M15): Implementation Plan
 
-**Date**: 2026-11-04 · **Status**: Draft (awaiting approval)
+**Date**: 2026-11-04 · **Status**: Approved (user, 2026-11-05)
 
 **Goal**: port roadmap milestone M15 (`2026-11-04_11_FEATURE_GAP_ROADMAP_2.md` §3) to H5:
 - the five life skills: Câu Cá, Hái Thuốc, Trồng Trọt, Nấu Ăn, Chế Thuốc, with Sức lực (vigor) and độ thành thục (dex);

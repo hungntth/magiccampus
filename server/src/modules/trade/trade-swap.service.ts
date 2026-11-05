@@ -1,6 +1,6 @@
 // Executes the trade swap without Mongo transactions: under both per-character locks (ascending id order) it re-reads the
-// bags, plans slots, then runs a saga: debit both sides -> move item rows -> credit. Any failure undoes the completed steps
-// in reverse, so a failed trade leaves both characters unchanged.
+// bags and pets, plans slots, then runs a saga: debit both sides -> move pet rows -> move item rows -> credit. Any failure undoes
+// the completed steps in reverse, so a failed trade leaves both characters unchanged.
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -11,14 +11,15 @@ import { withCharLock } from '../inventory/char-lock';
 import { CharacterItem } from '../inventory/character-item.schema';
 import { InventoryService } from '../inventory/inventory.service';
 import { TRADE_NOTE } from './trade-rules';
-import { planSwap, runSaga, type SagaStep, type SwapMove } from './trade-swap';
+import { TradePetService } from './trade-pets.service';
+import { petMoveStep, planPetMoves, planSwap, runSaga, type PetMove, type SagaStep, type SwapMove } from './trade-swap';
 
 export interface TradeParty {
   cid: number;
   offer: TradeOffer;
 }
 
-export type SwapOutcome = { ok: true; moves: SwapMove[] } | { ok: false; info: string };
+export type SwapOutcome = { ok: true; moves: SwapMove[]; petMoves: PetMove[] } | { ok: false; info: string };
 
 /** A refusal with a player-visible message (anything else thrown inside the saga is reported generically). */
 class TradeFail extends Error {}
@@ -31,6 +32,7 @@ export class TradeSwapService {
     @InjectModel(CharacterItem.name) private readonly items: Model<CharacterItem>,
     private readonly characters: CharacterService,
     private readonly inventory: InventoryService,
+    private readonly tradePets: TradePetService,
   ) {}
 
   async execute(a: TradeParty, b: TradeParty): Promise<SwapOutcome> {
@@ -54,14 +56,19 @@ export class TradeSwapService {
       Math.min(capA, capB),
     );
     if (!plan.ok) return { ok: false, info: plan.reason === 'full' ? TRADE_NOTE.BAG_FULL : TRADE_NOTE.CHANGED };
+    const petRefusal = await this.tradePets.check({ cid: a.cid, pets: a.offer.pets }, { cid: b.cid, pets: b.offer.pets });
+    if (petRefusal) return { ok: false, info: petRefusal };
+    const petMoves = planPetMoves({ cid: a.cid, pets: a.offer.pets }, { cid: b.cid, pets: b.offer.pets });
 
+    // Pets move before items (Go): debits -> pet moves -> item moves -> credits, undone in reverse on the first failure.
     const steps: SagaStep[] = [
       ...this.debits(a), ...this.debits(b),
+      ...petMoves.map((m) => petMoveStep(m, this.tradePets, new TradeFail(TRADE_NOTE.CHANGED))),
       ...plan.moves.map((m) => this.moveStep(m)),
       ...this.credits(a.cid, b.offer), ...this.credits(b.cid, a.offer),
     ];
     const result = await runSaga(steps);
-    if (result.ok) return { ok: true, moves: plan.moves };
+    if (result.ok) return { ok: true, moves: plan.moves, petMoves };
     if (result.undoErrors.length > 0) {
       this.logger.error(`trade ${a.cid}<->${b.cid} failed at ${result.failedStep}; undo failed for: ${result.undoErrors.join(', ')}`);
     }

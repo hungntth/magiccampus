@@ -1,14 +1,18 @@
 // Shop logic: builds the onOpenShop payload (slot list with resolved names/icons/prices) and runs buy / sell.
-// Buy order: validate -> capacity check -> charge (conditional $inc) -> add to bag (refund on failure).
+// Buy order: validate -> capacity check -> charge (conditional $inc / guild contribution update) -> add to bag (refund on failure).
 
 import { Injectable } from '@nestjs/common';
-import { ItemKind, type AddItemNotice, type BagItem, type MoneyKey, type OpenShop, type ShopSlotView } from '@mc/shared';
+import {
+  GUILD_PRICE_NAMES, GUILD_SHOP_ID, ItemKind, SHOP_DIRECT_IDS,
+  type AddItemNotice, type BagItem, type MoneyKey, type OpenShop, type PlayerUpdate, type ShopSlotView,
+} from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
 import { CharacterService } from '../character/character.service';
 import { GameDataService, type Row } from '../gamedata/gamedata.service';
+import { GUILD_SHOP_TEXT, GuildShopService } from '../guild/guild-shop.service';
 import { maxStack } from '../inventory/bag-rules';
 import { InventoryService } from '../inventory/inventory.service';
-import { boughtColor, resolvePrice, type Price } from './shop-buy';
+import { boughtColor, resolvePrice, type ContribPrice, type Price } from './shop-buy';
 import { SLOT_TYPE_EQUIP, isVisibleSlot, toShopSlotView } from './shop-mapping';
 
 const MAX_AMOUNT = 99999;
@@ -17,8 +21,10 @@ export interface BuyResult {
   amount: number;
   cost: number;
   currencyName: string;
-  key: MoneyKey;
-  total: number;
+  /** Cost part of the success note when the price has two currencies; default `cost currencyName`. */
+  costText?: string;
+  /** onUPP payload with the new balance(s). */
+  update: PlayerUpdate;
   notice: AddItemNotice;
   changed: BagItem[];
 }
@@ -31,12 +37,21 @@ export interface SellResult {
   currencyName: string;
 }
 
+/** A paid charge: what to push and how to give it back. */
+interface Charge {
+  update: PlayerUpdate;
+  cost: number;
+  costText?: string;
+  refund(): Promise<void>;
+}
+
 @Injectable()
 export class ShopService {
   constructor(
     private readonly gameData: GameDataService,
     private readonly characters: CharacterService,
     private readonly inventory: InventoryService,
+    private readonly guildShop: GuildShopService,
   ) {}
 
   /** null when the shop id is unknown. */
@@ -66,10 +81,14 @@ export class ShopService {
     if (!Number.isInteger(amount) || amount < 1 || amount > MAX_AMOUNT) throw RpcException.invalidArgs('số lượng không hợp lệ');
     const slot = this.gameData.getShopSlot(slotId);
     if (!slot || !isVisibleSlot(Number(slot.st ?? 0))) throw RpcException.notFound('vật phẩm không tồn tại');
-    // H5 hardening (legacy trusts the client): the shop must belong to an NPC on the caller's map.
+    // H5 hardening (legacy trusts the client): the shop must belong to an NPC on the caller's map (openShopDirect shops excepted).
     const shopId = Number(slot.sid);
-    if (!this.gameData.npcsOnMap(mapId).some((n) => Number(n.shop_id ?? 0) === shopId)) {
+    if (!SHOP_DIRECT_IDS.includes(shopId) && !this.gameData.npcsOnMap(mapId).some((n) => Number(n.shop_id ?? 0) === shopId)) {
       throw RpcException.forbidden('cửa hàng không ở gần bạn');
+    }
+    if (shopId === GUILD_SHOP_ID) {
+      const note = await this.guildShop.gate(characterId); // Go gates only the open; H5 gates the buy too
+      if (note) throw RpcException.forbidden(note);
     }
     const equip = Number(slot.type) === SLOT_TYPE_EQUIP;
     const tpl = await this.gameData.template(equip ? SLOT_TYPE_EQUIP : 29, Number(slot.item_id));
@@ -81,8 +100,7 @@ export class ShopService {
   }
 
   /** Shared buy pipeline of NPC and mall shops: capacity check -> conditional charge -> add to the bag (refund on failure). */
-  async settle(characterId: number, slot: Row, tpl: Row, equip: boolean, price: Price, amount: number): Promise<BuyResult> {
-    const cost = price.unit * amount;
+  async settle(characterId: number, slot: Row, tpl: Row, equip: boolean, price: Price | ContribPrice, amount: number): Promise<BuyResult> {
     const spec = {
       templateId: Number(slot.item_id),
       itemType: equip ? ItemKind.EQUIP : ItemKind.ITEM,
@@ -92,17 +110,45 @@ export class ShopService {
       maxStack: maxStack(tpl),
     };
     if (!(await this.inventory.canFit(characterId, spec))) throw RpcException.invalidArgs('Túi đồ đã đầy');
-    const total = await this.characters.spendMoney(characterId, price.key, cost);
-    if (total === null) throw RpcException.invalidArgs(price.key.startsWith('gold') ? 'Không đủ vàng' : 'Không đủ bạc');
+    const charge = 'contrib' in price ? await this.chargeContrib(characterId, price, amount) : await this.chargeMoney(characterId, price, amount);
     let changed: BagItem[];
     try {
       changed = await this.inventory.add(characterId, spec, equip ? Number(tpl.endure_max ?? 0) || 0 : 0);
     } catch (e) {
-      await this.characters.addMoney(characterId, price.key, cost);
+      await charge.refund();
       throw e;
     }
     const notice: AddItemNotice = { i: spec.templateId, q: amount, t: spec.itemType, n: String(tpl.name ?? `#${spec.templateId}`) };
-    return { amount, cost, currencyName: price.currencyName, key: price.key, total, notice, changed };
+    return { amount, cost: charge.cost, currencyName: price.currencyName, costText: charge.costText, update: charge.update, notice, changed };
+  }
+
+  private async chargeMoney(characterId: number, price: Price, amount: number): Promise<Charge> {
+    const cost = price.unit * amount;
+    const total = await this.characters.spendMoney(characterId, price.key, cost);
+    if (total === null) throw RpcException.invalidArgs(price.key.startsWith('gold') ? 'Không đủ vàng' : 'Không đủ bạc');
+    return {
+      update: { [price.key]: total }, cost,
+      refund: async () => void (await this.characters.addMoney(characterId, price.key, cost)),
+    };
+  }
+
+  /** Shop 83: one conditional update spends the normal and the donate contribution together. */
+  private async chargeContrib(characterId: number, price: ContribPrice, amount: number): Promise<Charge> {
+    const cost = { normal: price.contrib.normal * amount, donate: price.contrib.donate * amount };
+    const left = await this.guildShop.spend(characterId, cost);
+    if (!left) {
+      const have = await this.guildShop.balance(characterId);
+      if (!have) throw RpcException.forbidden(GUILD_SHOP_TEXT.NOT_MEMBER);
+      throw RpcException.invalidArgs(`Không đủ ${GUILD_PRICE_NAMES[have.normal < cost.normal ? 20 : 21]}`);
+    }
+    const parts = [
+      ...(cost.normal > 0 ? [`${cost.normal} ${GUILD_PRICE_NAMES[20]}`] : []),
+      ...(cost.donate > 0 ? [`${cost.donate} ${GUILD_PRICE_NAMES[21]}`] : []),
+    ];
+    return {
+      update: { guildContrib: left.normal, donateContrib: left.donate }, cost: cost.normal || cost.donate, costText: parts.join(' + '),
+      refund: async () => void (await this.guildShop.refund(characterId, cost)),
+    };
   }
 
   /** Sells a whole bag stack for floor(price / 4) per unit; bound items pay Bạc khóa, others Bạc. */

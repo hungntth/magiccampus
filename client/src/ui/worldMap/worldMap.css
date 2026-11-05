@@ -1,0 +1,56 @@
+/* World map window (ui/worldMap/worldMapPanel.ts, legacy WorldMap 900x570). */
+.act-win.wm-win {
+  left: calc(50% - 461px);
+  width: 922px;
+}
+
+.wm-map {
+  position: relative;
+  background-size: 100% 100%;
+  border: 1px solid rgba(159, 227, 255, 0.4);
+}
+
+.wm-pin {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff6b0 0%, #f0a020 60%, #8a4a00 100%);
+  box-shadow: 0 0 4px #000;
+  cursor: pointer;
+}
+
+.wm-pin:hover {
+  transform: scale(1.3);
+}
+
+.wm-pin.current {
+  background: radial-gradient(circle, #ffffff 0%, #33dd55 60%, #0a5a1a 100%);
+  cursor: default;
+  animation: wm-blink 1s ease-in-out infinite;
+}
+
+.wm-pin.locked {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
+.wm-flip {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 4px 10px;
+  border: 1px solid #ffe08a;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #b07020 0%, #6a3a08 100%);
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+@keyframes wm-blink {
+  50% {
+    opacity: 0.4;
+  }
+}

@@ -34,6 +34,7 @@ export interface CreatureTemplate {
   propSpeed: number;
   propCritical: number;
   resCode: string;
+  element: number; // 0 Vô … 6 Hỏa (Go NormalizeClientElementID: out of range = 0)
 }
 
 /** data_tbl_creature_loot: qid > 0 = only while that quest is active, rate is x/50000. qty columns are absent in the seeds (1). */
@@ -83,6 +84,7 @@ export function toCreature(r: Raw): CreatureTemplate {
     propHit: num(r.prop_hit), propDodge: num(r.prop_dodge), propSpeed: num(r.prop_speed),
     propCritical: num(r.prop_critical),
     resCode: String(r.res_code ?? 0),
+    element: Number.isInteger(num(r.element)) && num(r.element) >= 0 && num(r.element) <= 6 ? num(r.element) : 0,
   };
 }
 

@@ -7,11 +7,12 @@
     "dev": "nest start --watch",
     "start": "node dist/main.js",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "node --test --import tsx ./src/**/*.test.ts",
+    "test": "node --test --import tsx ./src/**/*.test.ts ./tools/**/*.test.ts",
     "import:seeds": "tsx tools/import-seeds.ts",
     "resmap": "tsx tools/resmap.ts",
     "fix:char-attributes": "tsx tools/fix-char-attributes.ts",
-    "learn:start-skills": "tsx tools/learn-start-skills.ts"
+    "learn:start-skills": "tsx tools/learn-start-skills.ts",
+    "help:xml": "tsx tools/help-xml.ts"
   },
   "dependencies": {
     "@mc/shared": "workspace:*",

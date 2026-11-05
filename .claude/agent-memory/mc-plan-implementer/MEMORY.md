@@ -6,3 +6,11 @@
 - [Activities phase A (M8)](activities_phase_a.md) — strip, sign-in ledger, diary hooks, online gift, e2e tips
 - [VIP phase B (M8)](vip_phase_b.md) — vip module wiring, CAS rev, findback audit, e2e/browser selectors
 - [Activities phase D (M8)](activities_phase_d.md) — boss/offline/feast/lotto/prabuff/mount wiring, mount atlas black quad, e2e tips
+- [M9 core loop](m9_core_loop.md) — phases A-H done, settings/permission/loop-boss/spectate wiring, edit pitfalls
+- [M10 dungeons](m10_dungeons.md) — A-I done; parallel-agent recipe, 3-client bot, fast-forward, pitfalls
+- [M10 world boss (I)](m10_world_boss.md) — worldboss/scheduleboss wiring, boss loot hook, CRLF edit tip
+- [M11 mail](m11_mail.md) — mail/escrow API, login hook trick, ws smoke bot recipe, edit pitfalls
+- [M11 auction](m11_auction.md) — auction saga/log design, fixtures + bots, PM and browser test recipes
+- [M11 temp bags (C)](m11_temp_bag.md) — tsx vs schemas e2e recipe, temp rows exclusion, fixture + shell traps
+- [M11 shop leftovers (E)](m11_shop_leftovers.md) — credit shops reuse currencies, guild shop 83, trolley, smoke fixture/restore recipe
+- [M11 orchestration](m11_orchestration.md) — sequential phase agents, test-data pitfalls, currencies reuse

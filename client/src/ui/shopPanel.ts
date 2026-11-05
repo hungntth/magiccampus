@@ -3,14 +3,13 @@
 // calls `onBuy`; Sửa / Sửa hết call the repair hooks (Sửa hết (pet) is a placeholder).
 
 import type { OpenShop, ShopSlotView } from '@mc/shared';
-import { ShopCurrency } from '@mc/shared';
 import type { PaymentControl } from '../game/payment';
 import { askAmount } from './amountDialog';
 import { paymentRadios, type PaymentRadios } from './paymentRadios';
 import { toast } from './screens';
 import { stageEl } from './stage';
 import { closeOnEscape, makeDraggable } from './panelBehavior';
-import { coinOf, el, shopCell } from './shopCell';
+import { coinOf, el, isPayable, shopCell } from './shopCell';
 import './shop.css';
 import './mall.css';
 
@@ -37,6 +36,8 @@ export class ShopPanel {
   /** Set by BagController: arms the repair tool on the bag (Sửa) / repairs all worn gear after a confirm (Sửa hết). */
   onRepairTool: (() => void) | null = null;
   onRepairAll: (() => void) | null = null;
+  /** Set by NpcPanels: runs when an open panel is closed (shopClosePanel). */
+  onClosed: (() => void) | null = null;
   /** Set by BagController: performs the buyAmountItemClient call. */
   onBuy: ((slotId: number, amount: number) => void) | null = null;
   /** Set by BagController: payment preference (radios Ngân phiếu / Bạc / Kim phiếu / Vàng). */
@@ -55,7 +56,7 @@ export class ShopPanel {
 
   /** `withBag` shifts the window left so the bag window fits at its right. */
   show(data: OpenShop, withBag = false): void {
-    this.close();
+    this.close(false);
     this.data = data;
     this.page = 0;
     this.selected = null;
@@ -106,7 +107,8 @@ export class ShopPanel {
     this.render();
   }
 
-  close(): void {
+  close(notify = true): void {
+    const wasOpen = this.root !== null;
     this.closeAmount?.();
     this.closeAmount = null;
     this.radios?.destroy();
@@ -117,6 +119,7 @@ export class ShopPanel {
     this.root = null;
     this.grid = this.pageBox = this.prev = this.next = null;
     this.data = null;
+    if (wasOpen && notify) this.onClosed?.();
   }
 
   private onAction(label: string): void {
@@ -132,11 +135,10 @@ export class ShopPanel {
     else toast('Hãy chọn vật phẩm cần mua');
   }
 
-  /** Amount dialog (NumPanel) then onBuy; special-currency slots are refused client-side too. */
+  /** Amount dialog (NumPanel) then onBuy; point / unknown special-currency slots are refused client-side too. */
   private buy(slot: ShopSlotView): void {
     this.selected = slot.slotId;
-    if (slot.prices.length === 0 || slot.prices.some((p) => p.currency === ShopCurrency.SPECIAL
-      || p.currency === ShopCurrency.EX_POINT || p.currency === ShopCurrency.HONOR)) {
+    if (slot.prices.length === 0 || !slot.prices.every(isPayable)) {
       toast('Chưa hỗ trợ loại tiền này', true);
       return;
     }

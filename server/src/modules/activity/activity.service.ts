@@ -6,6 +6,8 @@ import { ActivityId, DiaryTask, buildStripList, type ActivityLogin, type PlayerD
 import { RpcException } from '../../gateway/errors';
 import { FeastService } from '../feast/feast.service';
 import { FeatureStoreService } from '../progression/feature-store.service';
+import { QuizState } from '../quiz/quiz-state.service';
+import { WbState } from '../worldboss/wb-state.service';
 import { ActivityDataService } from './activity-data.service';
 import { DiaryEvents } from './diary-events.service';
 import { OnlineService } from './online.service';
@@ -21,6 +23,8 @@ export class ActivityService {
     private readonly diary: DiaryEvents,
     private readonly online: OnlineService,
     private readonly feast: FeastService,
+    private readonly quiz: QuizState,
+    private readonly worldBoss: WbState,
   ) {}
 
   async loginFields(characterId: number): Promise<Partial<PlayerData>> {
@@ -29,6 +33,9 @@ export class ActivityService {
     const startedActList = buildStripList(await this.data.activityRows());
     const feast = await this.feast.stripEntry(startedActList[String(ActivityId.FEAST)]?.sortType ?? ActivityId.FEAST);
     if (feast) startedActList[String(ActivityId.FEAST)] = feast; // type 3 icon, shown only while a feast runs
+    const quiz = this.quiz.stripEntry(startedActList[String(ActivityId.QUIZ)]?.sortType ?? ActivityId.QUIZ);
+    if (quiz) startedActList[String(ActivityId.QUIZ)] = quiz; // icon 16 (type 3): registering / running
+    startedActList[String(ActivityId.WORLD_BOSS)] = this.worldBoss.stripEntry(startedActList[String(ActivityId.WORLD_BOSS)]?.sortType ?? ActivityId.WORLD_BOSS); // icon 15 (type 3): lobby / running, hidden otherwise
     const fields: ActivityLogin = {
       startedActList,
       guideFlag: await this.guideLog(characterId),

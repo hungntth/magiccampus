@@ -41,6 +41,9 @@ test('classification by type + description', () => {
   assert.deepEqual(c(req(9, 6154, 0), 'Tiêu diệt Mehdi'), { reason: 'type0-creature-not-found' });
   assert.deepEqual(c(req(10, 3005, 21), 'Gia nhập thành công 1 bang hội'), { spec: { reqId: 10, aid: 3005, kind: 'guildJoined', mode: 'abs', target: 1 } });
   assert.deepEqual(c(req(11, 3006, 21), 'Điểm cống hiến trong bang đạt 100000'), { reason: 'type21-guild-contribution' });
+  assert.deepEqual(c(req(389, 6064, 38, 3, 'Số lần tham gia'), 'Tham gia 3 lần thi Trả Lời Câu Hỏi'), { spec: { reqId: 389, aid: 6064, kind: 'quizJoined', mode: 'inc', target: 3 } });
+  assert.deepEqual(c(req(390, 6065, 38), 'Đạt hạng nhất thi Trả Lời Câu Hỏi'), { spec: { reqId: 390, aid: 6065, kind: 'quizFirst', mode: 'inc', target: 1 } });
+  assert.deepEqual(c(req(391, 6066, 38, 10, 'Số lần đạt hạng nhất'), 'Đạt 10 lần hạng nhất thi Trả Lời Câu Hỏi'), { spec: { reqId: 391, aid: 6066, kind: 'quizFirst', mode: 'inc', target: 10 } });
   assert.deepEqual(c(req(12, 9, 99), 'x'), { reason: 'unmapped-type-99' });
 });
 

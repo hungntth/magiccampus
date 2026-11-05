@@ -1,14 +1,15 @@
 // "Đối thoại" NPC dialog (DOM, in #stage), laid out like the Flash window: portrait, name + function button,
 // greeting text box, "Nhiệm vụ" quest list, "Rời khỏi". One dialog at a time; the scene closes it on scene
-// change/destroy or when the player walks away.
+// change/destroy or when the player walks away. M10: `showMenu` renders a scripted onList menu (Flash NpcScriptPanel).
 
-import type { NpcFuncInit, QuestView } from '@mc/shared';
+import type { NpcFuncInit, NpcMenuOption, QuestView } from '@mc/shared';
 import { NpcType } from '@mc/shared';
 import { iconUrl } from '../assets';
 import { stageEl } from './stage';
 import { closeOnEscape, makeDraggable } from './panelBehavior';
 
 const FUNC_LABELS: Record<number, string> = {
+  [NpcType.MAIL]: 'Thùng thư',
   [NpcType.SHOP]: 'Shop',
   [NpcType.AUCTION]: 'Rao bán',
   [NpcType.BANK]: 'Kho',
@@ -98,6 +99,55 @@ export class NpcDialog {
     this.offs.push(makeDraggable(root, header, 'npcDialog'), closeOnEscape(() => this.close()));
   }
 
+  /** Scripted menu (onList): portrait, title, info text and one button per option; a pick calls `onPick` and closes. */
+  showMenu(npcId: number, name: string, iconCode: string, title: string, info: string, options: NpcMenuOption[], onPick: (o: NpcMenuOption) => void): void {
+    this.close();
+    const root = el('div', 'npc-dialog');
+    const header = el('div', 'npc-header');
+    header.appendChild(el('div', 'npc-title', title || 'Đối thoại'));
+    root.appendChild(header);
+    const head = el('div', 'npc-head');
+    const portrait = el('div', 'npc-portrait');
+    if (iconCode && iconCode !== '0') {
+      const img = document.createElement('img');
+      img.src = iconUrl(iconCode);
+      img.alt = '';
+      img.onerror = () => img.remove();
+      portrait.appendChild(img);
+    }
+    head.appendChild(portrait);
+    const nameBox = el('div', 'npc-info');
+    nameBox.appendChild(el('div', 'npc-name', name));
+    head.appendChild(nameBox);
+    root.appendChild(head);
+    root.appendChild(el('div', 'npc-text', stripTags(info) || '…'));
+    const list = el('div', 'npc-quests npc-menu');
+    for (const o of options) {
+      const row = el('button', 'npc-quest s102');
+      row.appendChild(el('span', 'npc-mark', '•'));
+      row.appendChild(el('span', 'npc-qname', stripTags(o.label)));
+      row.onclick = () => {
+        this.close();
+        onPick(o);
+      };
+      list.appendChild(row);
+    }
+    root.appendChild(list);
+    const leave = el('button', 'npc-leave', 'Rời khỏi');
+    leave.onclick = () => this.close();
+    root.appendChild(leave);
+    stageEl().appendChild(root);
+    this.root = root;
+    this.current = npcId;
+    this.offs.push(makeDraggable(root, header, 'npcDialog'), closeOnEscape(() => this.close()));
+  }
+
+  /** onNpcMsg while this NPC's dialog is open: replaces the text box. */
+  setText(text: string): void {
+    const box = this.root?.querySelector('.npc-text');
+    if (box) box.textContent = stripTags(text);
+  }
+
   private addLoopEntries(list: HTMLElement, data: NpcFuncInit, loops?: LoopEntries): void {
     const rows: [number, string, boolean][] = Object.entries(data.loopInfo.d ?? {}).flatMap(([id, l]) => {
       const lid = Number(id);
@@ -126,6 +176,11 @@ export class NpcDialog {
     this.root = null;
     this.current = null;
   }
+}
+
+/** Server texts may carry Flash HTML (<font>, <br>): keep the text, line breaks as newlines. */
+export function stripTags(s: string): string {
+  return s.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text?: string): HTMLElementTagNameMap[K] {

@@ -10,24 +10,29 @@ export class SceneManager {
   private readonly byAccount = new Map<string, Session>();
   private readonly byCharacter = new Map<number, Session>();
 
-  join(session: Session, mapId: number): void {
+  /** `copyId` (M10 maze, > 0) puts the session in its own room keyed by the copy id while `session.mapId` stays the template map. */
+  join(session: Session, mapId: number, copyId = 0): void {
     this.leave(session);
-    let room = this.rooms.get(mapId);
+    const key = copyId > 0 ? copyId : mapId;
+    let room = this.rooms.get(key);
     if (!room) {
       room = new Set();
-      this.rooms.set(mapId, room);
+      this.rooms.set(key, room);
     }
     room.add(session);
     session.mapId = mapId;
+    session.copyId = copyId;
     session.bankOpen = false;
   }
 
   leave(session: Session): void {
     if (!session.mapId) return;
-    const room = this.rooms.get(session.mapId);
+    const key = session.copyId > 0 ? session.copyId : session.mapId;
+    const room = this.rooms.get(key);
     room?.delete(session);
-    if (room && room.size === 0) this.rooms.delete(session.mapId);
+    if (room && room.size === 0) this.rooms.delete(key);
     session.mapId = 0;
+    session.copyId = 0;
     session.bankOpen = false;
   }
 

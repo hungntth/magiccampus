@@ -3,7 +3,7 @@
 // onRedMsg toasts, the "Túi đồ" panel (HUD bag button / B key), shop buy and Ctrl + double-click sell.
 // Must be constructed after QuestController: its onUPP handler (player money) has to run first.
 
-import { PageType, SlotType, slotOf } from '@mc/shared';
+import { SlotType, slotOf } from '@mc/shared';
 import type { AddItemNotice, BagItem, GetInitSlotReply, ItemSortEntry, PlayerData } from '@mc/shared';
 import type { GameClient } from '../net/client';
 import { BagPanel } from '../ui/bagPanel';
@@ -14,6 +14,7 @@ import type { ChatBox } from '../ui/chat';
 import { toast } from '../ui/screens';
 import type { ShopPanel } from '../ui/shopPanel';
 import { BagActions } from './bagActions';
+import type { DragPayload } from '../ui/itemCell';
 import { ItemFuncs } from './ItemFuncs';
 
 export interface BagHost {
@@ -39,6 +40,9 @@ export class BagController {
   tradeHook: ((item: BagItem) => boolean) | null = null;
   /** Set by ForgeController: while the forge window is open a bag double-click is offered to its active tab (true = taken). */
   forgeHook: ((item: BagItem) => boolean) | null = null;
+  /** Set by TempBagController: the bag toolbar button "Túi tiện dụng" and a temp slot dropped on the bag window. */
+  onOpenTempBag: (() => void) | null = null;
+  onDropTemp: ((d: DragPayload, sid: number, shift: boolean) => void) | null = null;
   private readonly listeners = new Set<() => void>();
 
   constructor(private readonly host: BagHost) {
@@ -54,6 +58,8 @@ export class BagController {
       onSell: (item) => this.sell(item),
       interceptUse: (item) => this.tradeHook?.(item) || this.forgeHook?.(item) || this.deposit(item),
       onClose: () => this.panel.close(),
+      onTempBag: () => this.onOpenTempBag?.(),
+      onDropTemp: (d, sid, shift) => this.onDropTemp?.(d, sid, shift),
     });
     this.bank = new BankPanel({
       items: () => this.items.values(),
@@ -77,7 +83,8 @@ export class BagController {
       c.on('onSwapItem', (a, b) => this.swap(Number(a), Number(b))),
       c.on('onStackItemInto', (_from, _to, src, dest, n) => this.stackInto(Number(src), Number(dest), Number(n))),
       c.on('onMoveItemNum', (_from, id, left) => this.setStack(Number(id), Number(left))),
-      c.on('onItemSort', (list) => this.sorted(list as ItemSortEntry[])),
+      c.on('onItemSort', (list) => this.sorted(list as ItemSortEntry[], SlotType.BAG)),
+      c.on('onBankSort', (list) => this.sorted(list as ItemSortEntry[], SlotType.BANK)),
       c.on('onAddItem', (d) => {
         const n = d as AddItemNotice;
         this.host.chat.noticeItem(n.n, n.q, () => this.itemInfo(n.i, n.n));
@@ -116,6 +123,12 @@ export class BagController {
   /** Every bag and equipped item (the battle potion list filters it). */
   list(): BagItem[] {
     return [...this.items.values()].filter((i) => i.slotType === SlotType.BAG);
+  }
+
+  /** Items of every bag tab (main, quest, pet-item pages): what mail / auction may attach. */
+  listTabs(): BagItem[] {
+    const tabs: number[] = [SlotType.BAG, SlotType.QUEST_BAG, SlotType.PET_BAG];
+    return [...this.items.values()].filter((i) => tabs.includes(i.slotType));
   }
 
   find(id: number): BagItem | undefined {
@@ -177,7 +190,7 @@ export class BagController {
   /** Double-click on a bag item while the bank is open: deposit it on the selected bank page (Flash bagToBank). */
   private deposit(item: BagItem): boolean {
     if (!this.bank.isOpen) return false;
-    this.actions.moveToPage(item, PageType.BANK, this.bank.currentPage);
+    this.actions.bagToBank(item, true);
     return true;
   }
 
@@ -197,6 +210,12 @@ export class BagController {
   private set(item: BagItem): void {
     this.items.set(item.id, item);
     this.changed();
+  }
+
+  /** A bag row that moved into the temp bag (onMoveToTBag pushes no onDelCharactorSlot). */
+  removeBySid(sid: number): void {
+    const it = this.bagBySid(sid);
+    if (it) this.remove(it.id);
   }
 
   private remove(id: number): void {
@@ -246,9 +265,9 @@ export class BagController {
     this.changed();
   }
 
-  private sorted(list: ItemSortEntry[]): void {
+  private sorted(list: ItemSortEntry[], slotType: number): void {
     const bySid = new Map<number, BagItem>();
-    for (const it of this.items.values()) if (it.slotType === SlotType.BAG) bySid.set(it.sid, it);
+    for (const it of this.items.values()) if (it.slotType === slotType) bySid.set(it.sid, it);
     for (const e of list) {
       const it = bySid.get(e.oldId);
       if (!it) continue;

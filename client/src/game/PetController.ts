@@ -28,6 +28,8 @@ export interface PetHost {
   bag: BagController;
   /** HUD PetCanvas sink (MainHud.setBattlePet). */
   setBattlePet(pet: PetView | null): void;
+  /** The detail rates window for the fighting pet (CharacterController owns it). */
+  onDetail(): void;
 }
 
 export class PetController {
@@ -59,6 +61,7 @@ export class PetController {
       onRelease: (pet) => this.release(pet),
       onBind: (pet) => this.bind(pet),
       onAllocate: (pet, add) => this.allocate(pet, add),
+      onDetail: () => host.onDetail(),
       skillInfo: (id) => this.gear.skillInfo(id),
       item: (id) => host.bag.find(id),
       onOpenSkill: (pet, slot) => this.gear.openSkill(pet, slot),

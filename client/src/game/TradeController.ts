@@ -1,6 +1,7 @@
 // Trade client wiring (phase E): the "Giao dịch" panel, newTrade / tradeLock / tradeConfirm / stopTrade calls and the pushes
 // onRequestTrade (panel opens on the target, no accept step), onTargetLock, onTargetConfirm, onTradeSuccess, onTradeFail,
-// onStopTrade. While the panel is open a bag double-click adds the item to the trade instead of using it (BagController.tradeHook).
+// onStopTrade; pets are added from the panel picker and travel in the offer (the server pushes onDelPet / onAddPet, handled by
+// PetController, before onTradeSuccess). While the panel is open a bag double-click adds the item to the trade instead of using it (BagController.tradeHook).
 // The bag itself is updated by the usual slot pushes the server sends before onTradeSuccess.
 
 import { SlotType, type PlayerData, type TargetLock, type TradeOffer, type TradeReply } from '@mc/shared';
@@ -23,6 +24,7 @@ export class TradeController {
     const { client, bag } = host;
     this.panel = new TradePanel({
       player: () => host.player,
+      pets: () => Object.values(host.player.petList).sort((a, b) => a.id - b.id),
       itemById: (id) => {
         const it = bag.find(id);
         return it && it.slotType === SlotType.BAG ? it : undefined;

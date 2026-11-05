@@ -8,6 +8,8 @@ import { CharacterService } from '../character/character.service';
 import { FeastModule } from '../feast/feast.module';
 import { GameDataModule } from '../gamedata/gamedata.module';
 import { ProgressionModule } from '../progression/progression.module';
+import { QuizCoreModule } from '../quiz/quiz-core.module';
+import { WorldBossCoreModule } from '../worldboss/wb-core.module';
 import { ActivityEventsModule } from './activity-events.module';
 import { ActivityRpc } from './activity.rpc';
 import { ActivityService } from './activity.service';
@@ -15,7 +17,7 @@ import { DiaryService } from './diary.service';
 import { OnlineService } from './online.service';
 
 @Module({
-  imports: [ActivityEventsModule, ActivityRewardsModule, CharacterModule, FeastModule, GameDataModule, ProgressionModule],
+  imports: [ActivityEventsModule, ActivityRewardsModule, CharacterModule, FeastModule, GameDataModule, ProgressionModule, QuizCoreModule, WorldBossCoreModule],
   providers: [ActivityService, DiaryService, OnlineService, ActivityRpc],
   exports: [OnlineService],
 })

@@ -39,7 +39,7 @@ export class CatchMode {
     const unit = this.host.stage()?.units.get(slot);
     if (!unit) return true;
     const p = this.host.player();
-    const why = catchClientBlocker(Object.keys(p.petList).length, p.petMaxNum, unit.level, p.level);
+    const why = catchClientBlocker(Object.keys(p.petList).length, p.petMaxNum, unit.level, p.level, unit.refId);
     if (why) {
       toast(why, true);
       return true;

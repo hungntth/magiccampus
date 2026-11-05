@@ -179,6 +179,9 @@ M16, since events deliver rewards by mail. M12–M15 are independent of each oth
 - **Dungeon content** (M10): port the legacy owner's authored content as-is (line-ups, stats, rewards, schedules); the
   combat mechanics H5 lacks (summons, revives, splits, openers, skill pools, immunities, …) are planned as M10 Phase E2.
 - **Pet owner level cap** (M12): adopt pet ≤ owner level + 5 and update the M4 exp paths.
+- **Combat, decided 2026-11-05** (M10 E2): NPC skills cast at 30 % for every creature with skill rows, game-wide;
+  summoned / regenerated units give exp and loot; the damage formula is aligned with current Go for all battles
+  (M10 Phase E2.-1), keeping the `exp_skill` skill base from the M9 decision.
 - **Rules follow the original** everywhere: costs, rates and gates as in the legacy. Currencies or items that have no
   source in H5 yet stay unwired (test with GM `/grant`); their sources come with the milestone that owns them.
 

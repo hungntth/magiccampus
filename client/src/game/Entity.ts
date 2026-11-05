@@ -187,6 +187,11 @@ export class Entity extends Container {
     this.leaderFlag?.position.set(0, this.headY - 2);
   }
 
+  /** Name / title lines on or off (system setting "Ẩn tên", M9). */
+  showLabels(on: boolean): void {
+    this.labels.visible = on;
+  }
+
   setName(name: string): void {
     this.displayName = name;
     this.labels.setName(name);

@@ -1,8 +1,9 @@
-// Quest RPCs: takeQuest, finishQuest, cancelQuest, initQuestManager (+ `l`, the active loop states).
+// Quest RPCs: takeQuest, finishQuest, cancelQuest, initQuestManager (+ `l`, the active loop states), setNpcState(npcId) (M9 quest-mark query).
 // Pushes (self): onAddChaQuest, onCancelQuest, onSetNpcState, onAddMoney, onUPP, onPlayerLevelUp; finishQuest first sends
 // onDelCharactorSlot / onAddCharactorSlot for the collected items it consumed and ends with onAddItem +
 // onAddCharactorSlot for the award items; takeQuest sends the same pair for an accept-time item. A finished loop round adds
-// onFinishLoopQuest {id, ft} and the next round's onAddChaQuest (+ its accept-time item) after the reward pushes.
+// onFinishLoopQuest {id, ft} and the next round's onAddChaQuest (+ its accept-time item) after the reward pushes; a loop-boss round
+// also sends onBossOff (+ the order item removal) and the next map-mode round onBossOn.
 
 import { Injectable } from '@nestjs/common';
 import type {
@@ -13,9 +14,11 @@ import { RpcException } from '../../gateway/errors';
 import type { Session } from '../../gateway/session';
 import { GameDataService } from '../gamedata/gamedata.service';
 import { sendPushes } from '../inventory/pushes';
+import { LoopBossService } from '../loop/loop-boss.service';
 import { LoopStateService } from '../loop/loop-state.service';
 import { CharacterStatsService } from '../stats/character-stats.service';
 import { QuestService } from './quest.service';
+import { QuestGates } from './quest-gates';
 
 function intArg(v: unknown, field: string): number {
   const n = Number(v);
@@ -30,6 +33,8 @@ export class QuestRpc {
     private readonly gameData: GameDataService,
     private readonly stats: CharacterStatsService,
     private readonly loops: LoopStateService,
+    private readonly bosses: LoopBossService,
+    private readonly gates: QuestGates,
   ) {}
 
   @Rpc('takeQuest', { requireCharacter: true })
@@ -62,6 +67,7 @@ export class QuestRpc {
     const id = session.characterId!;
     sendPushes(session, out.pushes); // consumed collect items leave the bag before the rewards arrive (Go order)
     const update: PlayerUpdate = { level: out.exp.level, exp: out.exp.exp, attrPoints: out.exp.attrPoints };
+    if (out.cost) update[out.cost.key] = out.cost.total; // rt / rn turn-in cost (the reward below may credit the same field)
     if (out.money) {
       session.callback('onAddMoney', id, out.money.key, out.money.amount, out.money.total);
       update[out.money.key] = out.money.total;
@@ -73,15 +79,19 @@ export class QuestRpc {
       session.callback('onPlayerLevelUp', lv);
     }
     sendPushes(session, out.rewardPushes); // award items after exp / money (Go FinishQuest order)
+    if (out.cl !== undefined) session.callback('onUPP', { cl: out.cl }); // Flash prints CALLBACK_S[25]
     if (out.loop) {
       const fin: FinishLoopQuestPush = { id: out.loop.id, ft: out.loop.ft, num: out.loop.num, name: out.loop.name };
       session.callback('onFinishLoopQuest', fin); // before the next round (Go lifecycle.go order)
+      sendPushes(session, await this.bosses.closed(id, questId));
       if (out.loop.next) {
         session.callback('onAddChaQuest', out.loop.next);
         sendPushes(session, await this.quests.startPushes(id, out.loop.nextId));
+        sendPushes(session, await this.bosses.roundTaken(id, session.mapId, out.loop.nextId));
       }
     }
     await this.pushNpcStates(session, this.gameData.npcsOnMap(session.mapId).map((r) => Number(r.id)));
+    await this.gates.emitFinished(session, out.tpl); // M10 listeners (dungeon floor credit, chest reveal)
     return { flag: true, qid: questId, qn: out.qn };
   }
 
@@ -92,7 +102,10 @@ export class QuestRpc {
     const result: CancelQuestResult = { flag: out.flag, qid: questId, qn: out.qn };
     if (out.info) result.info = out.info;
     session.callback('onCancelQuest', result);
-    if (out.flag && out.tpl) await this.pushNpcStates(session, [out.tpl.startNpc, out.tpl.finishNpc]);
+    if (out.flag && out.tpl) {
+      await this.pushNpcStates(session, [out.tpl.startNpc, out.tpl.finishNpc]);
+      await this.gates.emitAbandon(session, out.tpl); // M10: dungeon abandon lock
+    }
     return result;
   }
 
@@ -101,6 +114,15 @@ export class QuestRpc {
     const q: InitQuestManagerReply['q'] = {};
     for (const quest of await this.quests.active(session.characterId!)) q[String(quest.qid)] = quest;
     return { q, l: await this.loops.activeDtos(session.characterId!) };
+  }
+
+  /** setNpcState(id): the quest mark of one NPC of this map -> onSetNpcState(npcId, state) (Go scene/state.go). */
+  @Rpc('setNpcState', { requireCharacter: true })
+  async setNpcState(session: Session, args: unknown[]): Promise<null> {
+    const npcId = intArg(args[0], 'npcId');
+    const [state] = (await this.quests.npcStates(session.characterId!, [npcId])).values();
+    session.callback('onSetNpcState', npcId, state ?? -1);
+    return null;
   }
 
   /** onSetNpcState(npcId, state) for each distinct NPC that stands on the player's map. */

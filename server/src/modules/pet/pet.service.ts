@@ -70,6 +70,13 @@ export class PetService implements PetItemHook, OnModuleInit {
     return out;
   }
 
+  /** One pet of the character as a wrapper (onAddPet after a mail / trade delivery); null when it is not theirs. */
+  async wrapOne(characterId: number, petId: number): Promise<PetWrapper | null> {
+    const row = await this.pets.findOne({ _id: petId, characterId }).lean();
+    const tpl = row ? this.gameData.petTemplate(row.tid) : undefined;
+    return row && tpl ? petWrapper(row, tpl, await this.bonus.extrasOf(characterId, row)) : null;
+  }
+
   /** petMaxNum / showPetId / petList for the login payload (petList holds the unwrapped data blocks). */
   async loginInfo(characterId: number): Promise<PetLoginInfo> {
     const wrapped = await this.listWrapped(characterId);

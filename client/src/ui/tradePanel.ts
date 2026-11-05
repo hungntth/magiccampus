@@ -1,11 +1,12 @@
 // "Giao dịch" window (legacy TradePanel, DOM): the other player's frame (filled by onTargetLock) and your own frame with 5 item
-// slots (fed by bag double-click / drag), Bạc / Vàng inputs and the Khóa / Xác nhận / Hủy buttons. State machine as in Flash:
+// slots (fed by bag double-click / drag) and 5 pet slots (Thêm pet picker, tradePets.ts), Bạc / Vàng inputs and the Khóa / Xác nhận / Hủy buttons. State machine as in Flash:
 // normal -> lock -> confirm; items and money are editable only in `normal`. Pure view: TradeController owns the RPCs and pushes.
 
-import { TRADE_MAX_ITEMS, type BagItem, type PlayerData, type TargetLock, type TradeOffer } from '@mc/shared';
+import { TRADE_MAX_ITEMS, TRADE_MAX_PETS, type BagItem, type PetView, type PlayerData, type TargetLock, type TradeOffer } from '@mc/shared';
 import { endDrag, dragging, fillItemCell } from './itemCell';
 import { closeOnEscape, makeDraggable } from './panelBehavior';
 import { stageEl } from './stage';
+import { buildPetPicker, fillPetSlots } from './tradePets';
 import './bag.css';
 import './tradePanel.css';
 
@@ -13,6 +14,8 @@ export type TradeState = 'normal' | 'lock' | 'confirm';
 
 export interface TradePanelHost {
   player(): PlayerData;
+  /** Own pets (the picker offers the resting, unbound ones). */
+  pets(): PetView[];
   /** A bag item id dragged onto the panel (resolved by the controller from the bag). */
   itemById(id: number): BagItem | undefined;
   onLock(offer: TradeOffer): void;
@@ -32,6 +35,8 @@ export class TradePanel {
   private root: HTMLElement | null = null;
   private offs: (() => void)[] = [];
   private mine: BagItem[] = [];
+  private minePets: PetView[] = [];
+  private picker: HTMLElement | null = null;
   private state: TradeState = 'normal';
   private target: TargetLock | null = null;
   private targetConfirmed = false;
@@ -51,6 +56,7 @@ export class TradePanel {
   open(targetName: string): void {
     this.close();
     this.mine = [];
+    this.minePets = [];
     this.state = 'normal';
     this.target = null;
     this.targetConfirmed = false;
@@ -63,7 +69,7 @@ export class TradePanel {
     header.appendChild(x);
     const cols = el('div', 'trade-cols');
     cols.append(this.column('target', 'Khung giao dịch đối phương'), this.column('self', 'Khung giao dịch bản thân'));
-    root.append(header, cols, el('div', 'trade-hint', 'Nhấp đôi vào vật phẩm trong túi đồ để thêm, nhấp đôi vào khung để xóa'), this.buttons());
+    root.append(header, cols, el('div', 'trade-hint', 'Nhấp đôi vật phẩm trong túi đồ hoặc bấm Thêm pet để thêm, nhấp đôi vào khung để xóa'), this.buttons());
     stageEl().appendChild(root);
     this.root = root;
     this.offs = [makeDraggable(root, header, 'tradePanel'), closeOnEscape(() => this.host.onCancel())];
@@ -73,6 +79,7 @@ export class TradePanel {
   close(): void {
     for (const off of this.offs) off();
     this.offs = [];
+    this.picker = null;
     this.root?.remove();
     this.root = null;
   }
@@ -82,6 +89,15 @@ export class TradePanel {
     if (!this.root || this.state !== 'normal') return false;
     if (this.mine.some((i) => i.id === item.id) || this.mine.length >= TRADE_MAX_ITEMS) return false;
     this.mine.push(item);
+    this.render();
+    return true;
+  }
+
+  /** Pet picker pick: adds to the first free pet slot (no duplicates). Returns false when refused. */
+  addPet(pet: PetView): boolean {
+    if (!this.root || this.state !== 'normal') return false;
+    if (this.minePets.some((p) => p.id === pet.id) || this.minePets.length >= TRADE_MAX_PETS) return false;
+    this.minePets.push(pet);
     this.render();
     return true;
   }
@@ -106,7 +122,7 @@ export class TradePanel {
 
   offer(): TradeOffer {
     const n = (i: HTMLInputElement): number => Math.max(0, Math.floor(Number(i.value) || 0));
-    return { money: n(this.money), gold: n(this.gold), items: this.mine.map((i) => i.id) };
+    return { money: n(this.money), gold: n(this.gold), items: this.mine.map((i) => i.id), pets: this.minePets.map((p) => p.id) };
   }
 
   private column(side: 'target' | 'self', title: string): HTMLElement {
@@ -114,6 +130,12 @@ export class TradePanel {
     col.appendChild(el('div', 'trade-col-title', title));
     col.appendChild(el('div', 'trade-status'));
     col.appendChild(el('div', 'trade-slots'));
+    col.appendChild(el('div', 'trade-pets'));
+    if (side === 'self') {
+      const add = el('button', 'trade-btn trade-add-pet', 'Thêm pet');
+      add.onclick = () => this.togglePicker();
+      col.appendChild(add);
+    }
     const wallet = el('div', 'trade-wallet');
     for (const [key, label] of [['money', 'Bạc'], ['gold', 'Vàng']] as const) {
       const row = el('div', 'trade-money');
@@ -159,6 +181,23 @@ export class TradePanel {
     return bar;
   }
 
+  private removePet(id: number): void {
+    this.minePets = this.minePets.filter((p) => p.id !== id);
+    this.render();
+  }
+
+  private togglePicker(): void {
+    if (this.picker) return this.closePicker();
+    if (!this.root || this.state !== 'normal') return;
+    this.picker = buildPetPicker(this.host.pets(), this.minePets.map((p) => p.id), (p) => this.addPet(p), () => this.closePicker());
+    this.root.appendChild(this.picker);
+  }
+
+  private closePicker(): void {
+    this.picker?.remove();
+    this.picker = null;
+  }
+
   private clampInputs(): void {
     const p = this.host.player();
     for (const [input, max] of [[this.money, p.money ?? 0], [this.gold, p.gold ?? 0]] as const) {
@@ -171,9 +210,15 @@ export class TradePanel {
     const root = this.root;
     if (!root) return;
     const player = this.host.player();
+    const live = new Set(this.host.pets().map((p) => p.id));
+    this.minePets = this.minePets.filter((p) => live.has(p.id)); // a pet that left meanwhile (released, sent) is dropped
     const editable = this.state === 'normal';
     this.fillSlots(root.querySelector('.trade-self .trade-slots') as HTMLElement, this.mine, editable, player.level);
     this.fillSlots(root.querySelector('.trade-target .trade-slots') as HTMLElement, this.target?.itemList ?? [], false, player.level);
+    fillPetSlots(root.querySelector('.trade-self .trade-pets') as HTMLElement, this.minePets, editable ? (id) => this.removePet(id) : null);
+    fillPetSlots(root.querySelector('.trade-target .trade-pets') as HTMLElement, this.target?.petList.map((w) => w.data) ?? [], null);
+    (root.querySelector('.trade-add-pet') as HTMLButtonElement).disabled = !editable;
+    if (!editable) this.closePicker();
     (root.querySelector('.trade-target .trade-in-money') as HTMLInputElement).value = String(this.target?.money ?? 0);
     (root.querySelector('.trade-target .trade-in-gold') as HTMLInputElement).value = String(this.target?.gold ?? 0);
     this.money.disabled = this.gold.disabled = !editable;

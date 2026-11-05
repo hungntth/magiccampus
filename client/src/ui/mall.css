@@ -116,6 +116,16 @@
   gap: 6px;
 }
 
+/* Trolley window (legacy SystemShopTrolleyPanel). */
+.shop-panel.cart-panel { width: 400px; z-index: 5; }
+.cart-count { margin-bottom: 4px; color: #ffe9a8; }
+.cart-list { min-height: 200px; padding: 4px; background: #0d2d4a; border: 1px solid #4f86b3; border-radius: 6px; }
+.cart-row { display: grid; grid-template-columns: 1fr 64px 54px 76px 38px; gap: 4px; align-items: center; padding: 2px 4px; }
+.cart-row.cart-head { color: #9fc9ea; border-bottom: 1px solid #25506f; }
+.cart-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.cart-del { padding: 0 4px; border: 1px solid #ffd0d0; border-radius: 4px; background: #a82020; color: #fff; font-size: 11px; }
+.cart-total { flex: 1; color: #ffe9a8; font-weight: 700; }
+
 .mall-search {
   width: 150px;
   height: 22px;

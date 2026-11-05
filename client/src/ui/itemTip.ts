@@ -127,9 +127,12 @@ export function renderItemTip(item: BagItem, ctx: ItemTipContext): HTMLElement {
   return root;
 }
 
+/** The fields of a shop / mall / credit slot the template tooltip reads. */
+export type SlotTipSource = Pick<ShopSlotView, 'iconCode' | 'name' | 'color' | 'info' | 'tplType' | 'reqLevel'>;
+
 /** Template tooltip of a shop / mall slot (no instance yet): the bag box without bind state and sell price.
  * `level` unknown: the requirement line is never marked red. */
-export function renderSlotTip(slot: ShopSlotView, level?: number): HTMLElement {
+export function renderSlotTip(slot: SlotTipSource, level?: number): HTMLElement {
   const root = el('div', 'it-body');
   const head = el('div', 'it-head', '', root);
   const icon = el('div', 'it-icon', '', head);

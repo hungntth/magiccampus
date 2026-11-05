@@ -3,7 +3,7 @@
 // onP2pWisperError, onSystemMidMsgOrNote (notes), onAddCharactorSlot / onDelCharactorSlot (Loa spent).
 
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { ChatChannel, ChatLimits, SOURCE_ID_CHARACTER, type SayPush, type WisperPush } from '@mc/shared';
+import { ChatChannel, ChatLimits, PERMISSION_TEXT, SOURCE_ID_CHARACTER, type SayPush, type WisperPush } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
 import { GameGateway } from '../../gateway/game.gateway';
 import { SceneManager } from '../../gateway/scene.manager';
@@ -15,6 +15,7 @@ import { GuildViewService } from '../guild/guild-view.service';
 import { PmStateService } from '../vip/pm-state.service';
 import { withCharLock } from '../inventory/char-lock';
 import { ChatRateLimiter, findOnlineByName, normalizeMessage, routeChannel, worldChatCost } from './chat-rules';
+import { PermissionService } from '../settings/permission.service';
 
 const NEED_LOA =
   'Mỗi lần phát ngôn trên kênh thế giới sẽ cần 1 Loa. (Mỗi 5 phút có thể phát ngôn miễn phí 1 lần)';
@@ -37,6 +38,7 @@ export class ChatService implements OnModuleInit {
     private readonly parties: PartyManager,
     private readonly guilds: GuildViewService,
     private readonly vip: PmStateService,
+    private readonly perms: PermissionService,
   ) {}
 
   onModuleInit(): void {
@@ -61,13 +63,17 @@ export class ChatService implements OnModuleInit {
   }
 
   /** Whisper by exact name; an offline target only gets a note (the sender is told, nothing is thrown). */
-  wisper(session: Session, targetName: string, raw: unknown): void {
+  async wisper(session: Session, targetName: string, raw: unknown): Promise<void> {
     const msg = normalizeMessage(raw, ChatLimits.MAX_MSG_LEN);
     if (!msg) return;
     this.acquire(session);
     const target = findOnlineByName(this.scenes.onlineSessions(), targetName);
     if (!target) {
       session.callback('onSystemMidMsgOrNote', OFFLINE);
+      return;
+    }
+    if (target !== session && !(await this.perms.allows(target.characterId!, 'achat'))) {
+      session.callback('onSystemMidMsgOrNote', PERMISSION_TEXT.achat(target.characterName ?? '?'));
       return;
     }
     const push = (self: boolean): WisperPush => ({
@@ -79,7 +85,7 @@ export class ChatService implements OnModuleInit {
   }
 
   /** Private chat window text: the target gets onP2pWisper (no sender echo); offline gets onP2pWisperError(targetId). */
-  p2pWisper(session: Session, targetId: number, raw: unknown): void {
+  async p2pWisper(session: Session, targetId: number, raw: unknown): Promise<void> {
     const text = normalizeMessage(raw, ChatLimits.MAX_P2P_LEN + 1);
     if (!text || text.length > ChatLimits.MAX_P2P_LEN) throw RpcException.invalidArgs('text');
     if (targetId === session.characterId) throw RpcException.invalidArgs('targetId');
@@ -87,6 +93,10 @@ export class ChatService implements OnModuleInit {
     const target = this.scenes.findByCharacter(targetId);
     if (!target) {
       session.callback('onP2pWisperError', targetId);
+      return;
+    }
+    if (!(await this.perms.allows(targetId, 'achat'))) {
+      session.callback('onSystemMidMsgOrNote', PERMISSION_TEXT.achat(target.characterName ?? '?'));
       return;
     }
     target.callback('onP2pWisper', text, session.characterId!, session.characterName ?? '?');

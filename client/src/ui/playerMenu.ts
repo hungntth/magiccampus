@@ -87,6 +87,8 @@ export interface PlayerMenuActions {
   requestJoin(t: MenuTarget): void;
   addFriend(t: MenuTarget): void;
   trade(t: MenuTarget): void;
+  /** "Xem chiến đấu" (TARGETCANVAS_S[2], M9 spectate): the server refuses a target that is not fighting. */
+  watch(t: MenuTarget): void;
 }
 
 export class PlayerMenu {
@@ -107,7 +109,7 @@ export class PlayerMenu {
       ['Mời lập nhóm', () => a.invite(target)],
     ];
     if (a.canRequestJoin(target)) items.push(['Xin vào nhóm', () => a.requestJoin(target)]);
-    items.push(['Kết bạn', () => a.addFriend(target)], ['Giao dịch', () => a.trade(target)]);
+    items.push(['Kết bạn', () => a.addFriend(target)], ['Giao dịch', () => a.trade(target)], ['Xem chiến đấu', () => a.watch(target)]);
     this.popup.show(target.name, items, clientX, clientY, String(target.id));
   }
 

@@ -4,13 +4,14 @@
 // Kept out of GameScene, which only hands over entities and the stage UI parent.
 
 import type { FederatedPointerEvent } from 'pixi.js';
-import { ChatChannel, type ChaInfo, type MapInfo, type PlayerData, type SayPush, type WisperPush } from '@mc/shared';
+import { ChatChannel, emotionOf, type ChaInfo, type MapInfo, type PlayerData, type SayPush, type WisperPush } from '@mc/shared';
 import type { GameClient } from '../net/client';
 import { ChaInfoPanel } from '../ui/chaInfoPanel';
 import { ChatBox } from '../ui/chat';
 import { PlayerMenu, type MenuTarget } from '../ui/playerMenu';
 import { PrivateChat } from '../ui/privateChat';
 import { toast } from '../ui/screens';
+import { showEmotion } from './EmotionBubble';
 import type { Entity } from './Entity';
 import { PkController } from './PkController';
 
@@ -48,6 +49,8 @@ export interface SocialHost {
   trade(): TradeActions;
   /** Slash commands other than /w (dev teleport etc.). */
   onCommand(cmd: string, args: string[]): void;
+  /** Player menu "Xem chiến đấu" (startWatch). */
+  watch(targetCid: number): void;
 }
 
 export class SocialController {
@@ -81,6 +84,7 @@ export class SocialController {
       requestJoin: (t) => host.party().requestJoin(t.id),
       addFriend: (t) => host.friends().add(t.name),
       trade: (t) => host.trade().request(t.id, t.name),
+      watch: (t) => host.watch(t.id),
     });
     this.offs.push(
       client.on('onSay', (data) => this.onSay(data as SayPush)),
@@ -129,7 +133,11 @@ export class SocialController {
   private onSay(msg: SayPush): void {
     if (msg.id !== this.host.player.id && this.host.friends().isBlack(msg.id)) return;
     this.chat.push(msg);
-    if (msg.channelId === ChatChannel.LOCAL) this.host.entityOf(msg.id)?.say(msg.msg);
+    if (msg.channelId !== ChatChannel.LOCAL) return;
+    const who = this.host.entityOf(msg.id);
+    const emotion = emotionOf(msg.msg);
+    if (who && emotion) void showEmotion(who, emotion); // M9: the emotion plays instead of the text bubble
+    else who?.say(msg.msg);
   }
 
   private showInfo(t: MenuTarget): void {

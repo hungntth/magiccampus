@@ -9,9 +9,11 @@ import { attachItemTip, NAME_COLORS, propLabel, rolledLines, type ItemTipContext
 export { NAME_COLORS };
 
 export interface DragPayload {
-  from: 'bag' | 'equip';
+  /** 'temp' / 'mx': a Túi Tiện Dụng slot (normal / Ma Tâm), `pos` is its 1-based posId and `id` the real item id. */
+  from: 'bag' | 'equip' | 'temp' | 'mx';
   id: number;
   sid: number;
+  pos?: number;
 }
 
 const MIME = 'application/x-mc-item';

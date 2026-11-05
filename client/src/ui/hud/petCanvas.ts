@@ -4,7 +4,8 @@
 import { petLevelOfExp, type PetView } from '@mc/shared';
 import { iconUrl } from '../../assets';
 import { Bar } from './portrait';
-import { div, notReady, place, skinButton, skinImage, std } from './skin';
+import { healButtonState } from '../bloodBagPanel';
+import { div, notReady, place, setStates, skinButton, skinImage, std } from './skin';
 
 export class PetCanvas {
   private readonly head: HTMLImageElement;
@@ -13,7 +14,9 @@ export class PetCanvas {
   private readonly hp: Bar;
   private readonly mp: Bar;
 
-  constructor(parent: HTMLElement, onToggle: () => void) {
+  private readonly heal: HTMLDivElement[];
+
+  constructor(parent: HTMLElement, onToggle: () => void, onBloodBag: (bt: number) => void = notReady, onBag: () => void = notReady) {
     const root = place(div('hud-portrait', parent), 2, 67, 179, 46);
     skinImage('MainStage_CharInfo/PetPortrait_png', root, 0, 0);
     this.head = document.createElement('img');
@@ -27,10 +30,20 @@ export class PetCanvas {
     this.name = place(div('hud-label hud-name', root), 68, 1, 90) as HTMLDivElement;
     this.hp = new Bar(root, 'MainStage_CharInfo/HPBar', 67, 22, 89, 5);
     this.mp = new Bar(root, 'MainStage_CharInfo/MPBar', 67, 32, 89, 5);
-    skinButton({ up: 'MainStage_CharInfo/HealEmptyUp' }, root, 161, 20, 'Sinh Mệnh Hoàn tiện dụng', notReady);
-    skinButton({ up: 'MainStage_CharInfo/HealMPEmptyUp' }, root, 161, 30, 'Pháp Lực Hoàn tiện dụng', notReady);
-    skinButton(std('MainStage_CharInfo/ItemBag'), root, 160, 3, 'Vật phẩm pet sử dụng', notReady);
+    this.heal = [3, 4].map((bt) => skinButton(std(healButtonState(undefined, bt).skin), root, 161, bt === 3 ? 20 : 30, '',
+      () => onBloodBag(bt)));
+    skinButton(std('MainStage_CharInfo/ItemBag'), root, 160, 3, 'Vật phẩm pet sử dụng', onBag);
+    this.setEp(undefined);
     this.setPet(null);
+  }
+
+  /** Blood bag pools 3 / 4 (pet HP / MP) on the heal buttons. */
+  setEp(ep: string | undefined): void {
+    this.heal.forEach((b, i) => {
+      const s = healButtonState(ep, i + 3);
+      setStates(b, std(s.skin));
+      b.title = s.tip;
+    });
   }
 
   /** The battle pet (state 1) or null. Pet HP / MP are always full outside battle in H5. */

@@ -1,0 +1,10 @@
+/* Kiếp Nạn Vô Ưu window (ui/nineBossPanel.ts): floor tabs, boss blurb + rewards, claim buttons and rules. */
+.nine-win { width: 500px; top: 5%; }
+.nine-win .nine-tabs { display: grid; grid-template-columns: repeat(9, 1fr); gap: 3px; }
+.nine-win .nine-tabs .act-btn { padding: 3px 0; }
+.nine-win .nine-tabs .act-btn.locked { opacity: 0.45; }
+.nine-win .nine-floor { display: flex; flex-direction: column; gap: 6px; padding: 8px; min-height: 150px; background: rgba(8, 28, 48, 0.7); border: 1px solid #2f648f; border-radius: 6px; }
+.nine-win .nine-info { line-height: 16px; }
+.nine-win .nine-reward { color: #ffe9a8; }
+.nine-win .nine-claim { justify-content: flex-start; }
+.nine-win .nine-rules { display: flex; flex-direction: column; gap: 2px; font-size: 11px; line-height: 15px; }

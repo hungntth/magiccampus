@@ -200,7 +200,7 @@ export class QuestController {
   }
 
   private onMoney(key: string, amount: number): void {
-    const label = key === 'gold' ? 'Vàng' : 'Tiền';
+    const label = key === 'gold' ? 'Vàng' : key === 'couragePoint' ? 'điểm Dũng Khí' : 'Tiền';
     if (amount > 0) this.pendingMoney = `${amount} ${label}`;
   }
 

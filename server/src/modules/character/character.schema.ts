@@ -4,6 +4,24 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 
+/** One placed Túi Tiện Dụng item: template id, slot count, expiry in ms (0 = forever). */
+export interface StoredHolder {
+  tid: number;
+  num: number;
+  exp: number;
+}
+
+export interface StoredTempSection {
+  opened?: number;
+  holders?: Record<string, StoredHolder>;
+}
+
+export interface TempBagState {
+  n?: StoredTempSection;
+  mx?: StoredTempSection;
+  dire?: boolean;
+}
+
 @Schema({ collection: 'characters', timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' } })
 export class Character {
   @Prop({ type: Number })
@@ -134,6 +152,27 @@ export class Character {
 
   @Prop({ default: 0 })
   actTitleId: number;
+
+  // Class rank 0..5 (M9 phase B): raised by the promotion chains' final quests, gates req_c_l skills and the 3-1 turn-ins.
+  @Prop({ default: 0 })
+  cl: number;
+
+  // Blood bag pools (M9 phase D): char HP, char MP, pet HP, pet MP (login / onUPP `ep`). Capped at BLOOD_BAG_MAX each.
+  @Prop({ type: [Number], default: () => [0, 0, 0, 0] })
+  bloodBag: number[];
+
+  // When the character last fell to 0 HP at battle settle (mode-3 relive price); cleared on revive.
+  @Prop({ type: Date, default: null })
+  deathAt: Date | null;
+
+  // Interface settings (M9, uif / skillSetBattle): character auto-battle keys (bs/bt odd slots, p2..p5, bs9).
+  @Prop({ type: Object, default: {} })
+  interfaceData: Record<string, number | boolean>;
+
+  // Túi Tiện Dụng state (M11 phase C): per sub-bag (n normal, mx Ma Tâm) the opened holder slots and the placed holders keyed
+  // "1".."5" ({tid, num, exp ms}), plus the put-directly flag. Written only under the character lock (modules/tempbag).
+  @Prop({ type: Object, default: {} })
+  tempBag: TempBagState;
 
   @Prop({ default: false })
   deleted: boolean;

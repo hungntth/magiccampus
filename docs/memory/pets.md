@@ -67,3 +67,8 @@ Research: `docs/research/2026-11-04_07_PET_CLIENT_RESEARCH.md`, `..._08_PET_SERV
 - Mounts and flying; bag summon items; `-90`/`-100` recall and swap; pet auto-battle.
 - Not verified live: a catch in a group battle, passive percents other than HP, `req_class_id` items.
 - Quiet the new RPCs after the user confirms.
+
+## Detail rates (M9 phase F)
+- `pet/pet-detail.rpc.ts`: `getFinalPraDefPet` / `finalPraMagDefPet` (Go names) and the H5 helper `getPetDetailData()`, all on the
+  fighting pet (state 1); none push `onRefreshPetProp`. Pet rates = gear + passive skill rates (`final-rate.ts petRates`).
+  The pet panel shows "Chi tiết" in the attributes tab only for the fighting pet.

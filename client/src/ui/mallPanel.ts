@@ -1,12 +1,14 @@
 // Mall ("Shop", legacy SystemShopPanel) window: vertical st tabs on the left (Hot / Sale / New / Limit / Dò tìm), shop
 // category tabs on top, paged 4x4 slot grid with bag-style hover tooltips, search box + Dò tìm / Nạp / Mua, the
-// kim phiếu note and the wallet column. Buying (Mua or double-click) asks an amount then calls `onBuy`.
+// kim phiếu note and the wallet column. Buying (Mua or double-click) asks an amount then calls `onBuy`; Thêm vào xe adds the
+// selected gold row to the trolley (MallCart, Xe hàng window -> buySystemItemMulti).
 
 import { filterMallSlots, ShopCurrency } from '@mc/shared';
 import type { MallSlotView, OpenMall, PlayerData } from '@mc/shared';
 import type { PaymentControl } from '../game/payment';
 import { askAmount } from './amountDialog';
 import { notReady } from './hud/skin';
+import { MallCart, cartUnit } from './mallCart';
 import { mallWallet, type MallWallet } from './mallWallet';
 import { closeOnEscape, makeDraggable } from './panelBehavior';
 import { toast } from './screens';
@@ -62,6 +64,9 @@ export class MallPanel {
   /** Set by MallController: performs buySystemItemClient. */
   onBuy: ((slotId: number, amount: number) => void) | null = null;
   onClose: (() => void) | null = null;
+  /** The trolley; the owner wires its onBuy / goldType. It outlives the window (the cart keeps its rows while the mall is closed). */
+  readonly cart = new MallCart();
+  private cartBtn: HTMLButtonElement | null = null;
 
   get isOpen(): boolean {
     return this.root !== null;
@@ -122,7 +127,9 @@ export class MallPanel {
     for (const off of this.offs) off();
     this.offs = [];
     this.root.remove();
-    this.root = this.grid = this.tabRow = this.sideRow = this.pageBox = this.prev = this.next = null;
+    this.cart.close();
+    this.cart.onChange = null;
+    this.root = this.grid = this.tabRow = this.sideRow = this.pageBox = this.prev = this.next = this.cartBtn = null;
     this.data = null;
     this.onClose?.();
   }
@@ -145,7 +152,16 @@ export class MallPanel {
     buy.title = 'Mua vật phẩm đang chọn';
     buy.onclick = () => this.buySelected();
     actions.append(search, find, topUp, buy);
-    left.append(actions, el('div', 'mall-note', 'Vật phẩm mua bằng kim phiếu sẽ bị khóa'));
+    const cartRow = el('div', 'mall-actions');
+    const addCart = el('button', 'shop-btn', 'Thêm vào xe');
+    addCart.title = 'Thêm vật phẩm đang chọn vào xe hàng';
+    addCart.onclick = () => this.addSelectedToCart();
+    this.cartBtn = el('button', 'shop-btn', '');
+    this.cartBtn.onclick = () => this.cart.show();
+    this.cart.onChange = () => this.refreshCartButton();
+    this.refreshCartButton();
+    cartRow.append(addCart, this.cartBtn);
+    left.append(actions, cartRow, el('div', 'mall-note', 'Vật phẩm mua bằng kim phiếu sẽ bị khóa'));
     this.wallet = mallWallet(payment, player);
     foot.append(left, this.wallet.element);
     return foot;
@@ -202,6 +218,29 @@ export class MallPanel {
     this.pageBox!.textContent = `${this.page + 1} / ${pages}`;
     this.prev!.disabled = this.page <= 0;
     this.next!.disabled = this.page >= pages - 1;
+  }
+
+  private refreshCartButton(): void {
+    if (this.cartBtn) this.cartBtn.textContent = `Xe hàng (${this.cart.lines.length})`;
+  }
+
+  /** Thêm vào xe: amount dialog, then the trolley rules (20 rows, no duplicates, gold rows only). */
+  private addSelectedToCart(): void {
+    const slot = this.data?.slots.find((s) => s.slotId === this.selected);
+    if (!slot) return void toast('Hãy chọn vật phẩm cần mua');
+    if (cartUnit(slot) <= 0) return void toast('Chỉ vật phẩm bán bằng vàng mới thêm được vào xe hàng', true);
+    this.closeAmount?.();
+    this.closeAmount = askAmount({
+      title: `Thêm ${slot.name} vào xe`,
+      max: Math.max(1, slot.stackMax),
+      totalText: (n) => `Thành tiền: ${(cartUnit(slot) * n).toLocaleString('vi-VN')} Vàng`,
+      onOk: (amount) => {
+        this.closeAmount = null;
+        const refusal = this.cart.add(slot, amount);
+        if (refusal) toast(refusal, true);
+        else toast(`Đã thêm ${slot.name} x${amount} vào xe hàng`);
+      },
+    });
   }
 
   private buySelected(): void {

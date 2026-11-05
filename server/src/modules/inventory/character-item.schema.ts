@@ -46,6 +46,10 @@ export class CharacterItem {
 
   @Prop({ default: 0 })
   star: number;
+
+  /** Escrow owner while slotType is ESCROW (characterId 0): 'mail:<id>' or 'auction:<id>'; absent otherwise. */
+  @Prop({ type: String, index: true, sparse: true })
+  escrowRef?: string;
 }
 
 export type CharacterItemDocument = HydratedDocument<CharacterItem>;

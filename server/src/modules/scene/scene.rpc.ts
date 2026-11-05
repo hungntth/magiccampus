@@ -1,5 +1,5 @@
 // Scene RPCs: sceneLogin, createChars, createNpcs, createSceneItems, udcp/udcr (movement), sceneChange (gate teleport),
-// gmGoMap (dev /go). Pushes: initLongBuff (sceneLogin), onScenePlayerEntered, onScenePlayerLeft, onCR (movement), onSceneEnter (after sceneChange).
+// gmGoMap (dev /go). M10: gate guards (SceneHooks) may refuse a gate with onMidNote; createNpcs appends the per-viewer instance NPCs. Pushes: initLongBuff (sceneLogin), onScenePlayerEntered, onScenePlayerLeft, onCR (movement), onSceneEnter (after sceneChange).
 
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import type { MoveUpdate, SceneCharacter, SceneEnterPush, SceneItem, SceneLoginResponse, SceneNpc } from '@mc/shared';
@@ -19,6 +19,8 @@ import { PmStateService } from '../vip/pm-state.service';
 import { portalDataOf } from './portal-data';
 import { resolveGate } from './portal.rules';
 import { SceneTransportService } from './scene-transport.service';
+import { SceneHooks } from './scene-hooks.service';
+import { InstanceNpcService } from '../npcscript/instance-npcs.service';
 
 const MOVE_MIN_INTERVAL_MS = 50;
 
@@ -36,6 +38,8 @@ export class SceneRpc implements OnModuleInit {
     private readonly party: PartyService,
     private readonly petFollow: PetFollowService,
     private readonly vip: PmStateService,
+    private readonly hooks: SceneHooks,
+    private readonly instances: InstanceNpcService,
   ) {}
 
   onModuleInit(): void {
@@ -80,10 +84,10 @@ export class SceneRpc implements OnModuleInit {
 
   @Rpc('createNpcs', { requireCharacter: true })
   async createNpcs(session: Session): Promise<SceneNpc[]> {
-    const npcs = this.gameData.npcsOnMap(session.mapId).map((r) => this.gameData.toSceneNpc(r));
+    const npcs = this.gameData.npcsOnMap(session.mapId).filter((r) => !this.instances.isHiddenStatic(Number(r.id))).map((r) => this.gameData.toSceneNpc(r));
     const states = await this.quests.npcStates(session.characterId!, npcs.map((n) => n.id));
     for (const n of npcs) n.questState = states.get(n.id) ?? -1;
-    return npcs;
+    return [...npcs, ...(await this.instances.npcsFor(session, session.mapId))];
   }
 
   @Rpc('udcp', { requireCharacter: true, quiet: true })
@@ -114,6 +118,11 @@ export class SceneRpc implements OnModuleInit {
     this.assertCanMove(session);
     const dest = resolveGate(gateId, portalDataOf(this.gameData));
     if (!dest || !this.gameData.getMap(dest.mapId)) throw RpcException.invalidArgs('gateId');
+    const refusal = await this.hooks.gateRefusal(session, session.mapId, dest.mapId);
+    if (refusal) {
+      session.callback('onMidNote', refusal); // Go gate_guard.go: the player stays
+      return null;
+    }
     const resp: SceneEnterPush = await this.transport.moveToMap(session, dest.mapId, dest.x, dest.y);
     session.callback('onSceneEnter', resp);
     return null;
@@ -167,7 +176,7 @@ export class SceneRpc implements OnModuleInit {
     const h = Number(mapRow?.height ?? 0);
     const cx = w > 0 ? Math.max(0, Math.min(w, Math.round(x))) : Math.round(x);
     const cy = h > 0 ? Math.max(0, Math.min(h, Math.round(y))) : Math.round(y);
-    await this.characters.updatePosition(session.characterId!, session.mapId, cx, cy, dir);
+    if (session.copyId === 0) await this.characters.updatePosition(session.characterId!, session.mapId, cx, cy, dir); // maze copies: no write
     const update: MoveUpdate = { id: session.characterId!, x: cx, y: cy, dir, route };
     this.scenes.broadcast(session.mapId, 'onCR', [update], session);
     await this.party.relayMove(session, cx, cy, dir);

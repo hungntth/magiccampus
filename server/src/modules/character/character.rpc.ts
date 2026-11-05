@@ -76,6 +76,7 @@ export class CharacterRpc {
       setTimeout(() => other.close(4001, 'character taken over'), 300);
     }
     session.characterId = doc._id;
+    session.temporaryBag = [];
     session.characterName = doc.name;
     this.scenes.bindCharacter(session, doc._id);
     // Effective stats (gear + buffs); current HP/MP are clamped to the effective max before they are sent.
@@ -91,6 +92,7 @@ export class CharacterRpc {
     this.scenes.leave(session);
     session.characterId = null;
     session.characterName = null;
+    session.temporaryBag = [];
     return { ok: true };
   }
 }

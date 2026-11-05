@@ -80,6 +80,7 @@ export function petView(row: Pet, tpl: PetTemplate, extras: PetExtras = {}): Pet
     colorCode: tpl.colorCode,
     property: toPetProperty(s, row.attrPoints, row.growRate, row.growRateAdd),
     ...(extras.skillInfo ? { skillInfo: extras.skillInfo } : {}),
+    pi: row.battleSetting ?? {},
   };
 }
 

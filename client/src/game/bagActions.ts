@@ -1,7 +1,7 @@
 // Bag / equipment RPC calls with the client gates and throttles of the legacy client (Player.useItem, RPCConfig.RPC_DELAY).
 // All calls are fire-and-forget: failures arrive as onSystemMidMsgOrNote pushes, so rejections are ignored.
 
-import { EQUIP_SLOT_COUNT, ItemKind, type BagItem, type PlayerData, type RecoverEntry } from '@mc/shared';
+import { BankQuickMove, EQUIP_SLOT_COUNT, ItemKind, type BagItem, type PlayerData, type RecoverEntry } from '@mc/shared';
 
 /** Template type of pet life-restore items (useItem targetType 2). */
 const PET_FUNC_TYPE = 507;
@@ -79,6 +79,29 @@ export class BagActions {
   repairAll(mode: 1 | 2): void {
     askConfirm('Sửa chữa toàn bộ trang bị?', () => {
       if (this.allow('repair', RPC_DELAY.repair)) this.send('repairAll', mode);
+    });
+  }
+
+  /** Double-click while the bank is open: dir 1 bag -> bank, 2 bank -> bag (whole stack, merges when it can). */
+  bagToBank(item: BagItem, toBank: boolean): void {
+    if (!this.allow('move', RPC_DELAY.move)) return;
+    this.send('bagToBank', item.sid, toBank ? BankQuickMove.TO_BANK : BankQuickMove.TO_BAG);
+  }
+
+  /** Bank Sắp xếp button (the panel disables it for 30 s). */
+  bankSort(onSent: () => void): void {
+    askConfirm('Xác nhận sắp xếp kho?', () => {
+      this.send('bankSort');
+      onSent();
+    });
+  }
+
+  /** Vứt bỏ multi-select: one confirm with the count, then delBagItems(ids). */
+  deleteItems(items: readonly BagItem[], done: () => void): void {
+    if (items.length === 0) return;
+    askConfirm(`Xác nhận xóa ${items.length} vật phẩm đã chọn?`, () => {
+      if (this.allow('drop', RPC_DELAY.drop)) this.send('delBagItems', items.map((i) => i.id), '');
+      done();
     });
   }
 

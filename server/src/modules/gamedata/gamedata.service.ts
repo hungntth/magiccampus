@@ -15,12 +15,13 @@ import { buildStarTables, starKey, type StarTables, type StarTemplate } from './
 import { buildFeatureTables, type AwakenRow, type AwakenSkillRow, type FeatureTables, type SoulRow, type WspRow } from './feature-data';
 import { buildNameIndex, nameKey } from './name-index';
 import { isNpcVisible } from './npc-visibility';
+import { applyNpcOverrides, applyQuestOverrides, OVERLAYS, unionRows } from './overlays';
 import { buildSceneItemTables, type SceneItemRow, type SceneItemTables } from './sceneitem-data';
 import {
   buildCombatTables, type CombatTables, type CreatureTemplate, type LootRow, type MapCreatureRow,
 } from './combat-data';
 import { buildPetTables, type PetTables, type PetTemplate } from './pet-data';
-import { buildSkillTable, skillsByName, type SkillTemplate } from './skill-data';
+import { buildSkillIndex, buildSkillTable, skillsByName, type SkillIndex, type SkillTemplate } from './skill-data';
 import {
   buildQuestTables, type QuestAwardRow, type QuestPreRow, type QuestRequireRow, type QuestTables, type QuestTemplate,
 } from './quest-data';
@@ -37,7 +38,7 @@ const TEMPLATE_FIELDS = {
   bind_prop_num: 1, req_class_id: 1, skill_id: 1,
   // forge: crafting requirements, material level, gem chain
   makable: 1, require_item1: 1, require_item2: 1, require_item3: 1, require_num1: 1, require_num2: 1, require_num3: 1,
-  level: 1, item_level: 1, next_jewel_tid: 1, prop_type: 1, propl_num: 1, hole_num: 1,
+  level: 1, item_level: 1, next_jewel_tid: 1, prop_type: 1, propl_num: 1, hole_num: 1, t: 1,
   // forge upgrades: tier upgrade target, soul (active prop) template values
   next_equ_tid: 1, active_prop_type: 1, active_prop_num: 1,
   // magic weapon: pipe list of skill ids (first = base skill)
@@ -56,6 +57,8 @@ export class GameDataService implements OnModuleInit {
   private shopsById = new Map<number, Row>();
   private shopSlotsBySid = new Map<number, Row[]>();
   private shopSlotsById = new Map<number, Row>();
+  private creditsById = new Map<number, Row>();
+  private creditsByShop = new Map<number, Row[]>();
   private buffs = new Map<number, Row>();
   private titles = new Map<number, Row>();
   private titleNames = new Map<string, number[]>();
@@ -63,9 +66,11 @@ export class GameDataService implements OnModuleInit {
   private achievements: Row[] = [];
   private achievementRequires: Row[] = [];
   private itemNames: Map<string, number[]> | null = null;
+  private readonly npcCreatureRows = new Map<number, Row[]>();
   private combat: CombatTables = buildCombatTables([], []);
   private skills = new Map<number, SkillTemplate>();
   private skillsByName = new Map<string, SkillTemplate[]>(); // pet skill books resolve skills by exact name
+  private skillIdx: SkillIndex = { byCode: new Map(), level1: [] };
   private pets: PetTables = buildPetTables([], []);
   private recipePlans = new Map<number, RecipePlan[]>();
   private makable: Row[] | null = null;
@@ -85,7 +90,7 @@ export class GameDataService implements OnModuleInit {
   async reload(): Promise<void> {
     this.maps = await this.indexById('data_tbl_map');
     this.classes = await this.indexById('data_tbl_class');
-    const npcs = await this.rows('data_tbl_npc');
+    const npcs = applyNpcOverrides(await this.rowsWithOverlays('data_tbl_npc'));
     this.npcsByMap = new Map();
     this.npcsById = new Map();
     for (const npc of npcs) {
@@ -95,8 +100,8 @@ export class GameDataService implements OnModuleInit {
       this.npcsByMap.get(mapId)!.push(npc);
     }
     const [quests, requires, pres, awards] = await Promise.all([
-      this.rows('data_tbl_quest'),
-      this.rows('data_tbl_quest_require'),
+      this.rows('data_tbl_quest').then(applyQuestOverrides),
+      this.rowsWithOverlays('data_tbl_quest_require'),
       this.rows('data_tbl_quest_pre'),
       this.rows('data_tbl_quest_award'),
     ]);
@@ -117,20 +122,31 @@ export class GameDataService implements OnModuleInit {
       if (!this.shopSlotsBySid.has(sid)) this.shopSlotsBySid.set(sid, []);
       this.shopSlotsBySid.get(sid)!.push(slot);
     }
-    this.buffs = await this.indexById('data_tbl_buff');
+    const credits = await this.rows('data_tbl_credit');
+    credits.sort((a, b) => Number(a.tab) - Number(b.tab) || Number(a.position) - Number(b.position) || Number(a.id) - Number(b.id));
+    this.creditsById = new Map();
+    this.creditsByShop = new Map();
+    for (const c of credits) {
+      this.creditsById.set(Number(c.id), c);
+      const sid = Number(c.shop_id);
+      if (!this.creditsByShop.has(sid)) this.creditsByShop.set(sid, []);
+      this.creditsByShop.get(sid)!.push(c);
+    }
+    this.buffs = new Map((await this.rowsWithOverlays('data_tbl_buff')).map((r) => [Number(r.id), r]));
     this.titles = await this.indexById('data_tbl_title');
     this.titleNames = buildNameIndex(this.titles.values(), 'n');
     this.achievements = await this.rows('data_tbl_achievement');
     this.achievementRequires = await this.rows('data_tbl_achievement_require');
     this.itemNames = null;
     const [mapCreatures, creatures, loot] = await Promise.all([
-      this.rows('data_tbl_map_creature'), this.rows('data_tbl_creature'), this.rows('data_tbl_creature_loot'),
+      this.rows('data_tbl_map_creature'), this.rows('data_tbl_creature'), this.rowsWithOverlays('data_tbl_creature_loot'),
     ]);
     this.combat = buildCombatTables(mapCreatures, creatures, loot);
     this.creatureNames = buildNameIndex(creatures, 'name');
-    this.pets = buildPetTables(creatures, await this.rows('data_tbl_creature_skill'));
+    this.pets = buildPetTables(creatures, await this.rowsWithOverlays('data_tbl_creature_skill'));
     this.skills = buildSkillTable(await this.rows('data_tbl_skill'));
     this.skillsByName = skillsByName(this.skills);
+    this.skillIdx = buildSkillIndex(this.skills);
     this.recipePlans = buildRecipePlans(await this.rows('data_tbl_recipe_plan'));
     this.makable = null;
     this.guildBuildings = buildGuildBuildingTables(await this.rows('data_tbl_building'), await this.rows('data_tbl_extend_position', { mid: 49 }));
@@ -153,6 +169,12 @@ export class GameDataService implements OnModuleInit {
         `${this.combat.creatures.size} creatures (${mapCreatures.length} map rows, ${loot.length} loot rows), ${this.skills.size} skills` +
         (this.maps.size === 0 ? ' — run `pnpm import:seeds` to populate static data' : ''),
     );
+  }
+
+  /** Rows of a base table with its M10 seed overlays applied (overlays.ts: same id replaced, new ids appended). */
+  async rowsWithOverlays(base: string, filter: Row = {}): Promise<Row[]> {
+    const extra = await Promise.all((OVERLAYS[base] ?? []).map((c) => this.rows(c, filter)));
+    return unionRows(await this.rows(base, filter), extra);
   }
 
   async rows(collection: string, filter: Row = {}): Promise<Row[]> {
@@ -248,6 +270,16 @@ export class GameDataService implements OnModuleInit {
     return this.shopSlotsById.get(id);
   }
 
+  /** Credit point shop rows (data_tbl_credit) of a shop, sorted by tab, position, id. */
+  creditRows(shopId: number): Row[] {
+    return this.creditsByShop.get(shopId) ?? [];
+  }
+
+  /** One credit row by id. */
+  credit(id: number): Row | undefined {
+    return this.creditsById.get(id);
+  }
+
   /** Buff template (data_tbl_buff) by id, cached at startup. */
   getBuff(id: number): Row | undefined {
     return this.buffs.get(id);
@@ -291,6 +323,16 @@ export class GameDataService implements OnModuleInit {
     return this.combat.mapCreatures.get(mapId) ?? [];
   }
 
+  /** data_tbl_npc_creature rows of an NPC's line-up (hitNpc), cached per nid on first use. */
+  async npcCreatures(nid: number): Promise<Row[]> {
+    let hit = this.npcCreatureRows.get(nid);
+    if (!hit) {
+      hit = await this.rowsWithOverlays('data_tbl_npc_creature', { nid });
+      this.npcCreatureRows.set(nid, hit);
+    }
+    return hit;
+  }
+
   creature(id: number): CreatureTemplate | undefined {
     return this.combat.creatures.get(id);
   }
@@ -298,6 +340,11 @@ export class GameDataService implements OnModuleInit {
   /** Creature as a pet template (catch / class / quality / icon columns), cached at startup. */
   petTemplate(id: number): PetTemplate | undefined {
     return this.pets.templates.get(id);
+  }
+
+  /** data_tbl_creature.class_id of a creature (0 when unknown): the auction pet search type is 700 + class_id - 1. */
+  creatureClassId(id: number): number {
+    return this.pets.templates.get(id)?.classId ?? 0;
   }
 
   /** Default skill ids of a creature (data_tbl_creature_skill), ordered by position then id. */
@@ -308,6 +355,11 @@ export class GameDataService implements OnModuleInit {
   /** Skill template (data_tbl_skill), cached at startup. */
   skill(id: number): SkillTemplate | undefined {
     return this.skills.get(id);
+  }
+
+  /** M9 skill window: code_name families (levels ascending) and every level-1 row. */
+  skillIndex(): SkillIndex {
+    return this.skillIdx;
   }
 
   /** Skills with exactly this name, lowest level first (pet skill books). */

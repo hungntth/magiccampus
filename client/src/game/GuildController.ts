@@ -8,7 +8,7 @@ import type { Container } from 'pixi.js';
 import {
   GuildLeaveType, GuildNumProp, GuildRank, GUILD_FLAGS,
   type ConfirmGuildApplyPush, type BagItem, type DelGuildMemberPush, type DemisePush, type GuildBankStock, type GuildListEntry,
-  type GuildMember, type InitViewGuildP, type PlayerData, type UpdateGuildMemberPush, type UpdateNumProp,
+  type GuildMember, type InitViewGuildP, type PlayerData, type PlayerUpdate, type UpdateGuildMemberPush, type UpdateNumProp,
 } from '@mc/shared';
 import type { GameClient } from '../net/client';
 import { askConfirm } from '../ui/confirmDialog';
@@ -66,6 +66,7 @@ export class GuildController {
     on('onChangeGuildName', (name) => this.onRename(String(name)));
     on('onDelGuild', (gid) => this.onDelGuild(Number(gid)));
     on('onUpdateNumProp', (d) => this.onNum(d as UpdateNumProp));
+    on('onUPP', (d) => this.onShopSpend(d as PlayerUpdate));
     on('onUpdateGuildBankStock', (d) => { this.state.bankStock = d as GuildBankStock[]; this.panel.render(); });
   }
 
@@ -245,6 +246,15 @@ export class GuildController {
       this.host.player.guild = null;
       this.host.player.gData = null;
     }
+    this.panel.render();
+  }
+
+  /** Guild shop purchase (M11 phase E): onUPP carries the member contribution after the spend. */
+  private onShopSpend(u: PlayerUpdate): void {
+    const me = this.state.me();
+    if (!me || (u.guildContrib === undefined && u.donateContrib === undefined)) return;
+    if (u.guildContrib !== undefined) me.normalContrib = u.guildContrib;
+    if (u.donateContrib !== undefined) me.donateContrib = u.donateContrib;
     this.panel.render();
   }
 

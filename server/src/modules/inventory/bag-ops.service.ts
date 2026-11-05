@@ -17,9 +17,8 @@ import { withCharLock } from './char-lock';
 import { InventoryService } from './inventory.service';
 import { PageGate, type TemplateMaps } from './page-gate.service';
 import { push, type Push } from './pushes';
-import { busy, setLocation, swapLocations } from './slot-writes';
+import { applySortPlan, busy, setLocation, swapLocations } from './slot-writes';
 
-const SORT_OFFSET = 10000;
 const DROPPABLE: readonly number[] = [SlotType.BAG, SlotType.QUEST_BAG, SlotType.PET_BAG];
 
 /** sid -> slot of a movable page (bag / bank / quest / pet-item); anything else (equip slots, pet gear) is rejected. */
@@ -128,27 +127,30 @@ export class BagOpsService {
     });
   }
 
+  /**
+   * delBagItems(ids): the multi-select of the Vứt bỏ mode. Deletes owned bag / quest-page / pet-page rows (equipped items and rows
+   * that vanished are skipped); pushes onDelCharactorSlot per stack and returns how many were removed and skipped.
+   */
+  delBagItems(characterId: number, ids: readonly number[]): Promise<{ pushes: Push[]; removed: number; skipped: number }> {
+    return withCharLock(characterId, async () => {
+      const pushes: Push[] = [];
+      let skipped = 0;
+      for (const id of new Set(ids)) {
+        const gone = await this.items.findOneAndDelete({ _id: id, characterId, slotType: { $in: DROPPABLE } }).lean();
+        if (gone) pushes.push(push('onDelCharactorSlot', id, sidAt(gone.slotType, gone.slotIndex)));
+        else skipped++;
+      }
+      return { pushes, removed: pushes.length, skipped };
+    });
+  }
+
   /** bagSort(): merge, order and repack the whole general bag (all opened pages); pushes merged-away rows, then one onItemSort. */
   bagSort(characterId: number): Promise<Push[]> {
     return withCharLock(characterId, async () => {
       const docs = await this.items.find({ characterId, slotType: SlotType.BAG }).lean();
       const tpls = await this.gate.templates(docs);
       const plan = planSort(docs.map((d) => this.toRow(d, tpls, d.slotIndex)));
-      for (const k of plan.kept.filter((x) => x.countChanged)) {
-        await this.items.updateOne({ _id: k.id, characterId, slotType: SlotType.BAG }, { $set: { stackCount: k.stackCount } });
-      }
-      if (plan.removed.length > 0) {
-        await this.items.deleteMany({ characterId, slotType: SlotType.BAG, _id: { $in: plan.removed.map((r) => r.id) } });
-      }
-      const moved = plan.kept.filter((k) => k.from !== k.to);
-      const bulk = (index: (k: (typeof moved)[number]) => number) =>
-        moved.map((k) => ({
-          updateOne: { filter: { _id: k.id, characterId, slotType: SlotType.BAG }, update: { $set: { slotIndex: index(k) } } },
-        }));
-      if (moved.length > 0) {
-        await this.items.bulkWrite(bulk((k) => k.from + SORT_OFFSET), { ordered: true });
-        await this.items.bulkWrite(bulk((k) => k.to), { ordered: true });
-      }
+      await applySortPlan(this.items, characterId, SlotType.BAG, plan);
       const entries: ItemSortEntry[] = plan.kept.map((k) => ({ oldId: sidOf(k.from), newId: sidOf(k.to), stackNum: k.stackCount }));
       return [...plan.removed.map((r) => push('onDelCharactorSlot', r.id, sidOf(r.slotIndex))), push('onItemSort', entries)];
     });

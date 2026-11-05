@@ -9,6 +9,7 @@ import { RpcException } from '../../gateway/errors';
 import { GameDataService, type Row } from '../gamedata/gamedata.service';
 import type { QuestAwardRow, QuestTemplate } from '../gamedata/quest-data';
 import { maxStack, type AddSpec } from '../inventory/bag-rules';
+import { bossByQuest } from '../loop/loop-boss';
 import { withCharLock } from '../inventory/char-lock';
 import { InventoryService } from '../inventory/inventory.service';
 import { PetBattleService } from '../pet/pet-battle.service';
@@ -129,12 +130,14 @@ export class QuestRewardService {
 
   /** Accept-time item (data_tbl_quest.start_grant_item, unbound). A full bag skips it with a warning, like Go. */
   async grantStart(characterId: number, tpl: QuestTemplate): Promise<Push[]> {
-    if (tpl.startGrantItem <= 0) return [];
-    const row = await this.gameData.template(29, tpl.startGrantItem);
+    // Trị An rounds hand out their order item (Go handlers/quest/lifecycle.go questStartItemGrants; the seed column is empty).
+    const tid = tpl.startGrantItem > 0 ? tpl.startGrantItem : (bossByQuest(tpl.id)?.itemId ?? 0);
+    if (tid <= 0) return [];
+    const row = await this.gameData.template(29, tid);
     if (!row) return [];
     const amount = tpl.startGrantQty > 0 ? tpl.startGrantQty : 1;
     const spec: AddSpec = {
-      templateId: tpl.startGrantItem, itemType: ItemKind.ITEM, bound: false, color: 0, amount, maxStack: maxStack(row),
+      templateId: tid, itemType: ItemKind.ITEM, bound: false, color: 0, amount, maxStack: maxStack(row),
     };
     return withCharLock(characterId, async () => {
       if (!(await this.inventory.canFit(characterId, spec))) {

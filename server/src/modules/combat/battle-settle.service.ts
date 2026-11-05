@@ -17,9 +17,11 @@ import { petBattleExp } from '../pet/pet-rules';
 import { applyExp } from '../quest/quest.rules';
 import { QuestService } from '../quest/quest.service';
 import { BattleLootService } from './battle-loot.service';
+import { BattleHooks } from './battle-hooks';
 import type { Battle, BattleMember, Fighter } from './battle.types';
 import { expReward, moneyReward } from './rewards';
 import { applyPvpVitals } from './pvp-rules';
+import { aboveBossGap } from './boss-loot';
 import { isSurvivor, petSettlements, splitReward } from './roster';
 
 @Injectable()
@@ -33,6 +35,7 @@ export class BattleSettleService {
     private readonly petBattle: PetBattleService,
     private readonly petCatch: PetCatchService,
     private readonly achievements: AchievementEvents,
+    private readonly hooks: BattleHooks,
   ) {}
 
   /** Decides the battle's result and credits it once; later calls do nothing. */
@@ -45,19 +48,29 @@ export class BattleSettleService {
     const present = [...battle.members.values()].filter((m) => !m.left && fighterOf(m));
     const win = result === BattleResult.WIN;
     const survivors = win ? present.filter((m) => isSurvivor(fighterOf(m)!)) : [];
-    const dead = [...battle.fighters.values()].filter((f) => f.side === 'enemy' && !f.alive);
+    // M10 decision 14: summoned / split units count like line-up units, including corpses taken off the board (fallen).
+    const dead = [...battle.fighters.values(), ...(battle.fallen ?? [])].filter((f) => f.side === 'enemy' && !f.alive);
     // Rewards use the leader's level even when the leader left or died (its fighter stays on the board).
     const leader = battle.fighters.get(battle.members.get(battle.characterId)?.slot ?? -1);
-    const exp = splitReward(leader ? expReward(leader.level, dead) : 0, survivors.length);
-    const money = splitReward(moneyReward(dead), survivors.length);
+    const free = battle.ctx?.noRewards === true; // M10 I: the world boss pays per battle itself
+    const exp = free ? 0 : splitReward(leader ? expReward(leader.level, dead) : 0, survivors.length);
+    const money = free ? 0 : splitReward(moneyReward(dead), survivors.length);
     for (const m of survivors) {
       m.result.report.exp = exp;
       m.result.report.money = money;
     }
+    // M10 I schedule boss: more than 10 levels above the boss row -> exp 1, no money, no loot (Go level_gap.go)
+    const bossLevel = battle.ctx?.bossLevel;
+    const gapped = new Set(bossLevel === undefined ? [] : survivors.filter((m) => aboveBossGap(fighterOf(m)!.level, bossLevel)));
+    for (const m of gapped) {
+      m.result.report.exp = Math.min(m.result.report.exp, 1);
+      m.result.report.money = 0;
+    }
     await this.settlePets(battle, survivors, exp);
     await this.contractCaught(battle);
-    if (win) await this.creditQuestsAndLoot(survivors, dead);
+    if (win) await this.creditQuestsAndLoot(survivors.filter((m) => !gapped.has(m)), present, dead, battle, free);
     for (const m of present) await this.persist(m, fighterOf(m)!, survivors.includes(m));
+    await this.hooks.runEnd(battle); // M10 feature end hooks (dungeon victory credit, …)
   }
 
   /**
@@ -103,12 +116,14 @@ export class BattleSettleService {
 
   /** A leaver's HP/MP as they were when it dropped (the board keeps counting it as dead). */
   async saveVitals(cid: number, f: Fighter): Promise<void> {
-    await this.chars.updateOne({ _id: cid }, { $set: { currentHp: Math.max(0, f.hp), currentMp: Math.max(0, f.mp) } });
+    const deathAt = f.hp <= 0 ? { deathAt: new Date() } : {};
+    await this.chars.updateOne({ _id: cid }, { $set: { currentHp: Math.max(0, f.hp), currentMp: Math.max(0, f.mp), ...deathAt } });
   }
 
   /** HP/MP for everyone; exp / level / stat gain / moneyBind for a surviving winner, in one write. */
   private async persist(m: BattleMember, f: Fighter, rewarded: boolean): Promise<void> {
-    const $set: Record<string, number> = { currentHp: Math.max(0, f.hp), currentMp: Math.max(0, f.mp) };
+    const $set: Record<string, number | Date> = { currentHp: Math.max(0, f.hp), currentMp: Math.max(0, f.mp) };
+    if (f.hp <= 0) $set.deathAt = new Date(); // mode-3 relive price countdown
     const $inc: Record<string, number> = {};
     const report = m.result.report;
     if (rewarded) {
@@ -132,10 +147,15 @@ export class BattleSettleService {
     }
   }
 
-  /** Kill credit per survivor and the group loot. A failure is logged, never allowed to block exp / HP persistence. */
-  private async creditQuestsAndLoot(survivors: readonly BattleMember[], dead: readonly Fighter[]): Promise<void> {
+  /**
+   * Kill credit for every connected member of a won battle, dead ones included (Go quest_kill_party.go: a leader-only quest
+   * holder who died in the party win still counts), and the group loot for the survivors. Failures are logged, never block.
+   */
+  private async creditQuestsAndLoot(
+    survivors: readonly BattleMember[], present: readonly BattleMember[], dead: readonly Fighter[], battle: Battle, noLoot: boolean,
+  ): Promise<void> {
     const creatureIds = dead.filter((f) => f.kind === 'creature').map((f) => f.refId);
-    for (const m of survivors) {
+    for (const m of present) {
       this.achievements.record(m.cid, 'creatureKill', { creatureIds });
       try {
         m.result.quest = await this.quests.onCreatureKilled(m.cid, creatureIds);
@@ -143,8 +163,9 @@ export class BattleSettleService {
         this.logger.error(`kill credit failed for character ${m.cid}: ${(e as Error).message}`);
       }
     }
+    if (noLoot) return;
     try {
-      const loot = await this.lootService.grant(survivors.map((m) => ({ cid: m.cid, report: m.result.report })), dead);
+      const loot = await this.lootService.grant(survivors.map((m) => ({ cid: m.cid, report: m.result.report })), dead, battle.ctx);
       for (const m of survivors) m.result.loot = loot.get(m.cid) ?? null;
     } catch (e) {
       this.logger.error(`loot failed for battle: ${(e as Error).message}`);

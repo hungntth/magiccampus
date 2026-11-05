@@ -1,0 +1,41 @@
+/* "Chi tiết" window (ui/detailPropPanel.ts): two columns of label + value rows (legacy DetailPropPanel 300x380). */
+.act-win.detail-win {
+  left: calc(50% - 165px);
+  width: 330px;
+}
+
+.detail-grid {
+  display: flex;
+  gap: 8px;
+  padding: 4px 2px;
+}
+
+.detail-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 20px;
+  font-size: 12px;
+}
+
+.detail-label {
+  white-space: pre;
+  color: #9fe3ff;
+}
+
+.detail-value {
+  min-width: 52px;
+  padding: 0 4px;
+  text-align: right;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(159, 227, 255, 0.35);
+  border-radius: 3px;
+  color: #fff;
+}

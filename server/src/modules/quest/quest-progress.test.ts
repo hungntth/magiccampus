@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { QuestRequireRow, QuestTemplate } from '../gamedata/quest-data';
 import {
-  allMet, collectConsumption, collectItemIds, creditKills, incompleteKillTargets, initialObjectives, lootNeeds, petNeeds, questKillOf,
+  allMet, collectConsumption, collectItemIds, creditKills, creditObjective, incompleteKillTargets, initialObjectives, lootNeeds, petNeeds, questKillOf,
   syncCollect, syncPets,
 } from './quest-progress';
 import type { QuestObjective } from './quest.schema';
@@ -82,4 +82,13 @@ test('pet objectives: sync counts matching pets (capped), petNeeds carries q; ki
   assert.equal(syncPets(base, requires, pets.slice(0, 2), () => 'Tiểu Nấm Yêu')[1].current, 1);
   assert.deepEqual(petNeeds(base, requires), [{ creatureId: 32, q: 16, required: 2 }]);
   assert.equal(allMet(synced), true);
+});
+
+test('kind-6 credit adds to the first incomplete matching objective, capped at the requirement', () => {
+  const base = [obj(6, 2001, 19, 20), obj(2, 2001, 0, 1)];
+  const r = creditObjective(base, 6, 2001, 5);
+  assert.equal(r.changed, true);
+  assert.deepEqual(r.objectives, [obj(6, 2001, 20, 20), obj(2, 2001, 0, 1)]);
+  assert.equal(creditObjective(r.objectives, 6, 2001, 1).changed, false);
+  assert.equal(creditObjective(base, 6, 1058, 1).changed, false);
 });

@@ -19,6 +19,8 @@ export interface BattleMenuHandlers {
   onTimeout(): void;
   /** Potions currently in the bag, for the Vật phẩm list. */
   potions(): BagItem[];
+  /** Auto: turns auto battle on (the controller picks this round). */
+  onAuto(): void;
 }
 
 const el = (cls: string, text?: string, tag = 'div'): HTMLElement => {
@@ -41,19 +43,20 @@ export class BattleMenu {
   private interval: ReturnType<typeof setInterval> | null = null;
   private bannerTimer: ReturnType<typeof setTimeout> | null = null;
   private left = BATTLE_TURN_SECONDS;
+  private autoBox: HTMLElement | null = null;
 
   constructor(private readonly h: BattleMenuHandlers) {
     this.menu.append(el('battle-menu-title', 'Nhân vật'));
     this.addButton('attack', 'Tấn công', () => this.selectAttack());
     this.addButton('defend', 'Phòng ngự', () => h.onDefend());
     this.addButton('skill', 'Kỹ năng', () => this.toggleSkills());
-    // Pet, Vị trí (swap position) and Auto have no H5 feature yet: shown, disabled.
+    // Pet and Vị trí (swap position) have no H5 feature yet: shown, disabled.
     this.addButton('catch', 'Bắt', () => this.selectCatch());
     this.addButton('pet', 'Pet', null);
     this.addButton('position', 'Vị trí', null);
     this.addButton('item', 'Vật phẩm', () => this.toggleItems());
     this.addButton('escape', 'Bỏ chạy', () => h.onEscape());
-    this.addButton('auto', 'Auto', null);
+    this.addButton('auto', 'Auto', () => h.onAuto());
     // BATTLESTAGE_S[17]: toggles the battle info panel in Flash, not ported yet.
     const info = el('battle-btn battle-info-btn', 'Thông tin', 'button') as HTMLButtonElement;
     info.disabled = true;
@@ -169,6 +172,22 @@ export class BattleMenu {
     this.timer.style.display = 'none';
     if (waitText) this.showBanner(waitText, 0);
     else this.hideBanner();
+  }
+
+  /** Auto banner (AutoBattleCanva): stays up across rounds until hideAutoBanner(); the button stops auto. */
+  showAutoBanner(onStop: () => void): void {
+    if (this.autoBox) return;
+    const box = el('battle-auto');
+    const stop = el('battle-btn', 'Kết thúc auto', 'button');
+    stop.onclick = onStop;
+    box.append(el('battle-auto-title', 'Auto'), el('battle-auto-text', 'Auto hiện tại còn lại ∞ lượt.'), stop);
+    this.autoBox = box;
+    this.root.append(box);
+  }
+
+  hideAutoBanner(): void {
+    this.autoBox?.remove();
+    this.autoBox = null;
   }
 
   /** Center text for `ms` (0 = until replaced or hidden). */

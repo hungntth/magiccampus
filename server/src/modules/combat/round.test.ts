@@ -111,13 +111,20 @@ describe('resolveRound', () => {
     assert.equal(use?.tSObj?.rHp, 100);
   });
 
-  it('round 30 without a winner ends in an enemy win', () => {
+  it('PvE has no round cap (legacy HasRoundLimit is PvP only)', () => {
     const p = mk(10, 'player', { attack: 0, hp: 100000, hpMax: 100000 });
     const e = mk(0, 'enemy', { attack: 0, hp: 100000, hpMax: 100000, defense: 100000 });
     assert.equal(resolveRound(board(p, e), attack(0), MAX_ROUNDS - 1, half).ended, false);
+    assert.equal(resolveRound(board(p, e), attack(0), MAX_ROUNDS, half).ended, false);
+    assert.equal(resolveRound(board(p, e), attack(0), MAX_ROUNDS + 50, half).ended, false);
+  });
+
+  it('PvP round 30 without a winner is a draw', () => {
+    const p = mk(10, 'player', { attack: 0, hp: 100000, hpMax: 100000 });
+    const e = mk(0, 'enemy', { kind: 'character', attack: 0, hp: 100000, hpMax: 100000, defense: 100000 });
     const last = resolveRound(board(p, e), attack(0), MAX_ROUNDS, half);
     assert.equal(last.ended, true);
-    assert.equal(last.result, BattleResult.LOSE);
+    assert.equal(last.result, BattleResult.FLED);
   });
 });
 

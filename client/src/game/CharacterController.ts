@@ -8,6 +8,7 @@ import type { ChangePropertyArg, PlayerData, SceneCharacter } from '@mc/shared';
 import type { GameClient } from '../net/client';
 import { askConfirm } from '../ui/confirmDialog';
 import { CharacterPanel } from '../ui/characterPanel';
+import { DetailPropPanel } from '../ui/detailPropPanel';
 import type { BagController } from './BagController';
 import { AchievementController } from './AchievementController';
 import { FeatureController } from './FeatureController';
@@ -26,6 +27,8 @@ export interface CharacterHost {
 
 export class CharacterController {
   private readonly panel: CharacterPanel;
+  /** "Chi tiết" rates window, shared with the pet panel. */
+  readonly detail: DetailPropPanel;
   private readonly titles: TitleController;
   private readonly achievements: AchievementController;
   private readonly features: FeatureController;
@@ -34,6 +37,7 @@ export class CharacterController {
 
   constructor(private readonly host: CharacterHost) {
     const bag = host.bag;
+    this.detail = new DetailPropPanel(host.client);
     this.achievements = new AchievementController(host.client, host.player);
     this.features = new FeatureController(host.client, host.player);
     this.magicWeapon = new MagicWeaponController({
@@ -52,6 +56,7 @@ export class CharacterController {
       onMagicWeapon: () => this.magicWeapon.toggle(),
       onRepairMagicWeapons: () => this.magicWeapon.repairWorn(),
       onMount: () => host.onMount(),
+      onDetail: () => this.detail.toggle('char'),
       onClose: () => this.panel.close(),
     });
     bag.onChange = () => {

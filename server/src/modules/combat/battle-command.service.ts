@@ -1,6 +1,7 @@
 // Turns a player's wire command (battleUpdateCmd) into the round's PlayerCommand for that member's own fighter: target
 // validation, skill ownership / MP plan (planCast) and potion consumption (spend before credit). A pet fighter gets the same
-// attack / skill / defence handling (skill must be in its slots, uses its MP); items, escape and catch are owner-only. Pure parse at the bottom.
+// attack / skill / defence / item handling (skill must be in its slots, uses its MP; items come from the owner's bag and heal the pet);
+// escape and catch are owner-only. AUTO (-110) is a basic attack on a random living enemy (Go ClientActionAuto). Pure parse at the bottom.
 
 import { Injectable } from '@nestjs/common';
 import { BattleAction, type BattleCommand } from '@mc/shared';
@@ -30,6 +31,11 @@ export class BattleCommandService {
       case BattleAction.ATTACK: {
         const target = battle.fighters.get(cmd.tid);
         if (!target || target.side === own.side || !target.alive) throw RpcException.invalidArgs('tid'); // the other side (PvP: the other player)
+        return { action: BattleAction.ATTACK, targetSlot: target.slot };
+      }
+      case BattleAction.AUTO: {
+        const target = randomEnemy(battle, own);
+        if (!target) throw RpcException.invalidArgs('tid');
         return { action: BattleAction.ATTACK, targetSlot: target.slot };
       }
       case BattleAction.SKILL:
@@ -91,8 +97,16 @@ export class BattleCommandService {
   }
 }
 
-/** Actions a pet can take (the Flash pet menu offers attack / skill / defence in M4; the round also writes TIMEOUT for it). */
-const PET_ACTIONS: ReadonlySet<number> = new Set([BattleAction.ATTACK, BattleAction.SKILL, BattleAction.DEFENCE, BattleAction.TIMEOUT]);
+/** Actions a pet can take (attack / skill / defence / item, AUTO from the auto-battle chain; the round also writes TIMEOUT for it). */
+const PET_ACTIONS: ReadonlySet<number> = new Set([
+  BattleAction.ATTACK, BattleAction.SKILL, BattleAction.DEFENCE, BattleAction.TIMEOUT, BattleAction.ITEM, BattleAction.AUTO,
+]);
+
+/** A random living fighter of the other side, or undefined. */
+export function randomEnemy(battle: Pick<Battle, 'fighters'>, own: Fighter, rng: () => number = Math.random): Fighter | undefined {
+  const alive = [...battle.fighters.values()].filter((f) => f.side !== own.side && f.alive);
+  return alive.length ? alive[Math.min(alive.length - 1, Math.floor(rng() * alive.length))] : undefined;
+}
 
 /** battleUpdateCmd sends `[ownerCmd, petCmd?]`: index 0 is the owner, index 1 the pet (further entries are ignored). */
 export function parseCommands(raw: unknown): { own: BattleCommand; pet?: BattleCommand } {

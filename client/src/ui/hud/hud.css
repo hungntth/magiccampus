@@ -543,3 +543,26 @@
   border: 1px solid #fff2c4;
   box-sizing: border-box;
 }
+
+/* Hotbar (M9 phase C): slot icon + bag count, lock toggle. */
+.hud-slot { cursor: pointer; overflow: hidden; }
+.hud-slot-icon { position: absolute; left: 1px; top: 2px; width: 32px; height: 32px; pointer-events: none; }
+.hud-slot-count { position: absolute; right: 2px; bottom: 1px; font: 11px Tahoma, Verdana, sans-serif; color: #fff; text-shadow: 0 0 2px #000; pointer-events: none; }
+.hud-lock { position: absolute; font: 10px Tahoma, Verdana, sans-serif; color: #ffde00; text-shadow: 0 0 2px #000; text-align: center; cursor: pointer; }
+
+/* Chat emotion popup (ui/emojiPopup.ts, legacy EmotionCanvas 190x130). */
+.hud-emoji {
+  position: absolute;
+  z-index: 30;
+  pointer-events: auto;
+}
+
+.hud-emoji-btn {
+  position: absolute;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.hud-emoji-btn:hover {
+  background: url(/ui/MainStage_Emotions/BtnEm_mc1.png) no-repeat;
+}

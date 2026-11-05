@@ -75,3 +75,12 @@ Quiet the new RPCs only after the user confirms.
 
 ## Stat providers (M7)
 Bonuses now come from the `STAT_BONUS_PROVIDERS` registry (gear, buffs, guild skills, titles, stat features); BUFF_PROP 59/60 = finalPraDef/finalPraMagDef. See `progression.md`.
+
+## M9 phase B
+- New stat provider `training-skill` (`stats/training-bonus.provider.ts`): flat maxHp / defense / magicDefense / speed from the Luyện
+  chains (`trainingBonus`, base × level × tier × 10). `Character.cl` (class rank) added; see `skills.md`.
+
+## Detail panel (M9 phase F)
+- `getFinalPraDef(key, value, cid)` / `finalPraMagDef` (character-stats.rpc): the caller's aggregated rate; reply `{key, value}` when
+  args[0] is a non-empty string, else the number (`character/final-rate.ts`). Client `ui/detailPropPanel.ts` ("Chi tiết" in the
+  character panel header): 26 labels in Flash order, 19 plain `x.xx` + 7 percent `x.xx%`.

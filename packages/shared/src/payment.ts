@@ -2,6 +2,7 @@
 // its tab filter, and the empty shop-config push. Legacy: GamePredef.as SYSTEM_SHOP_ID (1973), SystemShopPanel.as,
 // Go application/shop (ChangeMoneyType, BuySystemItemClient, config.go). Pure helpers, usable in Node and the browser.
 
+import type { AddItemNotice } from './inventory.js';
 import { MoneyType, type MoneyKey, type ShopSlotView } from './protocol.js';
 
 // changeMoneyType(type): 1 / 2 pick the silver currency (moneyBind / money), 3 / 4 the gold currency (goldBind / gold):
@@ -67,3 +68,26 @@ export function filterMallSlots<T extends { st: number; sid: number }>(slots: re
 /** onGetShopConfig / onGetLimitShopConfig payload: [code (0 = ok), message, rows]; H5 sends it empty like Go. */
 export type ShopConfigPush = [code: number, msg: string, rows: string[]];
 export const EMPTY_SHOP_CONFIG: ShopConfigPush = [0, '', []];
+
+// --- M11 phase E: shop leftovers ---
+
+/** buySystemItemMulti reply (SystemShopTrolleyPanel): `items` are the onAddItem notices of what was granted. */
+export interface BuySystemItemMultiReply {
+  success: boolean;
+  items: AddItemNotice[];
+}
+
+/** Shops openShopDirect(shopId) may open (pet arena panels: PetArenaPanel.as:1948, PetArenaActivityPanel.as:1920). */
+export const SHOP_DIRECT_IDS: readonly number[] = [98, 115];
+
+/** Guild shop (NPC 1117): member of a guild of at least this level (Go guild_shop_gate.go). */
+export const GUILD_SHOP_ID = 83;
+export const GUILD_SHOP_MIN_LEVEL = 3;
+/** Shop price types paid with guild contribution (GamePredef CURRENCY_NORMAL_CONTRIB / CURRENCY_DONATE_CONTRIB). */
+export const GuildPriceType = { NORMAL: 20, DONATE: 21 } as const;
+export const GUILD_PRICE_NAMES: Readonly<Record<number, string>> = {
+  [GuildPriceType.NORMAL]: 'Cống hiến Bang Hội (Thường)',
+  [GuildPriceType.DONATE]: 'Cống hiến Bang Hội (Quyên góp)',
+};
+/** Mall cart limits (H5 hardening; the Flash trolley holds a handful of rows). */
+export const CART_MAX_ROWS = 100;

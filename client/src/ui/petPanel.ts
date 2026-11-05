@@ -31,6 +31,7 @@ export interface PetPanelHost {
   onRelease(pet: PetView): void;
   onBind(pet: PetView): void;
   onAllocate(pet: PetView, add: ChangePetPropertyArg): void;
+  onDetail(): void;
   /** Phase E: skill display facts, worn items, slot / skill / equipment actions. */
   skillInfo(id: number): PetSkillInfo | undefined;
   item(id: number): BagItem | undefined;
@@ -161,7 +162,7 @@ export class PetPanel {
     const body = el('div', 'pet-body');
     if (this.tab === 'info') {
       renderStatsTab(body, pet, this.alloc, {
-        onChange: () => this.render(), onSubmit: (add) => this.host.onAllocate(pet, add),
+        onChange: () => this.render(), onSubmit: (add) => this.host.onAllocate(pet, add), onDetail: () => this.host.onDetail(),
       });
     } else if (this.tab === 'skill') {
       renderSkillTab(body, pet, {

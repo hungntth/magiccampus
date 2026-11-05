@@ -1,15 +1,18 @@
-// Loop quest RPCs (all fire-and-forget in Flash): takeLoop(lid, npcId), cancelLoop(lid), loopRepaire(lid) [Flash spelling].
+// Loop quest RPCs (all fire-and-forget in Flash): takeLoop(lid, npcId), cancelLoop(lid), loopRepaire(lid) [Flash spelling], and
+// createBoss() -> onCreateBoss(map by nid) (M9: the loop bosses the character sees on its map; onBossOn / onBossOff follow rounds).
 // Pushes (self): onTakeLoop {flag, d}, onAddChaQuest (the round), onCancelQuest + onCancelLoopQuest {flag, id}, onSetNpcState;
 // a refused take also sends onSystemMidMsgOrNote with the reason. Round completion is announced by finishQuest
 // (onFinishLoopQuest {id, ft}, in quest.rpc.ts).
 
 import { Injectable } from '@nestjs/common';
-import type { CancelLoopQuestPush, TakeLoopPush } from '@mc/shared';
+import type { CancelLoopQuestPush, CreateBossPush, TakeLoopPush } from '@mc/shared';
 import { Rpc } from '../../gateway/rpc.decorator';
 import { RpcException } from '../../gateway/errors';
 import type { Session } from '../../gateway/session';
 import { sendPushes } from '../inventory/pushes';
+import { InstanceNpcService } from '../npcscript/instance-npcs.service';
 import { QuestService } from '../quest/quest.service';
+import { LoopBossService } from './loop-boss.service';
 import { LoopService } from './loop.service';
 
 function intArg(v: unknown, field: string): number {
@@ -23,6 +26,8 @@ export class LoopRpc {
   constructor(
     private readonly loops: LoopService,
     private readonly quests: QuestService,
+    private readonly bosses: LoopBossService,
+    private readonly instances: InstanceNpcService,
   ) {}
 
   @Rpc('takeLoop', { requireCharacter: true, forbidInBattle: true })
@@ -36,6 +41,7 @@ export class LoopRpc {
       session.callback('onTakeLoop', ok);
       session.callback('onAddChaQuest', out.quest);
       sendPushes(session, await this.loops.startPushes(id, out.quest.qid));
+      sendPushes(session, await this.bosses.roundTaken(id, session.mapId, out.quest.qid));
       await this.pushNpcStates(session, out.npcIds);
     } catch (e) {
       const no: TakeLoopPush = { flag: false };
@@ -54,6 +60,7 @@ export class LoopRpc {
       session.callback('onCancelQuest', { flag: true, qid: out.qid, qn: out.qn });
       const done: CancelLoopQuestPush = { flag: true, id: lid };
       session.callback('onCancelLoopQuest', done);
+      sendPushes(session, await this.bosses.closed(session.characterId!, out.qid));
       await this.pushNpcStates(session, out.npcIds);
     } catch (e) {
       const no: CancelLoopQuestPush = { flag: false, id: lid };
@@ -67,6 +74,16 @@ export class LoopRpc {
   async loopRepaire(session: Session, args: unknown[]): Promise<null> {
     const lid = intArg(args[0], 'lid');
     session.callback('onAddChaQuest', await this.loops.repair(session.characterId!, lid));
+    return null;
+  }
+
+  /** Sent by the client on every map entry after createNpcs (GameScene.as:276). Copy maps get {} like the rest. */
+  @Rpc('createBoss', { requireCharacter: true })
+  async createBoss(session: Session): Promise<null> {
+    const map: CreateBossPush = {};
+    for (const row of await this.bosses.scene(session.characterId!, session.mapId)) map[String(row.nid)] = row;
+    for (const row of this.instances.mapBosses(session.mapId)) map[String(row.nid)] = row; // M10 I schedule bosses
+    session.callback('onCreateBoss', map);
     return null;
   }
 

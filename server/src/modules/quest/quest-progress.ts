@@ -75,6 +75,22 @@ export function creditKills(
   return { objectives: next, changed };
 }
 
+export const KIND_USE = 6;
+
+/**
+ * Kind-6 "use" credit (Go UpdateObjectiveProgress(ObjectiveUseItem, target, amount)): + amount on the first incomplete
+ * matching objective, capped at its requirement.
+ */
+export function creditObjective(
+  objectives: readonly QuestObjective[], kind: number, itemId: number, amount: number,
+): { objectives: QuestObjective[]; changed: boolean } {
+  const next = objectives.map((o) => ({ ...o }));
+  const target = next.find((o) => o.kind === kind && o.itemId === itemId && o.current < o.required);
+  if (!target || amount <= 0) return { objectives: next, changed: false };
+  target.current = Math.min(target.required, target.current + amount);
+  return { objectives: next, changed: true };
+}
+
 /** The require row behind objective i (objectives are built one per require row, in order); its q is the pet quality field. */
 const petQ = (requires: readonly QuestRequireRow[], i: number, o: QuestObjective): number =>
   requires[i]?.kind === KIND_PET && requires[i].itemId === o.itemId ? requires[i].q : 0;

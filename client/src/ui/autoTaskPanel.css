@@ -1,0 +1,22 @@
+/* Auto-task window (ui/autoTaskPanel.ts): one row per dungeon, countdown + buttons. */
+.auto-task { width: 640px; }
+.auto-task .at-list { display: flex; flex-direction: column; gap: 4px; }
+.auto-task .at-row {
+  display: grid;
+  grid-template-columns: 120px 76px 1fr 150px 150px;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border: 1px solid #4f86b3;
+  border-radius: 4px;
+  background: rgba(12, 36, 60, 0.6);
+}
+.auto-task .at-name { color: #ffe9a8; font-weight: 700; }
+.auto-task .at-diff { color: #b8d0e6; font: inherit; }
+.auto-task .at-info { color: #b8d0e6; font-size: 12px; }
+.auto-task .at-state { color: #b8d0e6; font-size: 12px; text-align: center; }
+.auto-task .at-state.run { color: #8fe08f; }
+.auto-task .at-state.queue { color: #9fd0ff; }
+.auto-task .at-state.finish { color: #ffd76a; }
+.auto-task .at-actions { display: flex; gap: 4px; justify-content: flex-end; }
+.auto-task .at-rules { display: flex; flex-direction: column; gap: 2px; font-size: 12px; max-height: 120px; overflow-y: auto; }

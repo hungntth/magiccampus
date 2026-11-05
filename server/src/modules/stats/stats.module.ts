@@ -20,11 +20,13 @@ import {
 import { GuildSkillBonusService } from './guild-skill-bonus.service';
 import { STAT_BONUS_PROVIDERS } from './stat-provider';
 import { TitleBonusProvider } from './title-bonus.provider';
+import { TrainingBonusProvider } from './training-bonus.provider';
+import { CharacterSkill, CharacterSkillSchema } from '../skill/skill.schema';
 
 const PROVIDER_CLASSES = [
   GearBonusProvider, BuffBonusProvider, GuildSkillBonusProvider, TitleBonusProvider,
   SoulBonusProvider, AwakenBonusProvider, WarSpriteBonusProvider, CrystalBonusProvider, HeiyaoshiBonusProvider, ZodiacBonusProvider,
-  PrabuffBonusProvider, MountBonusProvider,
+  PrabuffBonusProvider, MountBonusProvider, TrainingBonusProvider,
 ];
 
 @Module({
@@ -37,6 +39,7 @@ const PROVIDER_CLASSES = [
       { name: GuildMemberRow.name, schema: GuildMemberSchema },
       { name: CharacterTitle.name, schema: CharacterTitleSchema },
       { name: CharacterFeature.name, schema: CharacterFeatureSchema },
+      { name: CharacterSkill.name, schema: CharacterSkillSchema },
     ]),
     GameDataModule,
   ],

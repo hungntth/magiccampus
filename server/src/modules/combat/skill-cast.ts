@@ -20,7 +20,7 @@ export function planCast(tpl: SkillTemplate, mp: number, mpMax: number): CastPla
     kind: 'cast',
     cast: {
       name: tpl.name, category, mpCost,
-      spec: { magic: category === 'magic' || category === 'heal', mult: tpl.mult, base: tpl.base },
+      spec: { magic: category === 'magic' || category === 'heal', mult: tpl.mult, base: tpl.base, ranged: category !== 'melee' },
     },
   };
 }

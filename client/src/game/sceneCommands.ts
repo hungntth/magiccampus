@@ -1,4 +1,6 @@
-// Chat slash commands for the world scene: /go <mapId> (gmGoMap, dev teleport), /maps (getMapList), /tp (teleport map picker: scroll or gold), /buff <id> [seconds] (gmAddBuff), /grant <currency|item|title> <id> <n> (gmGrant).
+// Chat slash commands for the world scene: /go <mapId> (gmGoMap, dev teleport), /maps (getMapList), /tp (teleport map picker: scroll or gold), /buff <id> [seconds] (gmAddBuff), /grant <currency|item|title> <id> <n> (gmGrant),
+// /npcmenu <npcId> (gmNpcMenu: test onList menu, M10), /fb (phụ bản hub), /quiz start [giây] | stop | status (gmQuiz, M10), /dg reset <key> | /dg time <key> <min> (gmDungeon, M10),
+// /wb start [phút] | stop | lobby [phút] | status (gmWorldBoss, M10).
 
 import type { GmGrantResult, SceneLoginResponse } from '@mc/shared';
 import type { GameClient } from '../net/client';
@@ -11,6 +13,7 @@ export async function runSceneCommand(
   chat: ChatBox,
   applyScene: (res: SceneLoginResponse) => Promise<void>,
   openTransport: () => void = () => undefined,
+  openDungeons: () => void = () => undefined,
 ): Promise<void> {
   try {
     if (cmd === 'go') {
@@ -49,6 +52,26 @@ export async function runSceneCommand(
       }
       const r = await client.call<GmGrantResult>('gmGrant', kind, args[1], args[2] === undefined ? undefined : Number(args[2]), args[3] === undefined ? undefined : Number(args[3]));
       chat.system(`Đã cấp: ${r.note}`);
+      return;
+    }
+    if (cmd === 'fb') {
+      openDungeons();
+      return;
+    }
+    if (cmd === 'dg') {
+      chat.system(await client.call<string>('gmDungeon', args[0], args[1], args[2] === undefined ? undefined : Number(args[2])));
+      return;
+    }
+    if (cmd === 'quiz') {
+      chat.system(await client.call<string>('gmQuiz', args[0], args[1] === undefined ? undefined : Number(args[1])));
+      return;
+    }
+    if (cmd === 'wb') {
+      chat.system(await client.call<string>('gmWorldBoss', args[0], args[1] === undefined ? undefined : Number(args[1])));
+      return;
+    }
+    if (cmd === 'npcmenu') {
+      await client.call('gmNpcMenu', Number(args[0]));
       return;
     }
     chat.system(`Lệnh không rõ: /${cmd}`);

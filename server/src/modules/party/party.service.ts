@@ -5,7 +5,7 @@
 
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import {
-  DiaryTask, GroupCantJoinCode, type GroupAfkPush, type GroupAfkReply, type GroupFlagPush, type GroupGiveLeaderPush, type GroupJoined,
+  DiaryTask, GroupCantJoinCode, PERMISSION_TEXT, type GroupAfkPush, type GroupAfkReply, type GroupFlagPush, type GroupGiveLeaderPush, type GroupJoined,
   type GroupLeavePush, type GroupMember, type SceneCharacter,
 } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
@@ -16,6 +16,7 @@ import { DiaryEvents } from '../activity/diary-events.service';
 import { CharacterService } from '../character/character.service';
 import { PartyManager } from './party.manager';
 import { buildMList, withinAfkReturn, type LeaveResult, type Party } from './party-rules';
+import { PermissionService } from '../settings/permission.service';
 
 const NOTE = {
   OFFLINE: 'Người chơi không trực tuyến',
@@ -41,6 +42,7 @@ export class PartyService implements OnModuleInit {
     private readonly gateway: GameGateway,
     private readonly characters: CharacterService,
     private readonly diary: DiaryEvents,
+    private readonly perms: PermissionService,
   ) {}
 
   onModuleInit(): void {
@@ -59,6 +61,7 @@ export class PartyService implements OnModuleInit {
     const target = this.scenes.findByCharacter(targetCid);
     if (!target) return this.note(session, NOTE.OFFLINE);
     if (target.battleId !== null) return void session.callback('onGroupCantJoin', targetCid, GroupCantJoinCode.SPECIAL_STATE);
+    if (!(await this.perms.allows(targetCid, 'ag'))) return this.note(session, PERMISSION_TEXT.ag(target.characterName ?? '?'));
     const r = this.parties.invite(me, targetCid);
     if (!r.ok) {
       if (r.reason === 'self') throw RpcException.invalidArgs('cid');

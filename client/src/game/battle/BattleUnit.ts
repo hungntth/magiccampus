@@ -7,6 +7,7 @@ import { SheetAnim, loadSheet } from '../SheetAnim';
 import { sheetNameFromResCode } from '../Entity';
 import { viewSlot } from '@mc/shared';
 import { Action, CLOSE_TO, RUN_SPEED, SLOT_POS, defaultDir, isEnemySlot } from './slots';
+import { BuffBar } from './buffBar';
 
 // Legacy PropBar: 50x4 bar, #333 back, 1 px black line around a #ddd frame at (-1, -2, w + 2, h + 3); each next bar sits at
 // y + height - 1.
@@ -33,6 +34,8 @@ export class BattleUnit extends Container {
   readonly enemy: boolean;
   readonly isPet: boolean;
   readonly level: number;
+  /** Creature template id (type-1 participants; character id for players). */
+  readonly refId: number;
   /** 1 boss (red name), 2 elite (green name). */
   readonly bossFlag: number;
   readonly homeX: number;
@@ -52,8 +55,10 @@ export class BattleUnit extends Container {
   private readonly nameText: Text;
   private readonly isSelf: boolean;
   private waitIcon: Text | null = null;
+  /** M10 E2: buff icons (sSObj / tSObj buffAdd, buffDel, buffClear). */
+  readonly buffs = new BuffBar();
   private goal: { x: number; y: number; done: () => void } | null = null;
-  private fade: { left: number; total: number } | null = null;
+  private fade: { left: number; total: number; in?: boolean } | null = null;
 
   /** `selfId`: the local character id; in a group battle only that unit shows the MP / SP bars (teammates show HP only). */
   constructor(p: BattleParticipant, selfId?: number, guest = false) {
@@ -63,6 +68,7 @@ export class BattleUnit extends Container {
     this.enemy = isEnemySlot(this.viewSlot);
     this.isPet = p.type === BattleParticipantType.PET;
     this.level = p.level;
+    this.refId = p.id;
     this.bossFlag = p.bossFlag;
     // The local character shows HP/MP/SP, its pet HP/MP (teammates and their pets: HP only).
     this.isSelf = selfId === undefined || (this.isPet ? p.cid === selfId : p.type === BattleParticipantType.CHARACTER && p.id === selfId);
@@ -86,7 +92,7 @@ export class BattleUnit extends Container {
     this.nameText = new Text({ text: shown, style: nameStyle(color) });
     this.nameText.anchor.set(0.5, 0);
     this.nameText.position.set(0, NAME_Y);
-    this.addChild(shadow, this.body, this.bars, this.nameText);
+    this.addChild(shadow, this.body, this.bars, this.nameText, this.buffs);
     this.eventMode = 'none';
     void this.load(p.resCode);
     this.layout();
@@ -110,6 +116,7 @@ export class BattleUnit extends Container {
 
   /** Bar stack from headY - 10 downward (legacy _barContainer.y); enemies show HP only, the own character HP/MP/SP. */
   private layout(): void {
+    this.buffs.position.set(0, this.headY - 14);
     this.bars.clear();
     const rows: [number, number, number][] = [[this.hp, this.hpMax, COLOR_HP]];
     if (this.isSelf) {
@@ -209,6 +216,13 @@ export class BattleUnit extends Container {
     this.fade = { left: ms, total: ms };
   }
 
+  /** M10 E2.2 BH_SUMMONED (18000): a new unit fades in over `ms` while standing. */
+  fadeIn(ms: number): void {
+    this.alpha = 0;
+    void this.play(Action.STAND, true);
+    this.fade = { left: ms, total: ms, in: true };
+  }
+
   /** Back to the slot with the stand pose and default facing (a dead unit stays as it is). */
   reset(): void {
     this.goal = null;
@@ -235,7 +249,9 @@ export class BattleUnit extends Container {
     }
     if (this.fade) {
       this.fade.left -= dt * 1000;
-      this.alpha = Math.max(0, this.fade.left / this.fade.total);
+      const k = Math.max(0, this.fade.left / this.fade.total);
+      this.alpha = this.fade.in ? 1 - k : k;
+      if (this.fade.in && k === 0) this.fade = null;
     }
     this.zIndex = this.y;
   }

@@ -1,6 +1,6 @@
 // Static loop tables, indexed once on first use: data_tbl_quest_loop (definitions) and the type-7 round pool of every loop
 // (`sub_type "7-<lid>"`). H5 keeps only rounds it can play: supported objectives (quest.rules isSupported), every kill creature
-// spawns on some map (Go "fightable" rule) and no boss-summon rounds (LOOP_BOSS_QUEST_IDS).
+// spawns on some map (Go "fightable" rule), except the loop-boss rounds (LOOP_BOSS_QUEST_IDS, fought against a boss NPC).
 
 import { Injectable, Logger } from '@nestjs/common';
 import { LOOP_BOSS_QUEST_IDS, loopIdOfSubType } from '@mc/shared';
@@ -66,7 +66,7 @@ export class LoopDataService {
       total.set(lid, (total.get(lid) ?? 0) + 1);
       const require = this.gameData.questRequire(tpl.id);
       const fightable = require.every((r) => r.kind !== 2 || spawned.has(r.itemId));
-      if (boss.has(tpl.id) || !fightable || !isSupported(tpl, require)) continue;
+      if (!(fightable || boss.has(tpl.id)) || !isSupported(tpl, require)) continue;
       const list = pools.get(lid) ?? [];
       list.push({ id: tpl.id, minLevel: tpl.minLevel, maxLevel: tpl.maxLevel });
       pools.set(lid, list);

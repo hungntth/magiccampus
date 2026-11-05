@@ -14,6 +14,7 @@ import type { BattlePet } from '../pet/pet-battle.service';
 import type { CharStats } from '../stats/character-stats.service';
 import { TradeService } from '../trade/trade.service';
 import { BattleManager } from './battle.manager';
+import { SpectateService } from './spectate.service';
 import { pushCharState } from './battle-end.service';
 import { BattleSettleService } from './battle-settle.service';
 import type { Battle, BattleMember } from './battle.types';
@@ -40,6 +41,7 @@ export class PvpService {
     private readonly scenes: SceneManager,
     private readonly trades: TradeService,
     private readonly characters: CharacterService,
+    private readonly spectate: SpectateService,
   ) {}
 
   /** Registers the duel and sends both clients their start pushes. Sync; null when either side started another battle meanwhile. */
@@ -64,6 +66,7 @@ export class PvpService {
     for (const f of board.values()) cList[String(f.slot)] = toParticipant(f);
     for (const [d, guest] of [[attacker, false], [target, true]] as const) {
       const s = d.session;
+      this.spectate.release(s.characterId!);
       s.battleId = battle.id;
       this.trades.stopFor(s.characterId!, true);
       s.encounterUntil = now + ENCOUNTER_COOLDOWN_MS;
@@ -74,6 +77,7 @@ export class PvpService {
       }
       pushCharState(this.scenes, s, CharState.BATTLE);
       const start: BattleStart = { battleFieldId: battle.id, nid: 0, cList, bossFlag: 0, sneakFlag: 0, guest, airBattle: false };
+      if (!guest) battle.start = start; // spectators see the attacker's view
       s.callback('onBattleStart', start);
     }
     return battle;
@@ -103,5 +107,6 @@ export class PvpService {
       s.callback('onUPP', { currentHp: f.hp, currentMp: f.mp });
       s.callback('onBattlePlayList', list);
     }
+    this.spectate.finish(battle);
   }
 }
