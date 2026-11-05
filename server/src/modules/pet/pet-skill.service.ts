@@ -129,6 +129,37 @@ export class PetSkillService {
     });
   }
 
+  /** M12 petUpSkill(petId, slot): consumes the matching level material and replaces the skill id in-place. */
+  upgradeSkill(characterId: number, petId: number, slot: number): Promise<Push[]> {
+    if (!Number.isInteger(slot) || slot < 1 || slot > PET_SKILL_SLOT_COUNT) throw RpcException.invalidArgs('slot');
+    return withCharLock(characterId, async () => {
+      const { row, tpl } = await loadOwnedPet(this.pets, this.gameData, characterId, petId);
+      const oldId = row.skills?.[slot - 1] ?? 0;
+      const old = oldId > 0 ? this.gameData.skill(oldId) : undefined;
+      if (!old || old.level >= 3) throw RpcException.forbidden('Kỹ năng này đã đạt cấp cao nhất!');
+      const next = this.gameData.skillsNamed(old.name).find((s) => s.level === old.level + 1 && s.codeName === old.codeName);
+      if (!next) throw RpcException.forbidden('Không tìm thấy cấp kỹ năng tiếp theo');
+      const material = [1365, 1366, 1367][Math.max(0, tpl.qLevel - 1)] ?? 1365;
+      const need = old.level === 1 ? 1 : 3;
+      if ((await this.inventory.countByTemplate(characterId, [material])).get(material)! < need) {
+        throw RpcException.forbidden(`Thăng cấp kỹ năng này cần vật phẩm #${material}!`);
+      }
+      const spent = await this.inventory.removeByTemplate(characterId, material, need);
+      const r = await this.pets.updateOne({ _id: petId, characterId, [`skills.${slot - 1}`]: oldId }, { $set: { [`skills.${slot - 1}`]: next.id } });
+      if (r.modifiedCount !== 1) throw RpcException.forbidden('Pet vừa thay đổi, hãy thử lại');
+      const skills = [...(row.skills ?? [])];
+      skills[slot - 1] = next.id;
+      const changed = { ...row, skills };
+      return [
+        ...spent.updated.map((i) => push('onAddCharactorSlot', i)),
+        ...spent.deleted.map((d) => push('onDelCharactorSlot', d.id, d.sid)),
+        push('onUpdatePet', petId, `skill${slot}`, next.id),
+        push('onPetSkillInfo', skillInfoOf([next.id], this.bonus.look)),
+        push('onRefreshPetProp', petId, propertyOfPet(changed, tpl, (await this.bonus.extrasOf(characterId, changed)).bonuses)),
+      ];
+    });
+  }
+
   private async stackPushes(characterId: number, itemId: number, took: { left: number; sid: number }): Promise<Push[]> {
     if (took.left <= 0) return [push('onDelCharactorSlot', itemId, took.sid)];
     return (await this.inventory.byIds(characterId, [itemId])).map((i) => push('onAddCharactorSlot', i));

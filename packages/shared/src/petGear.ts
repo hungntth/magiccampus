@@ -56,6 +56,8 @@ export interface PetSkillInfo {
   iconCode: string;
   type: number; // skill type (11 = passive)
   info: string; // description (passive: the buff text)
+  /** H5 (M12): skill level 1..3 (petUpSkill needs 1 or 3 skill books by it). */
+  level?: number;
 }
 
 /** onPetSkillInfo payload and `PetView.skillInfo`: learned skill ids of the pet(s) -> display facts. */

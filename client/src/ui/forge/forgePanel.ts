@@ -73,11 +73,19 @@ export class ForgePanel {
     this.current = tab.id;
     this.body.replaceChildren();
     this.view = tab.build(this.host, this.body);
-    this.tabRow.replaceChildren(...this.tabs.map((t) => {
+    const group = tab.group;
+    const row = this.tabs.filter((t) => t.group === group).map((t) => {
       const b = el('button', 'mall-tab', t.label);
       if (t.id === this.current) b.classList.add('selected');
       b.onclick = () => this.select(t.id);
       return b;
-    }));
+    });
+    const other = this.tabs.find((t) => t.group !== group && (t.group === 'pet' || group === 'pet'));
+    if (other) {
+      const sw = el('button', 'mall-tab forge-group-switch', group === 'pet' ? '« Trang bị' : 'T.bị Pet »');
+      sw.onclick = () => this.select((group === 'pet' ? this.tabs.find((t) => !t.group) : other)?.id ?? other.id);
+      row.push(sw);
+    }
+    this.tabRow.replaceChildren(...row);
   }
 }

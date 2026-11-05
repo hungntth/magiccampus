@@ -31,6 +31,9 @@ export interface BagItem extends EquipInstanceView {
   position: number; // equipment template position (equip sid 1..22), 0 for items
   tplKind?: number; // H5 extension: item template `kind` (5 gem, 6 material), absent for equipment
   tplType?: number; // H5 extension: item template `type` (507 = pet life item), 0 for equipment
+  /** H5 extension (M12): `prop_type` / `propl_num` of type 507 pet-function items (the Luyen pet window sorts items by them). */
+  tplPropType?: number;
+  tplPropNum?: number;
   reqLevel: number; // template req_level (tooltip colouring)
   name: string; // H5 extension: resolved template name
   iconCode: string; // H5 extension: template icon_code

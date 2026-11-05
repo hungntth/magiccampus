@@ -49,6 +49,13 @@ test('validatePets: ok, too many, duplicates, not owned and the transfer rule te
   assert.equal(validatePets([1, 7], rows), TRADE_PET_TEXTS.bound);
 });
 
+test('validatePets refuses a pet that sits in a Chien Thu Ho Ve slot', () => {
+  const rows = pets([1, pet()], [2, pet({ guarded: true })], [3, pet({ guarded: true, equ: [0, 9] })]);
+  assert.equal(validatePets([1], rows), null);
+  assert.equal(validatePets([1, 2], rows), TRADE_PET_TEXTS.guarded);
+  assert.equal(validatePets([3], rows), TRADE_PET_TEXTS.equipped);
+});
+
 test('hasTradePetRoom counts incoming minus the pets the receiver gives away', () => {
   assert.equal(hasTradePetRoom(6, 6, 0, 0), true);
   assert.equal(hasTradePetRoom(6, 6, 1, 0), false);

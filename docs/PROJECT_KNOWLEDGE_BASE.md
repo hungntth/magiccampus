@@ -38,6 +38,7 @@ Legacy (Go/Flash) knowledge: `D:\mcgame\docs\PROJECT_KNOWLEDGE_BASE.md`.
 - [VIP](memory/vip.md) — PM packages and levels, daily rights (mark-first), findback, VIP shop rotation.
 - [Loop quests](memory/loop-quest.md) — TBL_QUEST_LOOP take/cancel/repair, playable round pools, round rewards, [Vòng] NPC entries.
 - [Pets](memory/pets.md) — pets collection, growth-scale stats, quest award, panel, map follow, battle pet at slot+5, catch, kind-3 objectives, pet skills/equipment/slots.
+- [M12 pet depth handoff](memory/pet-depth.md) — implemented M12 slices, verified status, remaining parity work and safe continuation order.
 - [Trade](memory/trade.md) — newTrade/tradeLock/tradeConfirm/stopTrade, saga swap under two char locks.
 - [Mail (M11)](memory/mail.md) — Thùng Thư, escrow by row move, public sendSystemMail API, quiz / world boss mail.
 - [Temp bags + bank extras (M11)](memory/temp-bag.md) — Túi Tiện Dụng (normal + Ma Tâm), Túi tạm thời, loot routing, bankSort / bagToBank / delBagItems.

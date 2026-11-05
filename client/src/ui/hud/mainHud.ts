@@ -53,6 +53,10 @@ export interface HudActions {
   onBloodBag(bt: number): void;
   /** System settings saved (hc / hn / ac / maxView changed). */
   onViewChanged(): void;
+  /** HUD red function column "Đấu Pet" (arena window). */
+  onArena(): void;
+  /** HUD red function column "Điêu Khắc" (Không Gian Điêu Khắc window). */
+  onPpve(): void;
   /** World map pin: scroll / gold transport. */
   travel(mapId: number, group: boolean): void;
 }
@@ -85,6 +89,7 @@ export class MainHud {
     };
     const tray = {
       settings: () => this.panels.settings.toggle(), worldMap: () => this.panels.worldMap.toggle(), help: () => this.panels.help.toggle(),
+      arena: () => actions.onArena(), ppve: () => actions.onPpve(),
     };
     this.miniMap = new MiniMapCanvas(parent, client, actions.onShop, actions.onForge, actions.onRank, actions.onOffline,
       () => autoPanel.toggle(), tray);

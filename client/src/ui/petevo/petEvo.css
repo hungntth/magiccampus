@@ -1,0 +1,47 @@
+/* Tiến hóa window and Sách Tiến Hóa book: reuse the .pf-win frame / .pf-* parts of the Luyện window (petFunc.css). */
+.pe-win { left: calc(50% - 220px); top: 10%; width: 520px; z-index: 4; }
+.pe-win.pe-book { left: calc(50% - 330px); top: 6%; width: 660px; }
+
+.pe-card { display: flex; flex-direction: column; align-items: center; gap: 3px; width: 120px; padding: 4px; background: #08192b; border: 1px solid #36597a; border-radius: 6px; }
+.pe-card-title { color: #ffe9a8; font-weight: 700; font-size: 11px; text-align: center; }
+.pe-card-icon { width: 56px; height: 56px; background: #0d2d4a; border: 1px solid #4f86b3; border-radius: 4px; }
+.pe-card-icon img { width: 100%; height: 100%; object-fit: contain; }
+.pe-card-name { font-weight: 700; text-align: center; font-size: 11px; }
+.pe-apt { font-size: 11px; color: #cfe6ff; }
+.pe-apt .ok, .pe-table .ok { color: #5ee06a; }
+.pe-apt .bad, .pe-table .bad, .pe-protect .bad { color: #ff6a6a; }
+.pe-arrow { align-self: center; font-size: 22px; color: #ffe9a8; }
+
+.pe-table { display: grid; grid-template-columns: 1fr 1fr 1fr 1.6fr; gap: 2px 8px; padding: 6px 8px; margin-top: 4px; background: #08192b; border: 1px solid #36597a; border-radius: 6px; }
+.pe-th { color: #ffe9a8; font-weight: 700; }
+.pe-protect { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; margin-top: 4px; cursor: pointer; }
+
+.pe-contract { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.pe-contract-row { display: grid; grid-template-columns: 1fr 120px auto; align-items: center; gap: 8px; padding: 6px 8px; background: #08192b; border: 1px solid #36597a; border-radius: 6px; }
+.pe-contract-name { font-weight: 700; color: #ffe9a8; }
+.pe-contract-acts { display: flex; gap: 4px; }
+
+.pe-bar { position: relative; height: 16px; background: #04101c; border: 1px solid #4f86b3; border-radius: 4px; overflow: hidden; }
+.pe-bar-fill { position: absolute; inset: 0 auto 0 0; background: linear-gradient(180deg, #4fbf5a, #2a8a35); }
+.pe-bar-text { position: relative; display: block; text-align: center; font-size: 11px; line-height: 16px; text-shadow: 0 0 2px #000; }
+.pe-book-bar { margin: 4px 0; }
+
+.pe-overview { display: flex; flex-direction: column; gap: 4px; }
+.pe-overview-row { display: grid; grid-template-columns: 110px 60px 1fr; gap: 8px; padding: 4px 8px; background: #08192b; border: 1px solid #36597a; border-radius: 4px; cursor: pointer; }
+.pe-overview-row:hover { border-color: #6fa3cf; }
+.pe-overview-name { font-weight: 700; }
+.pe-overview .ok, .pe-list .ok, .pe-series .ok { color: #5ee06a; }
+
+.pe-series { display: flex; flex-direction: column; gap: 6px; }
+.pe-series-main { display: flex; gap: 8px; align-items: flex-start; }
+.pe-list { display: flex; flex-direction: column; gap: 2px; width: 200px; max-height: 330px; overflow-y: auto; }
+.pe-item { display: flex; align-items: center; gap: 5px; padding: 2px 5px; background: #08192b; border: 1px solid transparent; border-radius: 4px; cursor: pointer; }
+.pe-item:hover { border-color: #6fa3cf; }
+.pe-item.sel { border-color: var(--pet-gold); background: #17395a; }
+.pe-item img { width: 24px; height: 24px; object-fit: contain; }
+.pe-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pe-dim { color: #9db7cc; font-size: 11px; }
+.pe-detail { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+.pe-detail-text { display: flex; flex-direction: column; gap: 3px; }
+.pe-detail-name { font-weight: 700; color: #ffe9a8; font-size: 13px; }
+.pe-num { width: 70px; background: #04101c; color: #fff; border: 1px solid #4f86b3; border-radius: 3px; padding: 2px 4px; }

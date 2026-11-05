@@ -77,7 +77,10 @@ export class BattleController implements HotbarBattle {
   readonly watch: WatchMode;
 
   constructor(private readonly host: BattleHost) {
-    this.watch = new WatchMode(host);
+    this.watch = new WatchMode({
+      client: host.client, root: host.root, world: host.world, entities: host.entities, stopWalking: () => host.stopWalking(),
+      inBattle: () => this.active,
+    });
     const c = host.client;
     this.offs.push(
       c.on('onSetCharState', (d) => this.onCharState(d as SetCharState)),

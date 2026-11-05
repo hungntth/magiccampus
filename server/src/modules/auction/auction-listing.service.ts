@@ -17,7 +17,7 @@ import { CharacterItem } from '../inventory/character-item.schema';
 import { EscrowService, type EscrowedItem } from '../inventory/escrow.service';
 import { push, type Push } from '../inventory/pushes';
 import { UndoStack } from '../mail/mail-saga';
-import type { PetTransferTexts } from '../pet/pet-transfer';
+import { PET_GUARDED_TEXT, type PetTransferTexts } from '../pet/pet-transfer';
 import type { Pet } from '../pet/pet.schema';
 import { PmStateService } from '../vip/pm-state.service';
 import { AuctionGateService } from './auction-gate.service';
@@ -28,7 +28,7 @@ import { AuctionListing } from './auction.schema';
 export type ListOutcome = { ok: true; row: AuctionRow; pushes: Push[] } | { ok: false; text: string };
 export type BatchOutcome = { ok: true; results: Extract<ListOutcome, { ok: true }>[]; errors: string[] } | { ok: false; text: string };
 
-const PET_TEXTS: PetTransferTexts = { bound: AUCTION_TEXT.PET_BOUND, active: AUCTION_TEXT.PET_ACTIVE, equipped: AUCTION_TEXT.PET_EQUIPPED };
+const PET_TEXTS: PetTransferTexts = { bound: AUCTION_TEXT.PET_BOUND, active: AUCTION_TEXT.PET_ACTIVE, equipped: AUCTION_TEXT.PET_EQUIPPED, guarded: PET_GUARDED_TEXT };
 const fail = (text: string): ListOutcome => ({ ok: false, text });
 
 @Injectable()

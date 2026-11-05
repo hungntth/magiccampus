@@ -5,7 +5,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
-import type { MapInfo, SceneNpc } from '@mc/shared';
+import type { MapInfo, PetSoulTemplate, PetStoneTemplate, SceneNpc } from '@mc/shared';
 import { buildRecipePlans, type RecipePlan } from './forge-data';
 import { buildGuildBuildingTables, buildGuildSkillTables, type GuildBuildingTables, type GuildLot, type GuildSkillTables } from './guild-data';
 import type { BuildingRow, GuildSkillRow } from '@mc/shared';
@@ -21,6 +21,13 @@ import {
   buildCombatTables, type CombatTables, type CreatureTemplate, type LootRow, type MapCreatureRow,
 } from './combat-data';
 import { buildPetTables, type PetTables, type PetTemplate } from './pet-data';
+import {
+  buildPetDepthTables, guardKey, type HandbookRow, type PetContractRow, type PetDepthTables, type PetGuardRow, type PetTalentRow,
+} from './pet-depth-data';
+import { buildPetSoulTables, type PetSoulTables } from './pet-soul-data';
+import { buildPpveTables, type CarveAwardRow, type CarveMasterRow, type CarveRow, type PpveTables } from './ppve-data';
+import { buildPetStoneTables, type PetStoneTables } from './pet-stone-data';
+import { buildSublimationTables, type SublimationTables, type SublimeRow } from './sublimation-data';
 import { buildSkillIndex, buildSkillTable, skillsByName, type SkillIndex, type SkillTemplate } from './skill-data';
 import {
   buildQuestTables, type QuestAwardRow, type QuestPreRow, type QuestRequireRow, type QuestTables, type QuestTemplate,
@@ -72,6 +79,11 @@ export class GameDataService implements OnModuleInit {
   private skillsByName = new Map<string, SkillTemplate[]>(); // pet skill books resolve skills by exact name
   private skillIdx: SkillIndex = { byCode: new Map(), level1: [] };
   private pets: PetTables = buildPetTables([], []);
+  private petDepth: PetDepthTables = buildPetDepthTables([], []);
+  private petStones: PetStoneTables = buildPetStoneTables([], [], () => false);
+  private petSouls: PetSoulTables = buildPetSoulTables([]);
+  private ppve: PpveTables = buildPpveTables([], [], []);
+  private sublimation: SublimationTables = buildSublimationTables([], []);
   private recipePlans = new Map<number, RecipePlan[]>();
   private makable: Row[] | null = null;
   private guildBuildings: GuildBuildingTables = buildGuildBuildingTables([], []);
@@ -144,9 +156,21 @@ export class GameDataService implements OnModuleInit {
     this.combat = buildCombatTables(mapCreatures, creatures, loot);
     this.creatureNames = buildNameIndex(creatures, 'name');
     this.pets = buildPetTables(creatures, await this.rowsWithOverlays('data_tbl_creature_skill'));
+    this.petDepth = buildPetDepthTables(
+      await this.rows('data_tbl_pet_contract'), await this.rows('data_tbl_creature_handbook'),
+      await this.rows('data_tbl_pet_guard'), await this.rows('data_tbl_pet_talent'),
+    );
     this.skills = buildSkillTable(await this.rows('data_tbl_skill'));
     this.skillsByName = skillsByName(this.skills);
     this.skillIdx = buildSkillIndex(this.skills);
+    this.petStones = buildPetStoneTables(
+      await this.rows('data_tbl_pet_stone'), await this.rows('data_tbl_skill', { ex_stone_sid: { $gt: 0 } }), (id) => this.skills.has(id),
+    );
+    this.petSouls = buildPetSoulTables(await this.rows('data_tbl_pet_soul'));
+    this.ppve = buildPpveTables(
+      await this.rows('data_tbl_carve'), await this.rows('data_tbl_carve_award'), await this.rows('data_tbl_carve_master'), this.pets.templates.values(),
+    );
+    this.sublimation = buildSublimationTables(await this.rows('data_tbl_sublimation'), await this.rows('data_tbl_sublimation_pet'));
     this.recipePlans = buildRecipePlans(await this.rows('data_tbl_recipe_plan'));
     this.makable = null;
     this.guildBuildings = buildGuildBuildingTables(await this.rows('data_tbl_building'), await this.rows('data_tbl_extend_position', { mid: 49 }));
@@ -340,6 +364,85 @@ export class GameDataService implements OnModuleInit {
   /** Creature as a pet template (catch / class / quality / icon columns), cached at startup. */
   petTemplate(id: number): PetTemplate | undefined {
     return this.pets.templates.get(id);
+  }
+
+  /** Khe Uoc level row (1..50) of data_tbl_pet_contract, cached at startup. */
+  petContract(level: number): PetContractRow | undefined {
+    return this.petDepth.contracts.get(level);
+  }
+
+  /** Every Sach Tien Hoa entry (data_tbl_creature_handbook), ordered by id, cached at startup. */
+  creatureHandbooks(): readonly HandbookRow[] {
+    return this.petDepth.handbooks;
+  }
+
+  /** Chien Thu Ho Ve row (level 1..30, guard sid 1..4) of data_tbl_pet_guard, cached at startup. */
+  petGuard(lev: number, sid: number): PetGuardRow | undefined {
+    return this.petDepth.guards.get(guardKey(lev, sid));
+  }
+
+  /** Thien Phu record by id (data_tbl_pet_talent), cached at startup. */
+  petTalent(id: number): PetTalentRow | undefined {
+    return this.petDepth.talents.get(id);
+  }
+
+  /** Thang hoa level row (1..50) of data_tbl_sublimation_pet (`pet`) or data_tbl_sublimation (character gear), cached at startup. */
+  sublimeRow(pet: boolean, level: number): SublimeRow | undefined {
+    return (pet ? this.sublimation.pet : this.sublimation.character).get(level);
+  }
+
+  /** Pet stone record (data_tbl_pet_stone) by id, cached at startup. */
+  petStone(id: number): PetStoneTemplate | undefined {
+    return this.petStones.stones.get(id);
+  }
+
+  /** Menh Hon row (data_tbl_pet_soul) by id, cached at startup. */
+  petSoul(id: number): PetSoulTemplate | undefined {
+    return this.petSouls.byId.get(id);
+  }
+
+  /** The gem family ladder (level 1 up) the id belongs to; empty for an unknown id. */
+  petSoulLadder(id: number): readonly PetSoulTemplate[] {
+    return this.petSouls.ladderOf.get(id) ?? [];
+  }
+
+  /** Prey pools: crystal N draws from colour N - 1 (Lv.1, type -1); the advanced pool is { ordinary, rare }. */
+  petSoulPreyPool(color: number): readonly number[] {
+    return this.petSouls.preyByColor.get(color) ?? [];
+  }
+
+  petSoulAdvancedPools(): { ordinary: readonly number[]; rare: readonly number[] } {
+    return { ordinary: this.petSouls.advancedOrdinary, rare: this.petSouls.advancedRare };
+  }
+
+  /** changePetStoneEnergy draw pool: type 1 passive base skills, type 2 special ex-stone skills (sorted ids). */
+  petStoneSkillPool(type: number): readonly number[] {
+    return type === 2 ? this.petStones.specialSkills : this.petStones.passiveSkills;
+  }
+
+  /** Khac Van node (data_tbl_carve) by id, cached at startup. */
+  carve(id: number): CarveRow | undefined {
+    return this.ppve.carves.get(id);
+  }
+
+  /** Reward row of PPVE floor 1..150 (data_tbl_carve_award). */
+  carveAward(floor: number): CarveAwardRow | undefined {
+    return this.ppve.awards.get(floor);
+  }
+
+  /** Master level row 1..48 (data_tbl_carve_master). */
+  carveMaster(mlv: number): CarveMasterRow | undefined {
+    return this.ppve.masters.get(mlv);
+  }
+
+  /** The floor enemy pool: qLevel 1..3 creatures with a 2060* res code, sorted by id. */
+  ppveEnemyPool(): readonly PetTemplate[] {
+    return this.ppve.enemyPool;
+  }
+
+  /** Every Thien Phu record ordered by id. */
+  petTalents(): readonly PetTalentRow[] {
+    return this.petDepth.talentList;
   }
 
   /** data_tbl_creature.class_id of a creature (0 when unknown): the auction pet search type is 700 + class_id - 1. */

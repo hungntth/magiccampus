@@ -25,7 +25,7 @@ import { BattleEndService, pushCharState } from './battle-end.service';
 import { BattleSettleService } from './battle-settle.service';
 import type { Battle, BattleContext, BattleMember, Fighter, Rng } from './battle.types';
 import { ENCOUNTER_COOLDOWN_MS } from './encounter';
-import { petFighter, playerFighter, toParticipant } from './fighters';
+import { buildBattleStart, petFighter, playerFighter } from './fighters';
 import { endStepFor } from './pvp-rules';
 import { PvpService } from './pvp.service';
 import { SpectateService } from './spectate.service';
@@ -133,11 +133,7 @@ export class CombatService implements OnModuleInit {
       round: 1, ended: false, result: BattleResult.LOSE, busy: false, deadline: now + roundMs(), ...(ctx ? { ctx } : {}),
     };
     this.manager.add(battle);
-    const cList: BattleStart['cList'] = {};
-    for (const f of fighters.values()) cList[String(f.slot)] = toParticipant(f);
-    const start: BattleStart = {
-      battleFieldId: battle.id, nid, cList, bossFlag: enemies.some((e) => e.bossFlag > 0) ? 1 : 0, sneakFlag: 0, guest: false, airBattle: false,
-    };
+    const start: BattleStart = buildBattleStart(battle.id, nid, fighters.values(), enemies.some((e) => e.bossFlag > 0) ? 1 : 0);
     battle.start = start; // shown to spectators (onWatch)
     for (const { s } of picks) {
       this.spectate.release(s.characterId!); // a watcher that starts its own battle stops watching

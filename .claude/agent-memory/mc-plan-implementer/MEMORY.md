@@ -14,3 +14,14 @@
 - [M11 temp bags (C)](m11_temp_bag.md) — tsx vs schemas e2e recipe, temp rows exclusion, fixture + shell traps
 - [M11 shop leftovers (E)](m11_shop_leftovers.md) — credit shops reuse currencies, guild shop 83, trolley, smoke fixture/restore recipe
 - [M11 orchestration](m11_orchestration.md) — sequential phase agents, test-data pitfalls, currencies reuse
+- [M12 pet registry (slice 1)](m12_pet_registry.md) — pet stat registry, PetModule cycle trap, aptitude pipeline, smoke ids
+- [M12 Menh Hon (slice 6)](m12_pet_soul.md) — pet-soul module wiring, zero-amount currency trap, smoke fixture ids, onPetLevelUp trigger
+- [M12 PPVE + headless sim (slice 7)](m12_ppve.md) — pet-battle module, Go script rules, pool balance trap, smoke recipe
+- [M12 pet arena (slice 8)](m12_arena.md) — arena lock order, Flash-vs-Go reply shapes, smoke fixture + bot scenarios
+- [M12 client C1 (Luyen pet)](m12_client_petfunc.md) — Luyen pet window wiring, setFuncHandler extension point, client smoke tricks
+- [M12 client C2 (T.Hoa window)](m12_client_petevo.md) — petevo wiring, generated client handbook tables, evolved-pet reload trap, browser login recipe
+- [M12 client C3 (Ho Ve / Thien Phu / Bao Thach)](m12_client_petboost.md) — petboost wiring, generated static tables, fixture slot collision, smoke tips
+- [M12 client C4 (forge pet tabs)](m12_client_forgepet.md) — forge pet tab group, petGear() host, sticky picker, sublime wire field, smoke tips
+- [M12 client C5 (Menh Hon window)](m12_client_petsoul.md) — petsoul wiring, text cells (no icons), static gen, smoke + browser traps
+- [M12 client C6 (PPVE / arena / replay)](m12_client_petbattle.md) — WatchMode replay, HUD red column buttons, client test + fixture recipe, live-battle trick
+- [M12 orchestration](m12_orchestration.md) — review user code first (it did not boot), 14 sequential slices, bug classes

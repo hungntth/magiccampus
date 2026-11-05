@@ -9,6 +9,8 @@ export interface ForgeHost {
   /** Bag items (general pages) and worn equipment at this moment. */
   items(): BagItem[];
   player(): PlayerData;
+  /** Pet gear in the bag, the pet item page and worn by pets (pet forge tabs). */
+  petGear(): BagItem[];
 }
 
 export interface ForgeTabView {
@@ -22,5 +24,7 @@ export interface ForgeTabView {
 export interface ForgeTab {
   id: string;
   label: string;
+  /** Tab group: "pet" tabs show behind the "T.bị Pet" switch of the tab row; absent = the equipment group. */
+  group?: "pet";
   build(host: ForgeHost, body: HTMLElement): ForgeTabView;
 }

@@ -23,6 +23,7 @@ import { RepairService } from './repair.service';
 import { UseItemRpc } from './use-item.rpc';
 import { UseItemService } from './use-item.service';
 import { SkillModule } from '../skill/skill.module';
+import { CharacterFeature, CharacterFeatureSchema } from '../progression/feature.schema';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { SkillModule } from '../skill/skill.module';
       { name: Counter.name, schema: CounterSchema },
       { name: Character.name, schema: CharacterSchema },
       { name: Pet.name, schema: PetSchema },
+      { name: CharacterFeature.name, schema: CharacterFeatureSchema },
     ]),
     GameDataModule,
     StatsModule,
@@ -40,6 +42,6 @@ import { SkillModule } from '../skill/skill.module';
     InventoryService, InventoryRpc, EquipmentService, EquipmentRpc, UseItemService, UseItemRpc, BagOpsService, BagOpsRpc,
     PageGate, PageOpsService, RepairService, RepairRpc, EscrowService, BankService,
   ],
-  exports: [InventoryService, UseItemService, EscrowService],
+  exports: [InventoryService, UseItemService, EscrowService, RepairService],
 })
 export class InventoryModule {}

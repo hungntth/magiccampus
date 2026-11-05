@@ -7,6 +7,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { PetState, type PetWrapper } from '@mc/shared';
 import { Pet } from '../pet/pet.schema';
+import { PetMaterialService } from '../pet/pet-materials.service';
 import { PetService } from '../pet/pet.service';
 import type { PetTransferFacts } from '../pet/pet-transfer';
 import { TRADE_NOTE, hasTradePetRoom, validatePets } from './trade-rules';
@@ -22,13 +23,15 @@ export class TradePetService implements PetMoveStore {
   constructor(
     @InjectModel(Pet.name) private readonly pets: Model<Pet>,
     private readonly petService: PetService,
+    private readonly mats: PetMaterialService,
   ) {}
 
   /** Transfer facts of the character's own pets among `ids` (foreign / missing ids are simply absent from the map). */
   async factsOf(cid: number, ids: readonly number[]): Promise<Map<number, PetTransferFacts>> {
     if (ids.length === 0) return new Map();
     const rows = await this.pets.find({ _id: { $in: [...ids] }, characterId: cid }).lean();
-    return new Map(rows.map((r) => [r._id, { binded: r.binded, state: r.state, following: r.following, equ: r.equ ?? [] }]));
+    const guarded = await this.mats.guardedPetIds(cid);
+    return new Map(rows.map((r) => [r._id, { binded: r.binded, state: r.state, following: r.following, equ: r.equ ?? [], guarded: guarded.has(r._id) }]));
   }
 
   /** Display wrappers of the character's pets among `ids`, in `ids` order. */

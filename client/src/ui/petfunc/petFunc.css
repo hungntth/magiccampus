@@ -1,0 +1,134 @@
+/* "Luyện pet" window: same navy / gold frame as .pet-panel; buttons reuse .pet-tab / .pet-btn / .pet-pm / .pet-close. */
+.pf-win {
+  --pet-gold: #e8c46a;
+  position: absolute;
+  left: calc(50% - 250px);
+  top: 8%;
+  width: 500px;
+  min-height: 400px;
+  padding: 34px 12px 12px;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #1d4a72 0%, #123553 40%, #0e2a45 100%);
+  border: 2px solid var(--pet-gold);
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px #3a2a08, inset 0 0 0 1px #6fa3cf, 0 6px 18px rgba(0, 0, 0, 0.55);
+  font-family: Tahoma, Verdana, Arial, sans-serif;
+  font-size: 12px;
+  color: #fff;
+  pointer-events: auto;
+  z-index: 3;
+}
+
+.pf-header { position: absolute; top: 0; left: 0; right: 0; height: 30px; }
+.pf-title {
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 110px;
+  padding: 3px 18px 4px;
+  background: linear-gradient(180deg, #3e7fb5 0%, #1c4c7a 100%);
+  border: 2px solid var(--pet-gold);
+  border-top: 0;
+  border-radius: 0 0 12px 12px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffe9a8;
+  text-shadow: 0 1px 0 #3a2a08, 0 0 3px #000;
+}
+
+.pf-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.pf-body {
+  min-height: 330px;
+  padding: 8px;
+  background: #0d2d4a;
+  border: 1px solid #4f86b3;
+  border-radius: 8px;
+}
+
+.pf-tab { display: flex; flex-direction: column; gap: 8px; }
+.pf-seats { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; min-height: 66px; }
+.pf-seat-box { display: flex; flex-direction: column; align-items: center; width: 64px; gap: 2px; }
+.pf-seat {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  box-sizing: border-box;
+  background: #08192b;
+  border: 2px solid #4f86b3;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.pf-seat.empty { border-style: dashed; }
+.pf-seat:hover { box-shadow: 0 0 6px #6fa3cf; }
+.pf-seat img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.pf-count {
+  position: absolute;
+  right: 1px;
+  bottom: 0;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 0 2px #000, 0 0 2px #000;
+}
+.pf-count.lacking { color: #ff6a6a; }
+.pf-seat-name { width: 64px; text-align: center; font-size: 11px; color: #cfe6ff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.pf-info { display: flex; flex-direction: column; gap: 3px; color: #cfe6ff; min-height: 34px; }
+.pf-line.ok, .pf-change .ok { color: #5ee06a; }
+.pf-line.bad, .pf-change .bad { color: #ff6a6a; }
+.pf-line.warn { color: #ffd060; }
+.pf-buttons { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pf-elements { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.pf-result {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  background: #08192b;
+  border: 1px solid #36597a;
+  border-radius: 6px;
+}
+.pf-result:empty { display: none; }
+.pf-result-title { color: #ffe9a8; font-weight: 700; }
+.pf-change { font-weight: 700; }
+
+.pf-guide { color: #9db7cc; font-size: 11px; }
+.pf-guide summary { cursor: pointer; }
+.pf-guide-text { margin-top: 4px; line-height: 1.4; white-space: pre-wrap; }
+
+.pf-stepper { display: flex; align-items: center; gap: 4px; align-self: center; }
+.pf-stepper-n { min-width: 16px; text-align: center; font-weight: 700; }
+.pf-apts { display: flex; flex-wrap: wrap; gap: 4px; flex: 1 0 100%; }
+
+.pf-skills { display: flex; flex-direction: column; gap: 2px; max-height: 150px; overflow-y: auto; margin-top: 4px; }
+.pf-skill { display: flex; align-items: center; gap: 6px; padding: 2px 6px; border: 1px solid transparent; border-radius: 4px; cursor: pointer; background: #08192b; }
+.pf-skill:hover { border-color: #6fa3cf; }
+.pf-skill.sel { border-color: var(--pet-gold); background: #17395a; }
+.pf-skill img { width: 22px; height: 22px; }
+.pf-skill-name { flex: 1; }
+.pf-skill-lv { color: #ffd060; }
+
+.pf-picker {
+  position: absolute;
+  z-index: 5;
+  width: 190px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 3px;
+  background: #0b2238;
+  border: 1px solid var(--pet-gold);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+}
+.pf-picker-row { display: flex; align-items: center; gap: 5px; padding: 2px 4px; border-radius: 3px; cursor: pointer; }
+.pf-picker-row:hover { background: #1c4c7a; }
+.pf-picker-row img { width: 22px; height: 22px; object-fit: contain; }
+.pf-picker-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-picker-sub { color: #9db7cc; font-size: 11px; }
+.pf-picker-empty { padding: 6px; color: #9db7cc; }
+
+/* Second button row of the pet window (Luyện, T.Hóa, Hộ Vệ, T.Phú, B.Thạch, M.Hồn). */
+.pet-funcs .pet-btn { flex: 1 1 0; min-width: 0; padding: 4px 2px; }

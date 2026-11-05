@@ -82,6 +82,15 @@ export class PetGearActions {
     });
   }
 
+  /** Pet gear repair (10 silver per point; the cost arrives as onUPP, a refusal as a note): one piece or everything the pet wears. */
+  repair(pet: PetView, item: BagItem): void {
+    if (this.allow('petRepair', OP_DELAY)) this.send('repairPetEqu', pet.id, item.id, 1);
+  }
+
+  repairAll(pet: PetView): void {
+    if (this.allow('petRepair', OP_DELAY)) this.send('repairPetEquAll', pet.id, 1);
+  }
+
   openSlot(): void {
     const p = this.host.player;
     if (p.petMaxNum >= PetLimits.maxSlots) return void toast('Số ô pet đã đạt tối đa');

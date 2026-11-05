@@ -5,6 +5,10 @@ import type { QuestKill } from './battle.js';
 import type { CharProperty } from './character.js';
 import type { InterfaceData } from './autoBattle.js';
 import type { PetLoginInfo, PetSceneView } from './pet.js';
+import type { PetBoostLoginInfo } from './petBoost.js';
+import type { PPVELoginInfo } from './petBattle.js';
+import type { PetEvolutionLoginInfo } from './petEvolution.js';
+import type { PetSoulLogin } from './petSoulWire.js';
 import type { GuildInfo, GuildMember } from './guild.js';
 import type { GuildSlot } from './guildBank.js';
 import type { Currencies, TitleView } from './progression.js';
@@ -69,7 +73,7 @@ export interface ClassInfo {
   largeImgFemale: string;
 }
 
-export interface PlayerData extends PetLoginInfo, Partial<AwakenLogin>, Partial<ActivityLogin>, Partial<VipLogin>, Partial<OfflineLogin>, Partial<MountLogin> {
+export interface PlayerData extends PetLoginInfo, Partial<PetBoostLoginInfo>, Partial<PPVELoginInfo>, Partial<PetEvolutionLoginInfo>, Partial<PetSoulLogin>, Partial<AwakenLogin>, Partial<ActivityLogin>, Partial<VipLogin>, Partial<OfflineLogin>, Partial<MountLogin> {
   id: number;
   name: string;
   classId: number;
@@ -419,6 +423,8 @@ export type PlayerUpdate = Partial<
   /** Guild shop purchases (M11 phase E): the member's normal / donate contribution after the spend (Go onUPP{guildContrib, donateContrib}). */
   guildContrib?: number;
   donateContrib?: number;
+  /** Pet arena points (currency 19) after a challenge / rank award (Go onUPP{paPnt}). */
+  paPnt?: number;
 };
 
 export interface PlayerLevelUp {

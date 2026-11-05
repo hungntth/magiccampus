@@ -9,7 +9,13 @@ import { el } from './petPanelTabs';
 export interface EquipTabContext {
   item(id: number): BagItem | undefined;
   onOff(item: BagItem): void;
+  /** Pet gear repair (repairPetEqu / repairPetEquAll). */
+  onRepair(item: BagItem): void;
+  onRepairAll(): void;
 }
+
+/** "Sửa" tool armed: the next worn slot clicked is repaired (lives until used or toggled off). */
+let repairArmed = false;
 
 export function renderEquipTab(body: HTMLElement, pet: PetView, ctx: EquipTabContext): void {
   const grid = el('div', 'pet-slots');
@@ -24,7 +30,21 @@ export function renderEquipTab(body: HTMLElement, pet: PetView, ctx: EquipTabCon
     } else fillWorn(cell, item, ctx);
     grid.appendChild(cell);
   }
-  body.append(grid, el('div', 'pet-note', 'Nhấp đôi trang bị pet trong túi để mặc, nhấp đôi ô để tháo.'));
+  const tools = el('div', 'pet-actions');
+  const one = el('button', 'pet-btn', 'Sửa');
+  one.title = 'Chọn rồi nhấp vào một ô trang bị để sửa chữa (10 bạc mỗi điểm độ bền)';
+  one.classList.toggle('active', repairArmed);
+  one.onclick = () => {
+    repairArmed = !repairArmed;
+    one.classList.toggle('active', repairArmed);
+  };
+  const all = el('button', 'pet-btn', 'Sửa tất cả');
+  all.title = 'Sửa chữa toàn bộ trang bị pet đang mặc';
+  all.onclick = () => ctx.onRepairAll();
+  tools.append(one, all);
+  const col = el('div', 'pet-equ-col');
+  col.append(grid, tools, el('div', 'pet-note', 'Nhấp đôi trang bị pet trong túi để mặc, nhấp đôi ô để tháo.'));
+  body.append(col);
 }
 
 function fillWorn(cell: HTMLElement, item: BagItem, ctx: EquipTabContext): void {
@@ -43,5 +63,10 @@ function fillWorn(cell: HTMLElement, item: BagItem, ctx: EquipTabContext): void 
     img.onerror = () => img.remove();
     cell.appendChild(img);
   }
+  cell.onclick = () => {
+    if (!repairArmed) return;
+    repairArmed = false;
+    ctx.onRepair(item);
+  };
   cell.ondblclick = () => ctx.onOff(item);
 }

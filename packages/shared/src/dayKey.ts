@@ -81,3 +81,12 @@ export function splitByDay(startMs: number, endMs: number): { day: string; ms: n
   }
   return out;
 }
+
+/** ISO year * 100 + ISO week of the UTC+7 date (Monday 00:00 UTC+7 starts a week): the pet arena season id. */
+export function isoWeekSeason(ms: number): number {
+  const v = vnDate(ms);
+  const d = new Date(Date.UTC(v.year, v.month - 1, v.day));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7)); // the Thursday of this ISO week
+  const week = Math.ceil(((d.getTime() - Date.UTC(d.getUTCFullYear(), 0, 1)) / DAY_MS + 1) / 7);
+  return d.getUTCFullYear() * 100 + week;
+}

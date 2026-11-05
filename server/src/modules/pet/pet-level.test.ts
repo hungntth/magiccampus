@@ -45,6 +45,13 @@ test('applyPetExp ignores bad gains and clamps at the cap', () => {
   assert.equal(applyPetExp(94838109102, 160, 50).levelsGained, 0);
 });
 
+test('applyPetExp stops at owner level plus five and preserves an already-overcap pet', () => {
+  const capped = applyPetExp(1, 1, 999999, 2);
+  assert.equal(capped.level, 7);
+  assert.equal(capped.exp, petExpOfLevel(7));
+  assert.deepEqual(applyPetExp(petExpOfLevel(10), 10, 100, 2), { exp: petExpOfLevel(10), level: 10, levelsGained: 0, pointsGained: 0 });
+});
+
 test('growth colour bands follow Flash colorByGrowRate', () => {
   assert.equal(petGrowColor(0.8), 0);
   assert.equal(petGrowColor(1.1), 0);

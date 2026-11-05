@@ -110,7 +110,7 @@ PvP battles reuse BattleManager with two player sides; see `pk.md`.
 - RPCs (un-quieted): `startWatch(targetCid)` -> `{success[, error]}` (+ `onWatch(start + watch:true)` / `onSystemSay`), `quitWatch()`.
   `spectate.service.ts` (in-memory watcher map), gates `spectate.ts` (WATCH_ERR, Go order), `spectate.rpc.ts`.
 - Watchers get every `onBattlePlayList` (no per-member end report), then `onWatchEnd()` 5 s after the end; released on quit, new
-  watch, disconnect, own battle start. Client `game/battle/watchMode.ts` ("Thoát"). Replay RPCs stay deferred (M12 pet arena).
+  watch, disconnect, own battle start. Client `game/battle/watchMode.ts` ("Thoát"). M12 C6: the same stage also plays pet replays (`onBattleReplay` + one `onBattlePlayList`, closes on the bare end marker, no `quitWatch`).
 - `onSessionClosed` ignores a session whose `battleId` is not the battle (re-login kick race).
 
 ## M10 E2.-1: current Go damage formula (2026-11-05)
@@ -138,3 +138,6 @@ PvP battles reuse BattleManager with two player sides; see `pk.md`.
   connected member, dead ones too (Go quest_kill_party.go); loot stays survivors-only. `startNpcFight(..., { tune })` applies feature kits.
 
 - 2026-11-05 fix: `playback.ts` skips destroyed units / stage (BH_RETURNED removal, summon replacement or a teardown mid-list left `t.x` on a destroyed Pixi container -> "Cannot read properties of null (reading 'x')"); `BattleStage.popup` and `unitTip.refresh` guard `destroyed` too.
+
+- 2026-11-05 (M12 slice 7): `combat/fighters.ts` gained `petFighterAt`, `scaledCreatureFighter` and `buildBattleStart` (the live `startGroup` uses it); `PetBattleService.battlePetsOf` builds pet battle views for any pets under a stat context. The simulated pet fights (PPVE, later the arena) run `resolveRound` headless in `modules/pet-battle/pet-sim.ts` with no sessions; live behaviour is unchanged.
+- 2026-11-05 (M12 client slice C6): `WatchMode` (`game/battle/watchMode.ts`) is also the pet replay stage: `onBattleReplay(start, bid)` opens it (ignored while `host.inBattle()`), the bare end marker of the single `onBattlePlayList` closes it after a short hold, `Thoát` skips `quitWatch` for replays. Live `BattleController` flow is unchanged (it now passes its own `inBattle` into the watch host).

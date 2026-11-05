@@ -13,7 +13,7 @@ import { CharacterService } from '../character/character.service';
 import { EscrowService, type EscrowedItem } from '../inventory/escrow.service';
 import { withCharLock, withKeyLock } from '../inventory/char-lock';
 import { push, type Push } from '../inventory/pushes';
-import type { PetTransferTexts } from '../pet/pet-transfer';
+import { PET_GUARDED_TEXT, type PetTransferTexts } from '../pet/pet-transfer';
 import { TradeManager } from '../trade/trade.manager';
 import { MailCoreService, type MailDoc } from './mail-core.service';
 import { UndoStack } from './mail-saga';
@@ -25,7 +25,7 @@ export type SendOutcome =
   | { ok: false; error: MailError['type'] }
   | { ok: false; note: string };
 
-const PET_TEXTS: PetTransferTexts = { bound: MAIL_TEXT.PET_BOUND, active: MAIL_TEXT.PET_ACTIVE, equipped: MAIL_TEXT.PET_EQUIPPED };
+const PET_TEXTS: PetTransferTexts = { bound: MAIL_TEXT.PET_BOUND, active: MAIL_TEXT.PET_ACTIVE, equipped: MAIL_TEXT.PET_EQUIPPED, guarded: PET_GUARDED_TEXT };
 const note = (text: string): SendOutcome => ({ ok: false, note: text });
 
 @Injectable()

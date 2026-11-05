@@ -37,3 +37,9 @@ The forge window "Lò rèn" opens from the HUD "Chế tạo" button (craft tab) 
 
 ## Deferred
 Cooking and medicine (life skills, M8), runes and deco, soul set bonuses, the star buff table (buff 3263), the orange-item broadcast. Quiet the RPCs after the user confirms.
+
+## Pet gear upgrades (M12 slice 5)
+Same module, no new panel yet: `pet-gear-ops/up/mod`, `sublime`, `pet-gear-repair` services and `pet-gear-up.rpc.ts` (petEquLevelUp, petEquModColor, petEquModBind / surepetEquModBind, petEquModPre / surePetEquModPre, sublimePetEquip, onValidateSublimePet, restrainPetEquip, onValidateRestrainPet, repairPetEqu, repairPetEquAll). Pure `sublime-rules.ts` is character-ready (M13.4: pass `GameDataService.sublimeRow(false, level)`); bind / pre previews share `RefinePending` (kinds petBind / petPre). Details: `docs/memory/pet-depth.md`.
+
+## Pet gear tabs in the forge window (M12 client C4)
+`ForgeTab.group = 'pet'` tabs (`ui/forge/petGearTab.ts`, `petLevelTabs.ts`, `petModTabs.ts`, `petSublimeTabs.ts`) are appended in `FORGE_TABS`; `ForgePanel` shows one group at a time with a switch button. `ForgeHost.petGear()` is the host list for them (bag, pet item page, worn by pets); materials reuse `MaterialSlots`. `EquipPicker(sticky)` keeps a selection across the delete/re-add pair a tier-up pushes. Details: `docs/memory/pet-depth.md`.

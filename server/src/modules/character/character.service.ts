@@ -5,7 +5,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
-  CharState, DEFAULT_PAYMENT, isMazeTemplateMap, applyMoneyType, openBagPages, openBankPages, paymentKeys, skillPool, formatEp, type CharListEntry, type MoneyKey, type PetLoginInfo, type PlayerData,
+  CharState, DEFAULT_PAYMENT, EMPTY_PET_CONTRACT, isMazeTemplateMap, applyMoneyType, openBagPages, openBankPages, paymentKeys, skillPool, formatEp, type CharListEntry, type MoneyKey, type PetLoginInfo, type PlayerData,
   type SceneCharacter,
 } from '@mc/shared';
 import { Character, type CharacterDocument } from './character.schema';
@@ -224,6 +224,8 @@ export class CharacterService {
       attEnergy: stats.att.eng,
       property: stats.property,
       currencies: { ...(doc.currencies ?? {}) },
+      activePetObject: { ...(doc.activePetObject ?? {}) },
+      contractPet: { ...EMPTY_PET_CONTRACT, ...(doc.contractPet ?? {}) },
       state: CharState.NORMAL,
     };
   }

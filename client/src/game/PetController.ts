@@ -12,10 +12,17 @@ import type { GameClient } from '../net/client';
 import { createThrottle } from '../net/throttle';
 import type { ChatBox } from '../ui/chat';
 import { askConfirm } from '../ui/confirmDialog';
-import { PetPanel } from '../ui/petPanel';
+import { PetPanel, type PetFuncId } from '../ui/petPanel';
 import { toast } from '../ui/screens';
 import type { BagController } from './BagController';
+import { ArenaController } from './ArenaController';
+import { PetBoostController } from './PetBoostController';
+import { PetEvoController } from './PetEvoController';
+import { PetFuncController } from './PetFuncController';
 import { PetGearActions } from './PetGearActions';
+import { PetSoulController } from './PetSoulController';
+import { PetStoneController } from './PetStoneController';
+import { PpveController } from './PpveController';
 
 const OP_DELAY = 500; // Flash PETMANAGERPANEL_S[24]: no back-to-back pet operations
 const FOLLOW_LOCK_MS = 5000; // Flash changePetFollow: the follow button is disabled for 5 s
@@ -35,6 +42,16 @@ export interface PetHost {
 export class PetController {
   private readonly panel: PetPanel;
   private readonly gear: PetGearActions;
+  private readonly train: PetFuncController;
+  private readonly evo: PetEvoController;
+  private readonly boost: PetBoostController;
+  private readonly stone: PetStoneController;
+  private readonly soul: PetSoulController;
+  /** M12 slice C6: Đấu pet and Không Gian Điêu Khắc windows (opened from the HUD function column). */
+  private readonly arena: ArenaController;
+  private readonly ppve: PpveController;
+  /** Second-row window openers (M12); slices register theirs with setFuncHandler, unwired ids toast. */
+  private readonly funcs = new Map<PetFuncId, (pet: PetView) => void>();
   private readonly allow = createThrottle();
   private readonly offs: (() => void)[] = [];
   private selectedId = -1;
@@ -48,6 +65,24 @@ export class PetController {
       pets: () => this.pets(),
       panelPet: () => (this.panel.isOpen ? (host.player.petList[this.selectedId] ?? null) : null),
     });
+    this.train = new PetFuncController({
+      client: host.client, player: host.player, bag: host.bag, pets: () => this.pets(), skillInfo: (id) => this.gear.skillInfo(id),
+    });
+    this.evo = new PetEvoController({
+      client: host.client, player: host.player, bag: host.bag, pets: () => this.pets(), reloadPets: () => this.reload(),
+    });
+    this.boost = new PetBoostController({ client: host.client, player: host.player, bag: host.bag, pets: () => this.pets() });
+    this.stone = new PetStoneController({ client: host.client, player: host.player, bag: host.bag, pets: () => this.pets() });
+    this.soul = new PetSoulController({ client: host.client, player: host.player, pets: () => this.pets() });
+    const battleHost = { client: host.client, player: host.player, pets: () => this.pets(), skillInfo: (id: number) => this.gear.skillInfo(id) };
+    this.arena = new ArenaController(battleHost);
+    this.ppve = new PpveController(battleHost);
+    this.funcs.set('soul', (pet) => this.soul.open(pet));
+    this.funcs.set('guard', () => this.boost.openGuard());
+    this.funcs.set('talent', () => this.boost.openTalent());
+    this.funcs.set('stone', () => this.stone.open());
+    this.funcs.set('train', (pet) => this.train.open('star', pet));
+    this.funcs.set('evolve', (pet) => this.evo.open('evolve', pet));
     this.panel = new PetPanel({
       pets: () => this.pets(),
       maxNum: () => host.player.petMaxNum,
@@ -67,7 +102,10 @@ export class PetController {
       onOpenSkill: (pet, slot) => this.gear.openSkill(pet, slot),
       onDelSkill: (pet, slot) => this.gear.delSkill(pet, slot),
       onEquipOff: (pet, item) => this.gear.equipOff(pet, item),
+      onRepair: (pet, item) => this.gear.repair(pet, item),
+      onRepairAll: (pet) => this.gear.repairAll(pet),
       onOpenSlot: () => this.gear.openSlot(),
+      onFunc: (id, pet) => this.openFunc(id, pet),
       onClose: () => this.panel.close(),
     });
     host.bag.actions.petTarget = () => this.target();
@@ -92,6 +130,24 @@ export class PetController {
     this.host.bag.actions.petTarget = () => null;
     this.host.bag.actions.petGear = null;
     this.panel.close();
+    this.train.destroy();
+    this.evo.destroy();
+    this.boost.destroy();
+    this.stone.destroy();
+    this.soul.destroy();
+    this.arena.destroy();
+    this.ppve.destroy();
+  }
+
+  /** HUD red column "Đấu Pet" / "Điêu Khắc". */
+  toggleArena(): void {
+    void this.reload(); // the list may be older than the line-up pets bound elsewhere
+    this.arena.toggle();
+  }
+
+  togglePpve(): void {
+    void this.reload();
+    this.ppve.toggle();
   }
 
   /** HUD pet button / W key / pet icon. */
@@ -192,6 +248,17 @@ export class PetController {
     void this.host.client.call('changePetProperty', pet.id, add).catch(() => undefined);
   }
 
+  /** Registers the window opener of a second-row button (other M12 slices call this from their controllers). */
+  setFuncHandler(id: PetFuncId, open: (pet: PetView) => void): void {
+    this.funcs.set(id, open);
+  }
+
+  private openFunc(id: PetFuncId, pet: PetView): void {
+    const open = this.funcs.get(id);
+    if (open) open(pet);
+    else toast('Sắp ra mắt');
+  }
+
   private send(method: string, ...args: unknown[]): void {
     if (!this.allow('petOp', OP_DELAY)) return void toast('Vui lòng không thực hiện liên tục các thao tác với pet');
     void this.host.client.call(method, ...args).catch(() => undefined);
@@ -246,6 +313,11 @@ export class PetController {
 
   private refreshAll(): void {
     this.panel.render();
+    this.train.refresh();
+    this.evo.refresh();
+    this.boost.refresh();
+    this.stone.refresh();
+    this.soul.refresh();
     this.refreshHud();
   }
 

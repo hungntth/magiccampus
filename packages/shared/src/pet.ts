@@ -3,6 +3,8 @@
 
 import type { PetSkillInfoMap } from './petGear.js';
 import type { AutoBattleSettings } from './autoBattle.js';
+import type { PetEvolutionInfo } from './petEvolution.js';
+import type { PetSoulInfoWire } from './petSoulWire.js';
 
 export const PetState = { BATTLE: 1, FOLLOW: 2, REST: 3 } as const;
 export type PetStateValue = (typeof PetState)[keyof typeof PetState];
@@ -11,6 +13,49 @@ export const PetLimits = { defaultSlots: 6, maxSlots: 180, maxLevel: 160, maxLif
 export const PET_ATTR_POINTS_PER_LEVEL = 5;
 /** Growth colour bands (Flash PET_GROWRATE_NUM): index 0..4 by the largest band the growth rate reaches. */
 export const PET_GROWRATE_BANDS: readonly number[] = [1.1, 1.3, 1.6, 2.0, 2.5];
+/** M12 pet-training constants, copied from Flash GamePredef.as PET_STAR_* / PET_GROWRATE_NUM. */
+export const PET_STAR_MAX = 12;
+/** GamePredef.PET_STAR_SUCCESS (13 entries); indexed by upgradeNum + 1, see petStarRate in petGrowth.ts. */
+export const PET_STAR_SUCCESS: readonly number[] = [100, 100, 100, 90, 80, 70, 60, 50, 30, 30, 30, 30, 20];
+
+export type PetAptitudeKey = 'strength' | 'agility' | 'stamina' | 'intelligence' | 'energy';
+export const PET_APTITUDE_KEYS: readonly PetAptitudeKey[] = ['strength', 'agility', 'stamina', 'intelligence', 'energy'];
+
+/** Result returned by the Flash pet-training calls. Extra keys intentionally preserve legacy panel names. */
+export interface PetGrowthReply {
+  flag?: boolean;
+  f?: boolean;
+  petId?: number;
+  pid?: number;
+  starNum?: number;
+  growRateAdd?: number;
+  grow?: number;
+  p?: number;
+  t?: string;
+  num?: number;
+  before?: number;
+  after?: number;
+  type?: number;
+  aptHigh?: boolean;
+  msg?: string;
+  /** petXsd / petPzXsd: item id and the stack count left (Flash onXsd / onPzXsd i, n). */
+  i?: number;
+  n?: number;
+  /** petStar: the star item slot id and the safe (Chuc Phuc) stack left. */
+  starSlotId?: number;
+  starSafeNum?: number;
+  /** elementPet reply {petId, element}. */
+  element?: number;
+  /** petEat reply {msg, costPet, costItem, isHint, petId, aptType, value}: isHint marks a rolled result waiting for ensurePetEat. */
+  costPet?: boolean;
+  costItem?: number;
+  isHint?: boolean;
+  aptType?: number;
+  /** ensurePetEat reply {succ, propName, value, msg}. */
+  succ?: boolean;
+  propName?: string;
+  value?: number;
+}
 
 /**
  * Cumulative pet exp: reaching level L needs PET_LEVEL_EXP[L - 1] (160 entries). Copied from Flash
@@ -53,20 +98,30 @@ export function petExpOfLevel(level: number): number {
 }
 
 /** Panel `property` (final stats + free points + growth), replaced wholesale by onRefreshPetProp. */
-export interface PetProperty {
+export interface PetProperty extends Partial<PetAptitudeExtras> {
   finalHp: number; finalMp: number; finalSp: number;
   finalAttack: number; finalMAttack: number; finalDefence: number; finalMDefence: number;
   finalHit: number; finalCritical: number; finalDodge: number; finalSpeed: number;
   finalStrength: number; finalAgility: number; finalStamina: number; finalIntelligence: number; finalEnergy: number;
   lastPoint: number; // free attribute points
   growRate: number; growRateAdd: number;
+  /** M12: final combat rates. Existing pets send an empty map. */
+  rates?: Record<string, number>;
+}
+
+/** Vu Hoa (feather) and Ao Hoa (illusion) aptitude per-mille values; the Flash panels read the Evolution ones from `property`. */
+export interface PetAptitudeExtras {
+  aptStrengthEvolution: number; aptAgilityEvolution: number; aptStaminaEvolution: number;
+  aptIntelligenceEvolution: number; aptEnergyEvolution: number;
+  aptStrengthIllusion: number; aptAgilityIllusion: number; aptStaminaIllusion: number;
+  aptIntelligenceIllusion: number; aptEnergyIllusion: number;
 }
 
 export type PetSkillKey = `skill${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15}`;
 export type PetEquKey = `equ${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}`;
 
 /** The pet `data` block (Flash keys). skillN: -1 locked, 0 empty, > 0 skill id; equN: item id or 0. */
-export interface PetView extends Record<PetSkillKey, number>, Record<PetEquKey, number> {
+export interface PetView extends Record<PetSkillKey, number>, Record<PetEquKey, number>, PetAptitudeExtras {
   id: number;
   characterId: number;
   tid: number; // creature template
@@ -84,12 +139,17 @@ export interface PetView extends Record<PetSkillKey, number>, Record<PetEquKey, 
   close: number; // intimacy, always 0
   element: number;
   upgradeNum: number;
+  starNum?: number;
+  starGrowAdd?: number;
+  envoInfo?: PetEvolutionInfo;
   attLastPoint: number; // free attribute points
   aptStrength: number; aptAgility: number; aptStamina: number; aptIntelligence: number; aptEnergy: number; // creature per-mille
   aptStrengthEx: number; aptAgilityEx: number; aptStaminaEx: number; aptIntelligenceEx: number; aptEnergyEx: number;
   // H5: creature template facts the Flash client reads from TBL_CREATURE (creatureData).
   creatureName: string;
   classId: number;
+  /** H5 (M12): than thu (creature class_ids contains 10): Tay Diem and the Ao Hoa rate line. */
+  divine?: boolean;
   qLevel: number;
   useLv: number;
   resCode: string;
@@ -100,11 +160,15 @@ export interface PetView extends Record<PetSkillKey, number>, Record<PetEquKey, 
   skillInfo?: PetSkillInfoMap;
   /** H5 (M9): this pet's auto-battle bucket (pet keys only). */
   pi?: AutoBattleSettings;
+  /** H5 (M12): the Menh Hon ring (Flash reads petData.soulInfo); slots carry the +100 wire index. */
+  soulInfo?: PetSoulInfoWire;
 }
 
 export interface PetWrapper {
   id: number;
   data: PetView;
+  /** Sibling of data, like the Go wrapper ({data, pi, soulInfo}). */
+  soulInfo?: PetSoulInfoWire;
 }
 
 /** initViewPetMngP reply: every pet keyed by id. */
@@ -118,7 +182,9 @@ export interface ChangePetPropertyArg {
 /** Keys of `onUpdatePet(petId, key, value)`; values are numbers except petName. */
 export type PetUpdateKey =
   | 'state' | 'binded' | 'petName' | 'life' | 'exp' | 'level' | 'currentHp' | 'currentMp' | 'attLastPoint'
-  | 'aptStrengthEx' | 'aptAgilityEx' | 'aptStaminaEx' | 'aptIntelligenceEx' | 'aptEnergyEx' | PetSkillKey | PetEquKey;
+  | 'aptStrengthEx' | 'aptAgilityEx' | 'aptStaminaEx' | 'aptIntelligenceEx' | 'aptEnergyEx'
+  | 'aptStrength' | 'aptAgility' | 'aptStamina' | 'aptIntelligence' | 'aptEnergy'
+  | 'growRate' | 'growRateAdd' | 'starNum' | 'element' | PetSkillKey | PetEquKey;
 
 /** Following pet on the map: `showPetObj` (PlayerData, SceneCharacter) and the `onCreatePet` petData. */
 export interface PetSceneView {

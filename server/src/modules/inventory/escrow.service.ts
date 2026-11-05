@@ -13,6 +13,7 @@ import { SlotType, sidOf as sidAt, type BagItem } from '@mc/shared';
 import { Character } from '../character/character.schema';
 import { GameDataService } from '../gamedata/gamedata.service';
 import { Pet } from '../pet/pet.schema';
+import { CharacterFeature } from '../progression/feature.schema';
 import { petTransferBlock, type PetTransferBlock } from '../pet/pet-transfer';
 import { templateTable } from './bag-mapping';
 import { firstFreeSlot, maxStack } from './bag-rules';
@@ -53,6 +54,7 @@ export class EscrowService implements OnApplicationBootstrap {
     @InjectModel(CharacterItem.name) private readonly items: Model<CharacterItem>,
     @InjectModel(Pet.name) private readonly pets: Model<Pet>,
     @InjectModel(Character.name) private readonly chars: Model<Character>,
+    @InjectModel(CharacterFeature.name) private readonly features: Model<CharacterFeature>,
     private readonly inventory: InventoryService,
     private readonly gameData: GameDataService,
   ) {}
@@ -177,7 +179,10 @@ export class EscrowService implements OnApplicationBootstrap {
   async escrowPet(cid: number, petId: number, ref: EscrowRef): Promise<EscrowPetResult> {
     const row = await this.pets.findOne({ _id: petId, characterId: cid }).lean();
     if (!row) return { ok: false, reason: 'missing' };
-    const block = petTransferBlock({ binded: row.binded, state: row.state, following: row.following, equ: row.equ ?? [] });
+    // Pets in a Chien Thu Ho Ve slot stay (the caller holds the owner's lock, which the guard mutations take too).
+    const guard = await this.features.findOne({ characterId: cid, featureKey: 'pet_guard' }, { state: 1 }).lean();
+    const guarded = Object.values((guard?.state?.petData ?? {}) as Record<string, unknown>).some((id) => Number(id) === petId);
+    const block = petTransferBlock({ binded: row.binded, state: row.state, following: row.following, equ: row.equ ?? [], guarded });
     if (block) return { ok: false, reason: block };
     const r = await this.pets.updateOne(
       { _id: petId, characterId: cid, binded: 0, state: row.state, following: false, equ: row.equ },

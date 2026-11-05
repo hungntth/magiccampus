@@ -65,6 +65,9 @@ export interface EquipProperties extends EquipLines {
   activePropNum?: number;
   [gem: `t${number}`]: number | undefined; // t1..t10: 0 empty drilled hole, > 0 gem template id, absent = undrilled (magic weapon: skill ids)
   flag?: string; // magic weapon: JSON string, sub weapons carry succ0..succ2 lines
+  flag3?: string; // pet gear: inlaid pet stones, JSON {"hole":[tid,0,skillId]} (petStone.ts)
+  /** Pet gear: 1 once a pet upgrade (tier / colour / bind / pre) ran, so stats use the Go colour-scaled lines and bind percent. */
+  petGear?: number;
 }
 
 /** Instance fields carried by a BagItem (all optional: items and plain equipment have none). */
@@ -79,6 +82,9 @@ export interface EquipInstanceView {
   activeProp?: number;
   activePropNum?: number;
   lines?: EquipLines;
+  flag3?: string; // pet gear: inlaid pet stones (see EquipProperties.flag3)
+  /** Pet gear Thang hoa state parsed from `properties.flag` (absent while the piece was never sublimated). */
+  sublime?: { id: number; add: number; element: number };
 }
 
 /** One material slot of getMakeColor / newMake: the item instance id (bag) or temp-bag position (not supported). */

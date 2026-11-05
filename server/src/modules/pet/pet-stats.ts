@@ -12,6 +12,7 @@ import {
 export interface PetBonuses {
   gear?: Bonuses;
   passive?: Bonuses;
+  feature?: Bonuses;
 }
 
 export interface PetStatInput {
@@ -46,6 +47,7 @@ export function petStats(p: PetStatInput): PetStats {
   const stats = buildBaseStats({ attrs, apt: p.apt }, p.growRate + p.growRateAdd);
   if (gear) applyBonuses(stats, gear);
   if (p.bonuses?.passive) applyBonuses(stats, p.bonuses.passive);
+  if (p.bonuses?.feature) applyBonuses(stats, p.bonuses.feature);
   return { stats, attrs };
 }
 

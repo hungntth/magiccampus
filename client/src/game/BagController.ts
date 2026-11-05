@@ -3,7 +3,7 @@
 // onRedMsg toasts, the "Túi đồ" panel (HUD bag button / B key), shop buy and Ctrl + double-click sell.
 // Must be constructed after QuestController: its onUPP handler (player money) has to run first.
 
-import { SlotType, slotOf } from '@mc/shared';
+import { ItemKind, SlotType, isPetEquipPosition, slotOf } from '@mc/shared';
 import type { AddItemNotice, BagItem, GetInitSlotReply, ItemSortEntry, PlayerData } from '@mc/shared';
 import type { GameClient } from '../net/client';
 import { BagPanel } from '../ui/bagPanel';
@@ -129,6 +129,12 @@ export class BagController {
   listTabs(): BagItem[] {
     const tabs: number[] = [SlotType.BAG, SlotType.QUEST_BAG, SlotType.PET_BAG];
     return [...this.items.values()].filter((i) => tabs.includes(i.slotType));
+  }
+
+  /** Pet gear (kind 9) in the bag, the pet item page and worn by pets: what the forge pet tabs work on. */
+  petGear(): BagItem[] {
+    const slots: number[] = [SlotType.BAG, SlotType.PET_BAG, SlotType.PET_EQUIP];
+    return [...this.items.values()].filter((i) => i.itemType === ItemKind.EQUIP && slots.includes(i.slotType) && isPetEquipPosition(i.position));
   }
 
   find(id: number): BagItem | undefined {

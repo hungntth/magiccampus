@@ -5,7 +5,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { SlotType, type RepairReply } from '@mc/shared';
+import { ItemKind, SlotType, type RepairReply } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
 import { Character } from '../character/character.schema';
 import { planRepair } from './repair-rules';
@@ -35,6 +35,16 @@ export class RepairService {
       const row = await this.items.findOne({ _id: itemId, characterId, slotType: { $ne: SlotType.PET_EQUIP } }).lean();
       if (!row) throw RpcException.notFound('Không tìm thấy vật phẩm');
       return this.apply(characterId, [row]);
+    });
+  }
+
+  /** Pet gear (bag, pet-item page or worn by a pet): same price and rules as repair; parity only, pet gear never wears down. */
+  repairPetGear(characterId: number, itemIds: readonly number[]): Promise<RepairResult> {
+    return withCharLock(characterId, async () => {
+      const slotType = { $in: [SlotType.BAG, SlotType.PET_BAG, SlotType.PET_EQUIP] };
+      const rows = await this.items.find({ _id: { $in: [...itemIds] }, characterId, itemType: ItemKind.EQUIP, slotType }).lean();
+      if (rows.length === 0) throw RpcException.notFound('Không tìm thấy vật phẩm');
+      return this.apply(characterId, rows);
     });
   }
 

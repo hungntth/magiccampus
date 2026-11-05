@@ -15,13 +15,16 @@ const PING_INTERVAL_MS = 10_000;
 // funCanvas buttons, top to bottom (MINIMAPCANVAS_U labels), 28 px apart from y 6.
 // Centred column top: max(135px, 50% - half its 262 px height); the quest tracker uses the same top (style.css).
 const FUN_TOP = 'max(135px, calc(50% - 131px))';
-const FUNCTIONS = ['Nạp', 'Chế tạo', 'Luyện', 'Sản xuất', 'Auto', 'Ủy thác', 'Trang Viên', 'Đấu Pet', 'Bay'];
+const FUNCTIONS = ['Nạp', 'Chế tạo', 'Luyện', 'Sản xuất', 'Auto', 'Ủy thác', 'Trang Viên', 'Đấu Pet', 'Điêu Khắc', 'Bay'];
 
 /** Top-right tray buttons wired in M9 phase G (system settings, world map, help). */
 export interface MiniMapTray {
   settings?: () => void;
   worldMap?: () => void;
   help?: () => void;
+  /** M12 red function column: "Đấu Pet" (arena, Flash getPetArenaData) and "Điêu Khắc" (Không Gian Điêu Khắc PPVE). */
+  arena?: () => void;
+  ppve?: () => void;
 }
 
 export class MiniMapCanvas {
@@ -77,12 +80,13 @@ export class MiniMapCanvas {
       setStates(trayToggle, tray.hidden ? showTray : hideTray);
     });
 
-    const fun = place(div('hud-fun', root), 135, 135, 85, 262);
+    const fun = place(div('hud-fun', root), 135, 135, 85, 290);
     fun.style.top = FUN_TOP; // vertically centred on the stage (below the tray on short screens)
     FUNCTIONS.forEach((label, i) => {
       const b = place(div('hud-red-btn', fun, label), 6, 6 + i * 28, 73, 24);
       b.onclick = label === 'Chế tạo' ? () => onForge() : label === 'Luyện' ? () => onForge('star')
-        : label === 'Ủy thác' ? () => onOffline() : label === 'Auto' ? () => onAuto() : notReady;
+        : label === 'Ủy thác' ? () => onOffline() : label === 'Auto' ? () => onAuto()
+          : label === 'Đấu Pet' && trayActs.arena ? trayActs.arena : label === 'Điêu Khắc' && trayActs.ppve ? trayActs.ppve : notReady;
     });
     const hideFun: SkinStates = std(`${TRAY}/RightButtonsHide`);
     const showFun: SkinStates = std(`${TRAY}/RightButtonsShow`);

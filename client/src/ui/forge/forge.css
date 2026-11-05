@@ -83,3 +83,5 @@
   border-radius: 3px;
   color: #ffe9a8;
 }
+.forge-hint { white-space: pre-line; }
+.forge-group-switch { margin-left: auto; }

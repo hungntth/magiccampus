@@ -12,17 +12,22 @@ import { refineTab } from '../ui/forge/refineTab';
 import { resolveTab } from '../ui/forge/resolveTab';
 import { socketTab } from '../ui/forge/socketTab';
 import { starTab } from '../ui/forge/starTab';
+import { petColorTab, petLevelTab } from '../ui/forge/petLevelTabs';
+import { petBindTab, petPreTab } from '../ui/forge/petModTabs';
+import { petRestrainTab, petSublimeTab } from '../ui/forge/petSublimeTabs';
 import { tierTab } from '../ui/forge/tierTab';
 import type { BagController } from './BagController';
 
-export const FORGE_TABS: readonly ForgeTab[] = [mixTab, craftTab, starTab, socketTab, refineTab, tierTab, resolveTab];
+const PET_TABS: readonly ForgeTab[] = [petLevelTab, petColorTab, petBindTab, petPreTab, petSublimeTab, petRestrainTab].map((t) => ({ ...t, group: 'pet' as const }));
+
+export const FORGE_TABS: readonly ForgeTab[] = [mixTab, craftTab, starTab, socketTab, refineTab, tierTab, resolveTab, ...PET_TABS];
 
 export class ForgeController {
   private readonly panel: ForgePanel;
   private readonly off: () => void;
 
   constructor(client: GameClient, private readonly bag: BagController, player: () => PlayerData) {
-    this.panel = new ForgePanel({ client, items: () => [...bag.list(), ...bag.equipped().values()], player }, FORGE_TABS);
+    this.panel = new ForgePanel({ client, items: () => [...bag.list(), ...bag.equipped().values()], player, petGear: () => bag.petGear() }, FORGE_TABS);
     this.panel.onClose = () => {
       this.bag.forgeHook = null;
     };

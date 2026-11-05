@@ -1,4 +1,4 @@
-// In-memory previews of the two-step refinements (element, bind, soul, prefix), one slot per kind and character, like the
+// In-memory previews of the two-step refinements (element, bind, soul, prefix, pet gear bind / pre), one slot per kind and character, like the
 // legacy handler maps. They are dropped on disconnect or when the character leaves the world; materials already charged
 // at the preview are not refunded (legacy).
 
@@ -11,6 +11,8 @@ export type Pending =
   | { kind: 'element'; equipId: number; element: number }
   | { kind: 'bind'; equipId: number; b1: number; b2: number }
   | { kind: 'soul'; equipId: number; prop: number; num: number }
+  | { kind: 'petBind'; equipId: number; b1: number; b2: number }
+  | { kind: 'petPre'; equipId: number; b1: number; b2: number }
   | { kind: 'prefix'; req: UpgradeRequest; quality: number; element: number; star: number; lines: EquipProperties };
 
 export type PendingKind = Pending['kind'];
@@ -54,6 +56,6 @@ export class RefinePending implements OnModuleInit {
   }
 
   clear(characterId: number): void {
-    for (const k of ['element', 'bind', 'soul', 'prefix'] as const) this.drop(characterId, k);
+    for (const k of ['element', 'bind', 'soul', 'prefix', 'petBind', 'petPre'] as const) this.drop(characterId, k);
   }
 }

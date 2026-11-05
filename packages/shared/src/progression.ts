@@ -12,11 +12,16 @@ export const CURRENCY_IDS = {
   heiyaoshiPoint: 233, heiyaoshiPoint2: 234, energyStone: 235, npPnt: 236, elementPnt: 237, pvePoint: 238,
   stoneSealPoint: 239, starPnt: 240, spirituality: 241,
   // M10 dungeons / towers / training (Go ClientKey ids)
-  petguardin: 201, couragePoint: 214, txkc2508p: 69,
+  petguardout: 200, petguardin: 201, couragePoint: 214, txkc2508p: 69,
+  // M12 pet arena: Diem Dau Pet (Go currency 19, client key paPnt)
+  paPnt: 19,
   // M11 phase E credit shops (Go ClientKey ids): the point balances behind NPCSHOP_CONFIG[1..7].prop (couragePoint / txkc2508p above)
   wisdonCrystal: 213, heroScore2507: 219, anni2017: 49, xmCandy24: 221, xcds2403p: 222,
   // M10 world boss: Chiến tích (Go client key expBattle; basic currency id 2 = honor), no other H5 owner yet
   honor: 2,
+  // M12 Mệnh Hồn: three distinct balances. soulChip 242 is the Go currency id (Mảnh Vỡ). soulExp (Go Character.SoulExp, Exp Mệnh Hồn) and
+  // soulPnt (Go Character.SoulPoints, Pha Lê) have NO Go type id (client keys only), so 243 / 244 are H5-only ids; /grant accepts the keys.
+  soulExp: 243, soulPnt: 244, soulChip: 242,
 } as const;
 
 export type CurrencyKey = keyof typeof CURRENCY_IDS;

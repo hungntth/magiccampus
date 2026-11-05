@@ -1,0 +1,28 @@
+/* Mệnh Hồn window: reuses the .pf-win frame, .pb-cell / .pb-bag-grid / .pb-detail parts (petBoost.css) and the .pf-* lines of petFunc.css. */
+.pb-soul { left: calc(50% - 330px); top: 4%; width: 660px; z-index: 4; }
+
+.sc-wrap { display: flex; gap: 10px; align-items: flex-start; }
+.sc-pets { width: 150px; flex: none; max-height: 430px; }
+.sc-pets .pf-picker-row.sel { background: #17395a; outline: 1px solid var(--pet-gold); }
+.sc-main { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
+.sc-section { display: flex; flex-direction: column; gap: 4px; }
+.sc-grid { grid-template-columns: repeat(8, 54px); gap: 4px; }
+.sc-cell { width: 54px; height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; line-height: 1.15; }
+.sc-name { font-size: 10px; font-weight: 700; max-width: 50px; overflow: hidden; }
+.sc-lv { font-size: 10px; color: #cfe6ff; }
+.sc-cell.closed { opacity: 0.4; border-style: dashed; }
+.sc-lock { position: absolute; left: 1px; top: 0; font-size: 10px; font-weight: 700; color: #ffd24a; text-shadow: 0 0 2px #000; }
+.sc-wallet { display: flex; flex-wrap: wrap; gap: 14px; color: #ffe9a8; }
+.sc-select { background: #08192b; color: #fff; border: 1px solid #4f86b3; border-radius: 3px; padding: 2px 4px; }
+
+.sc-crystals { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.sc-crystal { padding: 8px 4px; background: #08192b; color: #cfe6ff; border: 2px solid #4f86b3; border-radius: 6px; cursor: pointer; opacity: 0.5; font-size: 11px; }
+.sc-crystal.open { opacity: 1; }
+.sc-crystal.lit { box-shadow: 0 0 10px var(--pet-gold); }
+.sc-crystal:hover { filter: brightness(1.25); }
+.sc-crystal-name { font-weight: 700; margin-bottom: 2px; }
+.sc-short { color: #ff6a6a; }
+
+.sc-exchange { display: flex; flex-direction: column; gap: 4px; max-height: 360px; overflow-y: auto; }
+.sc-ex-row { display: flex; align-items: center; gap: 8px; padding: 3px 6px; background: #08192b; border: 1px solid #36597a; border-radius: 4px; }
+.sc-ex-text { flex: 1; min-width: 0; }

@@ -2,7 +2,7 @@
 // normal -> lock -> confirm state machine). No I/O; the service binds it to sessions, Mongo and pushes.
 
 import { TRADE_MAX_ITEMS, TRADE_MAX_PETS, type TradeOffer } from '@mc/shared';
-import { petTransferNote, type PetTransferFacts, type PetTransferTexts } from '../pet/pet-transfer';
+import { PET_GUARDED_TEXT, petTransferNote, type PetTransferFacts, type PetTransferTexts } from '../pet/pet-transfer';
 
 export const TRADE_NOTE = {
   SELF: 'Không thể giao dịch với chính mình',
@@ -32,6 +32,7 @@ export const TRADE_PET_TEXTS: PetTransferTexts = {
   bound: 'Không thể giao dịch pet đã khóa!',
   active: 'Pet đang xuất chiến, đi theo hoặc được cưỡi, hãy cho pet nghỉ ngơi trước khi giao dịch!',
   equipped: 'Pet đang mang trang bị, hãy tháo trang bị pet trước khi giao dịch!',
+  guarded: PET_GUARDED_TEXT,
 };
 
 const asCount = (v: unknown): number | null => {

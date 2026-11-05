@@ -5,13 +5,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { isBattleSkill, PetLimits, PetState, type LearnedSkill } from '@mc/shared';
+import { isBattleSkill, PetLimits, PetState, petSoulOpenNum, type LearnedSkill } from '@mc/shared';
 import type { BaseStats } from '../character/character-stats';
 import { GameDataService } from '../gamedata/gamedata.service';
+import { Character } from '../character/character.schema';
 import { withCharLock } from '../inventory/char-lock';
 import { push, type Push } from '../inventory/pushes';
 import { toLearnedSkill } from '../skill/skill-rules';
 import { PetBonusService } from './pet-bonus.service';
+import type { PetStatContext } from './pet-stat-provider';
 import { PetFollowService } from './pet-follow.service';
 import { Pet } from './pet.schema';
 import { applyPetExp } from './pet-level';
@@ -40,6 +42,7 @@ export class PetBattleService {
 
   constructor(
     @InjectModel(Pet.name) private readonly pets: Model<Pet>,
+    @InjectModel(Character.name) private readonly chars: Model<Character>,
     private readonly gameData: GameDataService,
     private readonly follow: PetFollowService,
     private readonly bonus: PetBonusService,
@@ -48,19 +51,31 @@ export class PetBattleService {
   /** The owner's battle pet (state 1, life > 0), or null. */
   async fighterOf(characterId: number): Promise<BattlePet | null> {
     const row = await this.pets.findOne({ characterId, state: PetState.BATTLE, life: { $gt: 0 } }).lean();
-    const tpl = row ? this.gameData.petTemplate(row.tid) : undefined;
-    if (!row || !tpl) return null;
-    const extras = await this.bonus.extrasOf(characterId, row);
-    const skills = (row.skills ?? []).filter((s) => s > 0);
-    const skillList = skills.flatMap((sid, i) => {
-      const st = this.gameData.skill(sid);
-      return st && isBattleSkill(st.type) ? [toLearnedSkill({ skillId: sid, level: 1, position: i + 1 }, st)] : [];
-    });
-    return {
-      petId: row._id, ownerCid: characterId, tid: row.tid, name: row.petName, level: row.level, stats: statsOfPet(row, tpl, extras.bonuses).stats,
-      resCode: tpl.resCode, colorCode: tpl.colorCode, iconCode: tpl.iconCode, element: row.element,
-      skills, skillList,
-    };
+    return row ? (await this.battlePetsOf(characterId, [row], 'battle')).get(row._id) ?? null : null;
+  }
+
+  /**
+   * Battle views of the given pets of one character under a stat context (one bonus lookup for all of them); pets whose template is
+   * missing are absent. No state / life filter: simulated PPVE / arena line-ups pick their own pets and count life as full.
+   */
+  async battlePetsOf(characterId: number, rows: readonly Pet[], ctx: PetStatContext): Promise<Map<number, BattlePet>> {
+    const extras = await this.bonus.extrasFor(characterId, rows, ctx);
+    const out = new Map<number, BattlePet>();
+    for (const row of rows) {
+      const tpl = this.gameData.petTemplate(row.tid);
+      if (!tpl) continue;
+      const skills = (row.skills ?? []).filter((s) => s > 0);
+      const skillList = skills.flatMap((sid, i) => {
+        const st = this.gameData.skill(sid);
+        return st && isBattleSkill(st.type) ? [toLearnedSkill({ skillId: sid, level: 1, position: i + 1 }, st)] : [];
+      });
+      out.set(row._id, {
+        petId: row._id, ownerCid: characterId, tid: row.tid, name: row.petName, level: row.level,
+        stats: statsOfPet(row, tpl, extras.get(row._id)?.bonuses).stats,
+        resCode: tpl.resCode, colorCode: tpl.colorCode, iconCode: tpl.iconCode, element: row.element, skills, skillList,
+      });
+    }
+    return out;
   }
 
   /** Battle settle for one pet: `expGain` null = no exp (loss / owner not a survivor), life drain always. Serialized per owner. */
@@ -80,16 +95,23 @@ export class PetBattleService {
     const row = await this.pets.findOne({ _id: petId, characterId }).lean();
     const tpl = row ? this.gameData.petTemplate(row.tid) : undefined;
     if (!row || !tpl) return [];
-    const res = applyPetExp(row.exp, row.level, gain);
+    const owner = await this.chars.findById(characterId, { level: 1 }).lean();
+    const res = applyPetExp(row.exp, row.level, gain, owner?.level ?? 1);
     const life = drain ? petLifeAfterBattle(row.life) : row.life;
     const attrPoints = row.attrPoints + res.pointsGained;
-    await this.pets.updateOne({ _id: petId, characterId }, { $set: { exp: res.exp, level: res.level, attrPoints, life } });
+    const ringOpen = res.levelsGained > 0 ? petSoulOpenNum(res.level) : 0;
+    await this.pets.updateOne(
+      { _id: petId, characterId },
+      { $set: { exp: res.exp, level: res.level, attrPoints, life }, ...(ringOpen > 0 ? { $max: { 'soul.openNum': ringOpen } } : {}) },
+    );
     const pushes: Push[] = [];
     if (res.exp !== row.exp) pushes.push(push('onUpdatePet', petId, 'exp', res.exp));
     if (life !== row.life) pushes.push(push('onUpdatePet', petId, 'life', Math.min(life, PetLimits.maxLife)));
     if (res.levelsGained > 0) {
       pushes.push(push('onUpdatePet', petId, 'level', res.level));
       pushes.push(push('onUpdatePet', petId, 'attLastPoint', attrPoints));
+      // Go SendPetSoulOpenAfterLevelUp: every level-up of a Lv.80+ pet re-sends the ring size (idempotent on the client).
+      if (ringOpen > 0) pushes.push(push('onPetLevelUp', { openNum: Math.max(ringOpen, row.soul?.openNum ?? 0), pid: petId }));
     }
     if (pushes.length > 0) pushes.push(push('onRefreshPetProp', petId, propertyOfPet({ ...row, ...res, attrPoints, life }, tpl, (await this.bonus.extrasOf(characterId, row)).bonuses)));
     if (res.levelsGained > 0 && row.following) {

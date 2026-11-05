@@ -15,6 +15,16 @@ import './petPanel.css';
 const PAGE_SIZE = 10;
 const STATE_LABEL: Record<number, string> = { 1: 'Đấu', 2: 'Hiển', 3: 'Nghỉ' };
 type Tab = 'info' | 'skill' | 'equip';
+/** M12 feature windows opened from the second button row; each slice wires its own id in PetController.setFuncHandler. */
+export type PetFuncId = 'train' | 'evolve' | 'guard' | 'talent' | 'stone' | 'soul';
+export const PET_FUNC_BUTTONS: readonly { id: PetFuncId; label: string; title: string }[] = [
+  { id: 'train', label: 'Luyện', title: 'Luyện pet: cường hóa, dung hợp, tẩy luyện, phục sinh, tẩy điểm, kỹ năng, ảo hóa, nguyên tố' },
+  { id: 'evolve', label: 'T.Hóa', title: 'Tiến hóa, Vũ hóa, Khế ước, Sách Tiến Hóa' },
+  { id: 'guard', label: 'Hộ Vệ', title: 'Chiến Thú Hộ Vệ' },
+  { id: 'talent', label: 'T.Phú', title: 'Thiên Phú Pet' },
+  { id: 'stone', label: 'B.Thạch', title: 'Tụ Linh Bảo Thạch' },
+  { id: 'soul', label: 'M.Hồn', title: 'Mệnh Hồn' },
+];
 const TABS: [Tab, string][] = [['info', 'Thuộc tính'], ['skill', 'Kỹ năng'], ['equip', 'Trang bị']];
 
 export interface PetPanelHost {
@@ -38,7 +48,11 @@ export interface PetPanelHost {
   onOpenSkill(pet: PetView, slot: number): void;
   onDelSkill(pet: PetView, slot: number): void;
   onEquipOff(pet: PetView, item: BagItem): void;
+  onRepair(pet: PetView, item: BagItem): void;
+  onRepairAll(pet: PetView): void;
   onOpenSlot(): void;
+  /** Second button row (M12 windows): the controller opens the window of `id` for `pet`. */
+  onFunc(id: PetFuncId, pet: PetView): void;
   onClose(): void;
 }
 
@@ -170,9 +184,11 @@ export class PetPanel {
         onOpen: (slot) => this.host.onOpenSkill(pet, slot),
         onDelete: (slot) => this.host.onDelSkill(pet, slot),
       });
-    } else renderEquipTab(body, pet, { item: (id) => this.host.item(id), onOff: (item) => this.host.onEquipOff(pet, item) });
+    } else renderEquipTab(body, pet, { item: (id) => this.host.item(id), onOff: (item) => this.host.onEquipOff(pet, item),
+      onRepair: (item) => this.host.onRepair(pet, item), onRepairAll: () => this.host.onRepairAll(pet) });
     frag.appendChild(body);
     frag.appendChild(this.actions(pet));
+    if (!this.renaming) frag.appendChild(this.funcRow(pet));
     this.detail.replaceChildren(frag);
   }
 
@@ -238,6 +254,17 @@ export class PetPanel {
     bind.disabled = pet.binded === 1;
     bind.onclick = () => this.host.onBind(pet);
     bar.append(state, follow, rename, release, bind);
+    return bar;
+  }
+
+  private funcRow(pet: PetView): HTMLElement {
+    const bar = el('div', 'pet-actions pet-funcs');
+    for (const f of PET_FUNC_BUTTONS) {
+      const b = el('button', 'pet-btn', f.label);
+      b.title = f.title;
+      b.onclick = () => this.host.onFunc(f.id, pet);
+      bar.appendChild(b);
+    }
     return bar;
   }
 }

@@ -146,6 +146,13 @@ export class Character {
   @Prop({ type: Object, default: {} })
   currencies: Record<string, number>;
 
+  /** M12 handbook activations and the four character-wide pet-contract tracks. */
+  @Prop({ type: Object, default: {} })
+  activePetObject: Record<string, { pid: number; actived: boolean; activedNum: number }>;
+
+  @Prop({ type: Object, default: () => ({ hp: 0, hpExp: 0, speed: 0, speedExp: 0, physics: 0, physicsExp: 0, magic: 0, magicExp: 0 }) })
+  contractPet: Record<string, number>;
+
   // Active titles (M7): data_tbl_title ids, 0 = none. Ownership lives in character_titles.
   @Prop({ default: 0 })
   titleId: number;

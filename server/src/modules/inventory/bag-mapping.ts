@@ -3,6 +3,7 @@
 import {
   EQUIP_INSTANCE_TYPE, ITEM_INSTANCE_TYPE, ItemKind, MAX_HOLES, sidOf, type BagItem, type EquipInstanceView, type EquipLines,
 } from '@mc/shared';
+import { parseSublimeState } from '../forge/sublime-rules';
 import type { Row } from '../gamedata/gamedata.service';
 import { sellUnit } from './bag-rules';
 import type { CharacterItem } from './character-item.schema';
@@ -37,6 +38,11 @@ export function instanceView(doc: Pick<CharacterItem, 'itemType' | 'properties' 
   const lines: EquipLines = {};
   for (const k of LINE_KEYS) if (p[k] !== undefined) lines[k] = p[k];
   if (Object.keys(lines).length > 0) out.lines = lines;
+  if (p.flag3) out.flag3 = p.flag3;
+  if (p.flag) {
+    const { state } = parseSublimeState(p.flag);
+    if (state.id > 0 || state.add > 0 || state.element > 0) out.sublime = { id: state.id, add: state.add, element: state.element };
+  }
   return out;
 }
 
@@ -63,6 +69,9 @@ export function toBagItem(doc: CharacterItem, tpl: Row | undefined): BagItem {
     info: String(tpl?.info || tpl?.description || ''),
     sellPrice: sellUnit(tpl),
     ...(doc.itemType === ItemKind.EQUIP ? {} : { tplKind: Number(tpl?.kind ?? 0) || 0 }),
+    ...(doc.itemType !== ItemKind.EQUIP && Number(tpl?.type) === 507
+      ? { tplPropType: Number(tpl?.prop_type ?? 0) || 0, tplPropNum: Number(tpl?.propl_num ?? 0) || 0 }
+      : {}),
     ...instanceView(doc),
   };
 }

@@ -1,7 +1,7 @@
 // Hover tooltip for item slots (legacy TipItem.as / BasicToolTip): icon + name in the quality colour, bind state in green,
 // description, "Loại: …", stat lines, sell price or "Không thể bán". One floating box in #stage, placed beside the cell.
 
-import { ELEMENT_NAMES, EQUIP_PROP_LABELS, PREFIX_NAMES, type BagItem, type EquipLines, type ShopSlotView } from '@mc/shared';
+import { ELEMENT_NAMES, EQUIP_PROP_LABELS, PET_SUBLIME_ELEMENTS, PREFIX_NAMES, type BagItem, type EquipLines, type ShopSlotView } from '@mc/shared';
 import { iconUrl } from '../assets';
 import { itemTypeName } from './itemTypeNames';
 import { stageEl, stageScale } from './stage';
@@ -112,6 +112,9 @@ export function renderItemTip(item: BagItem, ctx: ItemTipContext): HTMLElement {
   if (item.quality) el('div', 'it-line', `Phẩm chất: ${item.quality}`, root);
   if (item.element) el('div', 'it-line', `Hệ: ${ELEMENT_NAMES[item.element] ?? item.element}`, root);
   if (item.star) el('div', 'it-line', `Sao: ${item.star}`, root);
+  if (item.sublime && item.sublime.id > 0) {
+    el('div', 'it-line it-prop', `Thăng hoa: +${item.sublime.id}  Nguyên tố: ${PET_SUBLIME_ELEMENTS[item.sublime.element] ?? 'Chưa có'}`, root);
+  }
   if (item.reqLevel > 0) {
     el('div', `it-line${ctx.level < item.reqLevel ? ' it-bad' : ''}`, `Cấp độ cần: ${item.reqLevel}`, root);
   }

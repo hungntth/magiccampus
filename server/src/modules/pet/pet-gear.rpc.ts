@@ -59,6 +59,11 @@ export class PetGearRpc {
     return this.run(session, () => this.skills.delSkill(session.characterId!, petId, slot));
   }
 
+  @Rpc('petUpSkill', { requireCharacter: true, forbidInBattle: true })
+  petUpSkill(session: Session, args: unknown[]): Promise<null> {
+    return this.run(session, () => this.skills.upgradeSkill(session.characterId!, intArg(args[0], 'petId'), intArg(args[1], 'slot')));
+  }
+
   @Rpc('petEquipOn', { requireCharacter: true, forbidInBattle: true })
   petEquipOn(session: Session, args: unknown[]): Promise<null> {
     const petId = intArg(args[0], 'petId');

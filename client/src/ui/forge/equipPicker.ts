@@ -18,6 +18,8 @@ export class EquipPicker {
     private readonly host: ForgeHost,
     private readonly onChange: (item: BagItem | null) => void,
     private readonly allow: (i: BagItem) => boolean = isEquipment,
+    /** Keep the choice while the piece is briefly missing (a tier-up pushes a delete before the re-add). */
+    private readonly sticky = false,
   ) {}
 
   selected(): BagItem | undefined {
@@ -34,12 +36,12 @@ export class EquipPicker {
 
   render(): void {
     const list = this.host.items().filter(this.allow).sort((a, b) => a.slotType - b.slotType || a.sid - b.sid);
-    if (this.selectedId !== null && !list.some((i) => i.id === this.selectedId)) {
+    if (!this.sticky && this.selectedId !== null && !list.some((i) => i.id === this.selectedId)) {
       this.selectedId = null;
       this.onChange(null);
     }
     this.root.replaceChildren(...(list.length === 0 ? [el('div', 'forge-hint', 'Không có trang bị phù hợp.')] : list.map((i) => {
-      const count = i.slotType === SlotType.EQUIP ? 'M' : i.star ? `*${i.star}` : undefined;
+      const count = i.slotType === SlotType.EQUIP || i.slotType === SlotType.PET_EQUIP ? 'M' : i.star ? `*${i.star}` : undefined;
       const cell = forgeCell({ iconCode: i.iconCode, name: i.name, color: i.color, count, title: `${i.name}${i.star ? `  *${i.star}` : ''}` });
       if (i.id === this.selectedId) cell.classList.add('selected');
       cell.onclick = () => this.accept(i);

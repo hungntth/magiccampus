@@ -137,6 +137,7 @@ export class GameScene {
       onForge: (tab) => this.forge.open(tab),
       onRank: () => this.ranking.toggle(), onAchieve: () => this.character.toggleAchievements(), onDaily: () => this.activity.openDaily(), onVip: () => this.activity.openVip(), onOffline: () => this.activity.openOffline(),
       onPet: () => this.pet.toggle(),
+      onArena: () => this.pet.toggleArena(), onPpve: () => this.pet.togglePpve(),
       onLevelUp: () => this.character.levelUp(),
       onRecover: (kind) => this.bag.actions.recover(kind), bagItems: () => this.bag.list(), useBagItem: (it) => this.bag.actions.use(it), onBloodBag: (bt) => this.hud.bloodBag.open(bt),
       onViewChanged: () => this.applyView(), travel: (id, group) => this.bag.funcs.travelTo(id, group),

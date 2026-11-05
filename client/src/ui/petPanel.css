@@ -5,7 +5,7 @@
   left: calc(50% - 280px);
   top: 6%;
   width: 560px;
-  height: 392px;
+  height: 424px;
   padding: 34px 12px 10px;
   box-sizing: border-box;
   background: linear-gradient(180deg, #1d4a72 0%, #123553 40%, #0e2a45 100%);
@@ -413,3 +413,7 @@
 .pet-open-slot {
   width: 22px;
 }
+
+.pet-btn.active { background: #d6892b; color: #fff; }
+
+.pet-equ-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }

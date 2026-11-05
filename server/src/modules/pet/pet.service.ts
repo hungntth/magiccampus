@@ -19,12 +19,17 @@ import { push, type Push } from '../inventory/pushes';
 import { UseItemService, type PetItemHook } from '../inventory/use-item.service';
 import { PetBonusService } from './pet-bonus.service';
 import { PetEquipService } from './pet-equip.service';
+import { PET_GUARDED_TEXT, PET_LINEUP_TEXT } from './pet-transfer';
 import { PetFollowService } from './pet-follow.service';
+import { PetMaterialService } from './pet-materials.service';
 import { Pet } from './pet.schema';
 import {
   battleStateBlocker, emptyEquipment, hasPetRoom, initialSkills, isSettableState, parsePetName, parsePetProperty,
 } from './pet-rules';
 import { petView, petWrapper, propertyOfPet } from './pet-view';
+
+/** A pet id or 'battle' (the battle pet) for refreshPets. */
+export type RefreshTarget = number | 'battle';
 
 export const NO_PET_ROOM = 'Bạn không có đủ chỗ trống trong túi pet!';
 export interface AwardOptions {
@@ -46,6 +51,7 @@ export class PetService implements PetItemHook, OnModuleInit {
     private readonly bonus: PetBonusService,
     private readonly gear: PetEquipService,
     private readonly achievements: AchievementEvents,
+    private readonly mats: PetMaterialService,
   ) {}
 
   onModuleInit(): void {
@@ -75,6 +81,26 @@ export class PetService implements PetItemHook, OnModuleInit {
     const row = await this.pets.findOne({ _id: petId, characterId }).lean();
     const tpl = row ? this.gameData.petTemplate(row.tid) : undefined;
     return row && tpl ? petWrapper(row, tpl, await this.bonus.extrasOf(characterId, row)) : null;
+  }
+
+  /**
+   * onRefreshPetProp pushes for the given pets (owned ones only) with their current bonuses. 'battle' stands for the battle pet
+   * (state 1). Character-wide changes (talent, guard) refresh just those pets: the Flash panel rebuilds fully per push (pet-talent.md).
+   */
+  async refreshPets(characterId: number, targets: RefreshTarget | readonly RefreshTarget[]): Promise<Push[]> {
+    const list = typeof targets === 'object' ? targets : [targets];
+    const ids = [...new Set(list.filter((t): t is number => typeof t === 'number' && t > 0))];
+    const or: Record<string, unknown>[] = [];
+    if (ids.length > 0) or.push({ _id: { $in: ids } });
+    if (list.includes('battle')) or.push({ state: PetState.BATTLE });
+    if (or.length === 0) return [];
+    const rows = await this.pets.find({ characterId, $or: or }).sort({ _id: 1 }).lean();
+    const out: Push[] = [];
+    for (const row of rows) {
+      const tpl = this.gameData.petTemplate(row.tid);
+      if (tpl) out.push(await this.bonus.refreshPush(characterId, row, tpl));
+    }
+    return out;
   }
 
   /** petMaxNum / showPetId / petList for the login payload (petList holds the unwrapped data blocks). */
@@ -181,6 +207,8 @@ export class PetService implements PetItemHook, OnModuleInit {
     return withCharLock(characterId, async () => {
       const { row } = await this.owned(characterId, petId);
       if (row.state === PetState.BATTLE) throw RpcException.forbidden('Pet đang xuất chiến, hãy cho nghỉ trước khi phóng sinh!');
+      if ((await this.mats.guardedPetIds(characterId)).has(petId)) throw RpcException.forbidden(PET_GUARDED_TEXT);
+      if ((await this.mats.lineupPetIds(characterId)).has(petId)) throw RpcException.forbidden(PET_LINEUP_TEXT);
       const returned = await this.gear.returnAll(characterId, petId); // worn pet items go back to the bag first
       const del = await this.pets.deleteOne({ _id: petId, characterId, state: { $ne: PetState.BATTLE } });
       if (del.deletedCount !== 1) throw RpcException.forbidden('Pet vừa thay đổi, hãy thử lại');

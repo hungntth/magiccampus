@@ -1,7 +1,7 @@
 // Builds battle fighters (player from the M1 effective stats, enemies from creature templates) and the wire participants.
 // Pure helpers over already-loaded data; the combat service does the loading.
 
-import { BATTLE_PET_SLOT_OFFSET, BattleParticipantType, type BattleParticipant } from '@mc/shared';
+import { BATTLE_PET_SLOT_OFFSET, BattleParticipantType, type BattleParticipant, type BattleStart } from '@mc/shared';
 import type { CreatureTemplate, MapCreatureRow } from '../gamedata/combat-data';
 import type { BattlePet } from '../pet/pet-battle.service';
 import type { CharStats } from '../stats/character-stats.service';
@@ -32,9 +32,14 @@ export function playerFighter(slot: number, st: CharStats, resCode: string): Fig
 
 /** The owner's pet: player side at owner slot + 5, full HP/MP (H5: pet HP is never persisted), stats from the pet's final values. */
 export function petFighter(ownerSlot: number, pet: BattlePet): Fighter {
+  return petFighterAt(ownerSlot + BATTLE_PET_SLOT_OFFSET, 'player', pet);
+}
+
+/** A pet at an explicit slot and side (simulated PPVE / arena line-ups); everything else as petFighter. */
+export function petFighterAt(slot: number, side: Fighter['side'], pet: BattlePet): Fighter {
   const s = pet.stats;
   return {
-    slot: ownerSlot + BATTLE_PET_SLOT_OFFSET, side: 'player', kind: 'pet', refId: pet.petId, name: pet.name, level: pet.level,
+    slot, side, kind: 'pet', refId: pet.petId, name: pet.name, level: pet.level,
     hp: s.maxHp, hpMax: s.maxHp, mp: s.maxMp, mpMax: s.maxMp, sp: s.maxSp, spMax: s.maxSp, resCode: pet.resCode, bossFlag: 0,
     alive: true, expBase: -1, ownerCid: pet.ownerCid, tid: pet.tid, colorCode: pet.colorCode, iconCode: pet.iconCode,
     element: pet.element, skills: pet.skills, skillList: pet.skillList,
@@ -56,6 +61,11 @@ function enemyOf(slot: number, tpl: CreatureTemplate, s: CreatureCombat, bossFla
 /** An enemy at an explicit level (quest battles, hitNpc line-ups: no player-level cap). */
 export function creatureFighter(slot: number, tpl: CreatureTemplate, level: number, bossFlag = 0, expBase = -1): Fighter {
   return enemyOf(slot, tpl, withDefaults(creatureStatsAt(tpl, level)), bossFlag, expBase);
+}
+
+/** An enemy with already-scaled stats (PPVE floors scale creature stats by floor and by the configured team). */
+export function scaledCreatureFighter(slot: number, tpl: CreatureTemplate, stats: CreatureCombat, bossFlag = 0): Fighter {
+  return enemyOf(slot, tpl, stats, bossFlag, -1);
 }
 
 /** Random-encounter enemy from a spawn row: row level (with fallbacks), capped to the player's level + 5. */
@@ -83,4 +93,11 @@ export function toParticipant(f: Fighter): BattleParticipant {
     Object.assign(p, { cid: f.ownerCid, tid: f.tid, colorCode: f.colorCode, iconCode: f.iconCode, element: f.element, skills: [...(f.skillList ?? [])] });
   }
   return p;
+}
+
+/** The onBattleStart payload of a board: every participant keyed by slot. Shared by live battles and the simulated pet fights. */
+export function buildBattleStart(battleFieldId: string, nid: number, fighters: Iterable<Fighter>, bossFlag: number): BattleStart {
+  const cList: BattleStart['cList'] = {};
+  for (const f of fighters) cList[String(f.slot)] = toParticipant(f);
+  return { battleFieldId, nid, cList, bossFlag, sneakFlag: 0, guest: false, airBattle: false };
 }

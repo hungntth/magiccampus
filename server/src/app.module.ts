@@ -61,6 +61,10 @@ import { ScheduleBossModule } from './modules/scheduleboss/scheduleboss.module';
 import { MailModule } from './modules/mail/mail.module';
 import { AuctionModule } from './modules/auction/auction.module';
 import { TempBagModule } from './modules/tempbag/tempbag.module';
+import { PetStoneModule } from './modules/pet-stone/pet-stone.module';
+import { PetBoostModule } from './modules/pet-boost/pet-boost.module';
+import { PetSoulModule } from './modules/pet-soul/pet-soul.module';
+import { PetBattleModule } from './modules/pet-battle/pet-battle.module';
 
 @Module({
   imports: [
@@ -124,6 +128,10 @@ import { TempBagModule } from './modules/tempbag/tempbag.module';
     MailModule,
     AuctionModule,
     TempBagModule,
+    PetStoneModule,
+    PetBoostModule,
+    PetSoulModule,
+    PetBattleModule,
   ],
 })
 export class AppModule {}
