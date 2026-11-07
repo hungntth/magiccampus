@@ -2,7 +2,7 @@
 // Tooltip = name, description and time left; clicking a removable buff asks to remove it (delBuffClient). A 10 s timer
 // drops expired timed buffs locally and tells the server (delBuffClient), like the Flash client.
 
-import { BuffType, type InitLongBuff, type LongBuff } from '@mc/shared';
+import { BuffType, PM_TRANSFORM_BUFF_ID, type InitLongBuff, type LongBuff } from '@mc/shared';
 import { iconUrl } from '../../assets';
 import type { GameClient } from '../../net/client';
 import { askConfirm } from '../confirmDialog';
@@ -10,6 +10,9 @@ import { toast } from '../screens';
 import { div, place } from './skin';
 
 const REFRESH_MS = 10_000; // GamePredef.LONG_BUFF_REFRESH_INTERVAL
+// VIP right-13 transform buff: its template text is the Halloween one, so the tooltip and the remove prompt get their own wording.
+const TRANSFORM_INFO = 'Biến hình VIP trong ngày. Nhấn để hủy hiệu ứng.';
+const TRANSFORM_ASK = 'Bạn có muốn hủy hiệu ứng biến hình không?';
 
 export class BuffBar {
   private readonly root: HTMLDivElement;
@@ -83,7 +86,7 @@ export class BuffBar {
     };
     img.onclick = () => {
       if (!b.removable) return void toast('BUFF xấu không thể bị xóa.');
-      askConfirm('Xác nhận xóa BUFF này?', () => {
+      askConfirm(b.bid === PM_TRANSFORM_BUFF_ID ? TRANSFORM_ASK : 'Xác nhận xóa BUFF này?', () => {
         void this.client.call('delBuffClient', b.id).catch(() => undefined);
         this.remove(b.id);
       });
@@ -92,7 +95,8 @@ export class BuffBar {
   }
 
   private tip(b: LongBuff): string {
-    const head = [b.name, b.info].filter(Boolean).join('\n');
+    const info = b.bid === PM_TRANSFORM_BUFF_ID ? TRANSFORM_INFO : b.info;
+    const head = [b.name, info].filter(Boolean).join('\n');
     if (b.type === BuffType.PERMANENT || b.type === BuffType.UNIQUE) return `${head}\nDuy trì: Vĩnh viễn`;
     if (b.type === BuffType.BATTLE) return `${head}\nSố trận đấu còn lại: ${b.battleLeft ?? 0}`;
     const left = b.ineffectiveTime === undefined ? (b.timeLeft ?? 0) : Math.max(0, Math.floor((b.ineffectiveTime - Date.now()) / 1000));

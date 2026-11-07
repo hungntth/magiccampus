@@ -12,11 +12,20 @@ Plan: `docs/plans/2026-11-04_12_CORE_LOOP.md` (phase G notes).
   texts `<name> không nhận lời mời nhóm.` / `... tin nhắn riêng.` / `... giao dịch.` (`settings/permission.service.ts`, own module).
 
 ## Client
-- `ui/systemSettingsPanel.ts` (P, minimap Thiết lập), `ui/worldMap/worldMapPanel.ts` + `pins.ts` (M, Earth; art `public/ui/world`),
+- Area map `ui/worldMap/localMapPanel.ts` + `localMap.css` (legacy MapPanel/MapCanvas; M key and Earth button open it FIRST):
+  CSS-drawn 430 px frame, the current map's own tiles (`MapLayer.mapCells`) drawn into a 400 px wide canvas (cached for the
+  last map), NPC icons (`miniMap == 1`, quest state first) / gate icons with the "NPC" / "Điểm đến" checkboxes, player marker,
+  hover x,y; click walks (`GameScene.walkGround`), NPC icon talks, gate icon walks in (`gateWalk`). `mMap < 0` maps refuse
+  with MAPPANEL_S[0]. Its "Thế giới" button opens the world map below. `MapInfo.mMap` / `SceneNpc.miniMap` come from
+  `data_tbl_map.m_map` / `data_tbl_npc.mini_map`.
+- `ui/systemSettingsPanel.ts` (P, minimap Thiết lập), `ui/worldMap/worldMapPanel.ts` + `pins.ts` (area map "Thế giới"; art `public/ui/world`),
   `ui/helpPanel.ts` (H, Help; `public/help/help.json` from `pnpm --filter @mc/server help:xml`), `ui/unstuck.ts` (Tín hiệu / Tự cứu),
   `ui/emojiPopup.ts` (chat ☺) + `game/EmotionBubble.ts` (`sheets/emotion`, 3 s), `game/ViewSettings.ts` (hc / hn / maxView / ac).
 - All panels are owned by `MainHud` (`panels`), keys through the `SystemBar` key map.
 
 ## Inert / deferred
-- Shown but inert: am, he, hm, dressHide, flyEffect, hpmf, nlws, cf, image quality (localStorage `mc.quality`), bfr (hidden).
+- Shown but inert: am, he, hm, hpmf, nlws, cf, image quality (localStorage `mc.quality`), bfr (hidden).
+- Wired in M13 phase A (`docs/memory/appearance.md`): `dressHide` (stored in `Character.interfaceData`; `us` runs the dress look sync through
+  `AppearanceService.onSettingsSaved`, the character panel checkbox calls `setDressHide`) and `flyEffect` (camera zoom 0.7 while airborne,
+  `AppearanceController.zoomStep`).
 - Deferred: Thiết lập chat, the local map (~), the help GM tab and forum link, emotions 05 / 22 / 23 (SWF does not render).

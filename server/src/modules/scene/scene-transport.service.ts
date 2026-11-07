@@ -13,6 +13,7 @@ import { PartyService } from '../party/party.service';
 import { PetFollowService } from '../pet/pet-follow.service';
 import { TradeService } from '../trade/trade.service';
 import { PmStateService } from '../vip/pm-state.service';
+import { AppearanceService } from '../appearance/appearance.service';
 import { SceneHooks } from './scene-hooks.service';
 
 @Injectable()
@@ -26,6 +27,7 @@ export class SceneTransportService {
     private readonly petFollow: PetFollowService,
     private readonly vip: PmStateService,
     private readonly hooks: SceneHooks,
+    private readonly appearance: AppearanceService,
   ) {}
 
   /** Caller must have checked that `mapId` exists. `follow` is false for the follower hops themselves. */
@@ -68,7 +70,7 @@ export class SceneTransportService {
     this.scenes.join(session, mapId, copyId);
     setImmediate(() => void this.hooks.mapChanged(session, fromMap, mapId));
     const doc = await this.characters.getById(session.characterId!);
-    const self = await this.vip.decorate(await this.petFollow.decorate(this.party.decorate({ ...this.characters.toSceneCharacter(doc), posX: x, posY: y })));
+    const self = await this.appearance.decorate(await this.vip.decorate(await this.petFollow.decorate(this.party.decorate({ ...this.characters.toSceneCharacter(doc), posX: x, posY: y }))), mapId);
     return { mapId, map: this.gameData.toMapInfo(mapRow), self };
   }
 
@@ -83,7 +85,7 @@ export class SceneTransportService {
     doc.posX = x;
     doc.posY = y;
     doc.dir = dir;
-    const self = await this.vip.decorate(await this.petFollow.decorate(this.party.decorate(this.characters.toSceneCharacter(doc))));
+    const self = await this.appearance.decorate(await this.vip.decorate(await this.petFollow.decorate(this.party.decorate(this.characters.toSceneCharacter(doc)))), mapId);
     this.scenes.broadcast(mapId, 'onScenePlayerEntered', [self], session);
     return { mapId, map: this.gameData.toMapInfo(mapRow), self };
   }

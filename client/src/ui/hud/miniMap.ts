@@ -1,7 +1,7 @@
 // Top-right MiniMapCanvas (right0/top0, 220 wide): location strip "<line> - <map> x,y", net delay strip
 // (checkNetDelay ping every 10 s), icon tray, shop button and the red function column (funCanvas).
 
-import { PK_NOTES, type MapInfo, type NetDelayReply } from '@mc/shared';
+import { FLIGHT_TEXT, PK_NOTES, type MapInfo, type NetDelayReply } from '@mc/shared';
 import type { GameClient } from '../../net/client';
 import { toast } from '../screens';
 import { div, notReady, place, setStates, skinButton, skinImage, std, type SkinStates } from './skin';
@@ -25,6 +25,8 @@ export interface MiniMapTray {
   /** M12 red function column: "Đấu Pet" (arena, Flash getPetArenaData) and "Điêu Khắc" (Không Gian Điêu Khắc PPVE). */
   arena?: () => void;
   ppve?: () => void;
+  /** Red column "Bay" / "Xuống": flying toggle (M13). */
+  fly?: () => void;
 }
 
 export class MiniMapCanvas {
@@ -36,6 +38,7 @@ export class MiniMapCanvas {
   private lastPos = '';
   private pkClosed = true; // legacy: the button is selected (= PK closed) until the login payload says apvp
   private pkBtn: HTMLElement | null = null;
+  private flyBtn: HTMLElement | null = null;
 
   constructor(parent: HTMLElement, private readonly client: GameClient, onShop: () => void, onForge: (tab?: string) => void,
     onRank: () => void = notReady, onOffline: () => void = notReady, onAuto: () => void = notReady, trayActs: MiniMapTray = {}) {
@@ -46,10 +49,7 @@ export class MiniMapCanvas {
     this.delayStrip = skinImage('MainStage_LocationBar/LocationIndicator', root, 59, 24);
     this.delayStrip.hidden = true;
     this.delay = div('hud-strip-text', this.delayStrip);
-    skinButton(std('MainStage_LocationBar/ChangeChannel'), root, 33, 0, 'Đổi kênh', notReady);
-    const clock = skinButton({ up: 'MainStage_LocationBar/shizhongUp', over: 'MainStage_LocationBar/shizhongOver' }, root,
-      33, 24, '', () => undefined);
-    clock.onmouseenter = () => (clock.title = `Giờ hiện tại: ${new Date().toLocaleTimeString('vi-VN')}`);
+    // No channel switch / clock buttons: H5 has a single line, so the location strip shows only the map.
 
     const tray = skinImage(`${TRAY}/Tray`, root, 36, 53);
     skinButton({ up: `${TRAY}/rankingup`, over: `${TRAY}/rankingover`, down: `${TRAY}/rankingDown` }, tray, 27, 2,
@@ -66,7 +66,7 @@ export class MiniMapCanvas {
     this.setPk(pk);
     skinButton({ up: `${TRAY}/MouseUp`, over: `${TRAY}/Mouseover`, down: `${TRAY}/MouseDown` }, tray, 89.4, 2,
       'Thiết lập hệ thống (Phím tắt: P)', trayActs.settings ?? notReady);
-    skinButton(std(`${TRAY}/Earth`), tray, 38.6, 38.5, 'Bản đồ thế giới (Phím tắt: M)', trayActs.worldMap ?? notReady);
+    skinButton(std(`${TRAY}/Earth`), tray, 38.6, 38.5, 'Bản đồ (Phím tắt: M)', trayActs.worldMap ?? notReady);
     skinButton(std(`${TRAY}/Help`), tray, 76.8, 39.5, 'Hệ thống hỗ trợ (Phím tắt: H)', trayActs.help ?? notReady);
 
     const shopTray = skinImage(`${TRAY}/Tray2`, root, 158, 53);
@@ -86,7 +86,12 @@ export class MiniMapCanvas {
       const b = place(div('hud-red-btn', fun, label), 6, 6 + i * 28, 73, 24);
       b.onclick = label === 'Chế tạo' ? () => onForge() : label === 'Luyện' ? () => onForge('star')
         : label === 'Ủy thác' ? () => onOffline() : label === 'Auto' ? () => onAuto()
-          : label === 'Đấu Pet' && trayActs.arena ? trayActs.arena : label === 'Điêu Khắc' && trayActs.ppve ? trayActs.ppve : notReady;
+          : label === 'Đấu Pet' && trayActs.arena ? trayActs.arena : label === 'Điêu Khắc' && trayActs.ppve ? trayActs.ppve
+            : label === 'Bay' && trayActs.fly ? trayActs.fly : notReady;
+      if (label === 'Bay') {
+        b.title = FLIGHT_TEXT.BUTTON_TIP;
+        this.flyBtn = b;
+      }
     });
     const hideFun: SkinStates = std(`${TRAY}/RightButtonsHide`);
     const showFun: SkinStates = std(`${TRAY}/RightButtonsShow`);
@@ -112,18 +117,23 @@ export class MiniMapCanvas {
     if ((info?.pk ?? 0) > 0) toast(PK_NOTES.FORCED_MAP, false, 6000); // GameScene.as: entering a forced-PvP map
   }
 
+  /** Fly button label (MINIMAPCANVAS_U[7] / [8]): "Xuống" while the character is airborne. */
+  setFlying(flying: boolean): void {
+    if (this.flyBtn) this.flyBtn.textContent = flying ? FLIGHT_TEXT.BUTTON_LAND : FLIGHT_TEXT.BUTTON_FLY;
+  }
+
   /** Saved opt-in from the login payload: selected (NotAllowPK) = PK closed. */
   initPk(apvp: boolean): void {
     this.pkClosed = !apvp;
     if (this.pkBtn) this.setPk(this.pkBtn);
   }
 
-  /** Location text: legacy getLocationInfo, "<line+1> - <map> <posX/10>,<posY/10>" (H5 has one line). */
+  /** Location text: legacy getLocationInfo without the "<line+1> - " channel prefix (H5 has one line): "<map> <posX/10>,<posY/10>". */
   setPosition(x: number, y: number): void {
     const pos = `${Math.trunc(x / 10)},${Math.trunc(y / 10)}`;
     if (pos === this.lastPos) return;
     this.lastPos = pos;
-    this.title.textContent = `1 - ${this.mapName} ${pos}`;
+    this.title.textContent = `${this.mapName} ${pos}`;
   }
 
   private setPk(btn: HTMLElement): void {

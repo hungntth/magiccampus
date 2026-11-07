@@ -67,7 +67,10 @@ export class BattleCommandService {
     const caught = [...battle.fighters.values()].filter((f) => f.caughtBy === own.slot).length;
     const room = (await this.petCatch.room(session.characterId!)) - caught;
     return {
-      action: BattleAction.CATCH, targetSlot: target.slot, catch: { catchable: this.gameData.petTemplate(target.refId)?.catchable ?? 0, room },
+      action: BattleAction.CATCH, targetSlot: target.slot,
+      catch: {
+        catchable: this.gameData.petTemplate(target.refId)?.catchable ?? 0, room, bonusPoints: await this.petCatch.bonusPoints(session.characterId!),
+      },
     };
   }
 

@@ -6,6 +6,9 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { AchievementEvents } from '../achievement/achievement-events.service';
+import { catchPointsOfBuff } from '../buff/buff-props';
+import { BuffService } from '../buff/buff.service';
+import { GameDataService } from '../gamedata/gamedata.service';
 import { withCharLock } from '../inventory/char-lock';
 import { push, type Push } from '../inventory/pushes';
 import { NO_PET_ROOM, PetService } from './pet.service';
@@ -17,7 +20,15 @@ export class PetCatchService {
     @InjectModel(Pet.name) private readonly pets: Model<Pet>,
     private readonly petService: PetService,
     private readonly achievements: AchievementEvents,
+    private readonly buffs: BuffService,
+    private readonly gameData: GameDataService,
   ) {}
+
+  /** Extra catch points from active buffs (prop 27: Luyen Thu Don buff 565 = +4); 0 without any. */
+  async bonusPoints(characterId: number): Promise<number> {
+    const active = await this.buffs.listActive(characterId);
+    return active.reduce((sum, b) => sum + catchPointsOfBuff(this.gameData.getBuff(b.buffId)), 0);
+  }
 
   /** Free pet slots right now (petMaxNum - owned); the caller subtracts the pets it already caught in the same battle. */
   async room(characterId: number): Promise<number> {

@@ -51,6 +51,8 @@
   position: absolute;
 }
 
+.hud-vip-badge { position: absolute; z-index: 1; }
+
 .hud-head {
   object-fit: cover;
   cursor: pointer;
@@ -81,17 +83,16 @@
   background-repeat: no-repeat;
 }
 
-.hud-vip {
+/* "Up" / "VIP" (Flash BtnLevelUp at 46x22): the 39x19 skin stretched, white label with a dark brown outline */
+.hud-label-btn {
   position: absolute;
-  border-radius: 4px;
-  border: 1px solid #7a3a00;
-  background: linear-gradient(#ffd77a, #f08a12);
+  background-size: 100% 100%;
   color: #fff;
-  font: bold 12px Tahoma, Verdana, sans-serif;
+  font: bold 13px Tahoma, Verdana, sans-serif;
   text-align: center;
-  line-height: 20px;
-  text-shadow: 0 0 2px #7a3a00;
-  cursor: pointer;
+  line-height: 22px;
+  text-shadow: -1px 0 #6b2c00, 1px 0 #6b2c00, 0 -1px #6b2c00, 0 1px #6b2c00;
+  user-select: none;
 }
 
 /* --- minimap (top-right) --- */
@@ -548,7 +549,7 @@
 .hud-slot { cursor: pointer; overflow: hidden; }
 .hud-slot-icon { position: absolute; left: 1px; top: 2px; width: 32px; height: 32px; pointer-events: none; }
 .hud-slot-count { position: absolute; right: 2px; bottom: 1px; font: 11px Tahoma, Verdana, sans-serif; color: #fff; text-shadow: 0 0 2px #000; pointer-events: none; }
-.hud-lock { position: absolute; font: 10px Tahoma, Verdana, sans-serif; color: #ffde00; text-shadow: 0 0 2px #000; text-align: center; cursor: pointer; }
+.hud-lock { position: absolute; background-size: 100% 100%; }
 
 /* Chat emotion popup (ui/emojiPopup.ts, legacy EmotionCanvas 190x130). */
 .hud-emoji {

@@ -50,6 +50,8 @@ const TEMPLATE_FIELDS = {
   next_equ_tid: 1, active_prop_type: 1, active_prop_num: 1,
   // magic weapon: pipe list of skill ids (first = base skill)
   artifact_skill: 1,
+  // avatar: weapon art in hand, costume body art (res_code_male / female), flyer art (res_code + wav_code front overlay)
+  res_code_male: 1, res_code_female: 1, res_code: 1, wav_code: 1,
 };
 
 @Injectable()
@@ -314,6 +316,11 @@ export class GameDataService implements OnModuleInit {
     return this.titles.get(id);
   }
 
+  /** Every title template (startup cache). */
+  allTitles(): IterableIterator<Row> {
+    return this.titles.values();
+  }
+
   /** Lowest title id whose name equals `name` (case / spacing insensitive), or undefined. */
   titleIdByName(name: string): number | undefined {
     return this.titleNames.get(nameKey(name))?.[0];
@@ -394,6 +401,11 @@ export class GameDataService implements OnModuleInit {
   /** Pet stone record (data_tbl_pet_stone) by id, cached at startup. */
   petStone(id: number): PetStoneTemplate | undefined {
     return this.petStones.stones.get(id);
+  }
+
+  /** Ids of the regular (non-energy) pet stones of a level, ascending (Thu Thach random bags 6040-6044). */
+  petStoneIdsAtLevel(level: number): number[] {
+    return [...this.petStones.stones.values()].filter((s) => s.level === level && !s.energyFlag).map((s) => s.id).sort((a, b) => a - b);
   }
 
   /** Menh Hon row (data_tbl_pet_soul) by id, cached at startup. */
@@ -599,6 +611,7 @@ export class GameDataService implements OnModuleInit {
       safeY: Number(row.safe_y ?? 0),
       safeFlag: Number(row.safe_flag ?? 0),
       pk: Number(row.pk ?? 0),
+      mMap: Number(row.m_map ?? 0),
       sArea: String(row.s_area ?? '0'),
       info: String(row.info ?? ''),
     };
@@ -616,6 +629,7 @@ export class GameDataService implements OnModuleInit {
       type: Number(row.type ?? 0),
       subType: String(row.sub_type ?? ''),
       questState: -1,
+      miniMap: Number(row.mini_map ?? 0),
     };
   }
 

@@ -1,11 +1,11 @@
-// "Lò rèn" forge window (legacy EquiptFuncPanel): a title bar, a tab row and one body per tab. Tabs come from the
-// ForgeTab list given by the controller; switching rebuilds the body. Opens beside the bag like the NPC shop.
+// "Tạo" forge window (legacy EquiptFuncPanel): a title bar, the Flash top tab row (Trang bị, Cải tạo, Ng.liệu, Bảo thạch,
+// Thần khí, T.bị pet), a sub-row when the group has several tabs, and one body per tab. Opens beside the bag like the NPC shop.
 
 import type { BagItem } from '@mc/shared';
 import { closeOnEscape, makeDraggable } from '../panelBehavior';
 import { el } from '../shopCell';
 import { stageEl } from '../stage';
-import type { ForgeHost, ForgeTab, ForgeTabView } from './forgeTypes';
+import { FORGE_GROUPS, type ForgeHost, type ForgeTab, type ForgeTabView } from './forgeTypes';
 import '../shop.css';
 import '../mall.css';
 import './forge.css';
@@ -18,6 +18,8 @@ export class ForgePanel {
   private current = '';
   private offs: (() => void)[] = [];
   onClose: (() => void) | null = null;
+  /** Top tab "Thần khí": the Thần khí window owns those operations. */
+  onMagicWeapon: (() => void) | null = null;
 
   constructor(private readonly host: ForgeHost, private readonly tabs: readonly ForgeTab[]) {}
 
@@ -30,13 +32,13 @@ export class ForgePanel {
     if (this.root) return this.select(tabId);
     const root = el('div', 'shop-panel forge-panel with-bag');
     const header = el('div', 'shop-header');
-    header.appendChild(el('div', 'shop-title', 'Lò rèn'));
+    header.appendChild(el('div', 'shop-title', 'Tạo'));
     root.appendChild(header);
     const x = el('button', 'shop-close', '×');
     x.title = 'Đóng';
     x.onclick = () => this.close();
     root.appendChild(x);
-    this.tabRow = el('div', 'mall-tabs forge-tabs');
+    this.tabRow = el('div', 'forge-tabs');
     this.body = el('div', 'forge-body');
     root.append(this.tabRow, this.body);
     stageEl().appendChild(root);
@@ -73,18 +75,25 @@ export class ForgePanel {
     this.current = tab.id;
     this.body.replaceChildren();
     this.view = tab.build(this.host, this.body);
-    const group = tab.group;
-    const row = this.tabs.filter((t) => t.group === group).map((t) => {
-      const b = el('button', 'mall-tab', t.label);
-      if (t.id === this.current) b.classList.add('selected');
-      b.onclick = () => this.select(t.id);
-      return b;
-    });
-    const other = this.tabs.find((t) => t.group !== group && (t.group === 'pet' || group === 'pet'));
-    if (other) {
-      const sw = el('button', 'mall-tab forge-group-switch', group === 'pet' ? '« Trang bị' : 'T.bị Pet »');
-      sw.onclick = () => this.select((group === 'pet' ? this.tabs.find((t) => !t.group) : other)?.id ?? other.id);
-      row.push(sw);
+    const group = tab.group ?? 'equip';
+    const top = el('div', 'forge-tabrow');
+    for (const g of FORGE_GROUPS) {
+      const first = this.tabs.find((t) => (t.group ?? 'equip') === g.id);
+      if (!first && !(g.id === 'mw' && this.onMagicWeapon)) continue;
+      const b = el('button', `forge-tab${g.id === group ? ' selected' : ''}`, g.label);
+      b.onclick = () => (first ? this.select(first.id) : this.onMagicWeapon?.());
+      top.appendChild(b);
+    }
+    const subs = this.tabs.filter((t) => (t.group ?? 'equip') === group);
+    const row: HTMLElement[] = [top];
+    if (subs.length > 1) {
+      const sub = el('div', 'forge-subrow');
+      sub.append(...subs.map((t) => {
+        const b = el('button', `forge-subtab${t.id === this.current ? ' selected' : ''}`, t.label);
+        b.onclick = () => this.select(t.id);
+        return b;
+      }));
+      row.push(sub);
     }
     this.tabRow.replaceChildren(...row);
   }

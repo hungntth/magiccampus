@@ -3,7 +3,7 @@
 // service.go, pm_exp.go, operation.go, pm_operation.go, pm_findback.go; H5 fixes (right 1 cap, mark-first) are in the plan, decision 4.
 
 import {
-  DAY_MS, PM_DAILY_LOGIN_EXP, PM_EXP_THRESHOLDS, PM_PACKAGES, PM_RECOVERABLE_RIGHTS, PmRight, basicExp, dayKey, monthKey,
+  DAY_MS, PM_DAILY_LOGIN_EXP, PM_EXP_THRESHOLDS, PM_PACKAGES, PM_RECOVERABLE_RIGHTS, PM_TRANSFORM_BUFF_ID, PmRight, basicExp, dayKey, monthKey,
   nextDayStartMs, rightClaimable, rightEnabled, rightValue, vipActive, vnDate, weekKey,
   type PmCountConfig, type PmPackageType, type PmProcessFlag, type PmRightView,
 } from '@mc/shared';
@@ -152,6 +152,16 @@ export function pickTransform(pool: readonly string[], now: number, characterId:
   const v = vnDate(now);
   const yearDay = Math.floor((Date.UTC(v.year, v.month - 1, v.day) - Date.UTC(v.year, 0, 0)) / DAY_MS);
   return pool[(v.year * 1000 + yearDay + characterId) % pool.length];
+}
+
+/**
+ * Whether removing a buff reverts the right-13 look: buff 2730 removed (click or expiry) clears it at once; an unknown row (already
+ * lazily expired, buffId null) clears it only once it has ended. A slot without pm (the Mê Huyễn curse) is never touched.
+ */
+export function revertsTransform(transform: { expiresAt: number; pm?: boolean } | null, buffId: number | null, now: number): boolean {
+  if (!transform?.pm) return false;
+  if (buffId === PM_TRANSFORM_BUFF_ID) return true;
+  return buffId === null && transform.expiresAt <= now;
 }
 
 /** Seconds until the next UTC+7 midnight (lifetime of the daily buff). */

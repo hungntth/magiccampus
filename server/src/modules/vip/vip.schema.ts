@@ -41,9 +41,10 @@ export class CharacterVip {
   @Prop({ type: [Number], default: [] })
   auditRights: number[];
 
-  /** right 13: today's res code and when it ends (epoch ms), null = none */
+  /** Transform look slot: res code and when it ends (epoch ms), null = none. pm = set by right 13 (buff 2730 owns it); absent for
+   *  the Mê Huyễn curse, which borrows the slot. */
   @Prop({ type: Object, default: null })
-  transform: { resCode: string; expiresAt: number } | null;
+  transform: { resCode: string; expiresAt: number; pm?: boolean } | null;
 
   @Prop({ type: Number, default: 0 })
   rev: number;

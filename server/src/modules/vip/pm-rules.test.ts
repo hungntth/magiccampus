@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import { DAY_MS, PmRight, dayKey, parseCountConfig, type PmRightView } from '@mc/shared';
 import {
   MSG_ALREADY, auditRollover, auditableRights, buyPackage, buffForLevel, claimError, claimedNow, dailyLoginExp, emptyVip,
-  expRewardAmount, monthBagItem, nextProgress, pickTransform, rewardOf, type VipState,
+  expRewardAmount, monthBagItem, nextProgress, pickTransform, revertsTransform, rewardOf, type VipState,
 } from './pm-rules';
 
 const NOW = Date.UTC(2026, 10, 4, 5, 0); // 12:00 UTC+7
@@ -177,4 +177,14 @@ test('mark-first: a refused second claim never reaches the reward step (nextProg
   assert.equal(nextProgress(marked, cfg, 2, NOW), null);
   assert.ok(MSG_ALREADY.length > 0);
   assert.equal(PmRight.FINDBACK, 24);
+});
+
+test('removing buff 2730 reverts only a right-13 transform; an unknown row reverts it once ended', () => {
+  const pm = { expiresAt: NOW + 1000, pm: true };
+  assert.equal(revertsTransform(pm, 2730, NOW), true);
+  assert.equal(revertsTransform(pm, null, NOW), false);
+  assert.equal(revertsTransform(pm, null, NOW + 1000), true);
+  assert.equal(revertsTransform(pm, 2504, NOW + 5000), false);
+  assert.equal(revertsTransform({ expiresAt: NOW + 1000 }, 2730, NOW), false); // Mê Huyễn curse owns the slot
+  assert.equal(revertsTransform(null, 2730, NOW), false);
 });

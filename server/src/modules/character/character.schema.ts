@@ -22,6 +22,12 @@ export interface TempBagState {
   dire?: boolean;
 }
 
+export interface CharacterAppearance {
+  flying?: boolean;
+  fakeDress?: number;
+  fakeFlyerDress?: number;
+}
+
 @Schema({ collection: 'characters', timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' } })
 export class Character {
   @Prop({ type: Number })
@@ -180,6 +186,11 @@ export class Character {
   // "1".."5" ({tid, num, exp ms}), plus the put-directly flag. Written only under the character lock (modules/tempbag).
   @Prop({ type: Object, default: {} })
   tempBag: TempBagState;
+
+  // Look state (M13 phase A): `flying` = in the air (persisted, landed silently on no-fly maps); `fakeDress` / `fakeFlyerDress` (phase B)
+  // are dress ids. dressHide lives in interfaceData (system settings). Absent fields decode to defaults.
+  @Prop({ type: Object, default: {} })
+  appearance: CharacterAppearance;
 
   @Prop({ default: false })
   deleted: boolean;

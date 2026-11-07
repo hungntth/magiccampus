@@ -57,10 +57,14 @@ export class CraftService {
       tid: int(r.id), name: String(r.name ?? `#${r.id}`), iconCode: r.icon_code ? String(r.icon_code) : '0', type: int(r.type),
       position: int(r.position), reqLevel: int(r.req_level), reqClass: r.req_class ? String(r.req_class) : '',
       color: int(r.color),
-      materials: [1, 2, 3].filter((k) => int(r[`require_item${k}`]) > 0).map((k) => ({
-        slot: k, tid: int(r[`require_item${k}`]), name: String(mats.get(int(r[`require_item${k}`]))?.name ?? `#${r[`require_item${k}`]}`),
-        num: int(r[`require_num${k}`]),
-      })),
+      materials: [1, 2, 3].filter((k) => int(r[`require_item${k}`]) > 0).map((k) => {
+        const tid = int(r[`require_item${k}`]);
+        const m = mats.get(tid);
+        return {
+          slot: k, tid, name: String(m?.name ?? `#${tid}`), iconCode: m?.icon_code ? String(m.icon_code) : '0',
+          num: int(r[`require_num${k}`]),
+        };
+      }),
     }));
     return this.recipeList;
   }

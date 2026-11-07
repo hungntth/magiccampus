@@ -29,6 +29,7 @@ VIP is in `vip.md`; loop quests are in `loop-quest.md`.
   - `bossDailyGetData` and `bossDailyBattle` start a solo PvE battle against the boss creature. Type 1 allows 2 or 4 tries a day, type 2 has a 72 h cooldown.
   - The total of 16 tries a day **is enforced** (Go never did). Tries are spent when the battle starts. `bossDailyFinishByCard` is a check only.
   - The reward is the battle exp; there is no loot data.
+  - The client gallery (`.ds-boss` in `dailySystems.css`) is a stone-card layout: three wide boss cards, a parchment level-filter sidebar, and CSS spotlight framing. It pages six bosses at a time with previous/next controls. `BossDailyRow.resCode` carries the main creature resource so `animateCreatureModel` plays its standing sheet frames in a centred 158×136 canvas. Boss sizing uses the actual transformed frame bounds rather than SWF whitespace; action buttons are above all visual layers. Animation callbacks are stopped on page changes and close.
 - **Offline exp** (`modules/offline/`):
   - `getOfflineExp` / `getPetOfflineExp(type, hours)`: `BASIC_GET_EXP[level]` × [0.3, 1, 2, 3] by mode, level ≥ 30, error codes -2..-9 (-7 never returned, as in Go).
   - Offline time runs from a clean disconnect or back to character select until the next login, capped at 3 days (H5), and is sent at login as `offlineTime`.
@@ -38,8 +39,9 @@ VIP is in `vip.md`; loop quests are in `loop-quest.md`.
 - **Mount** (`modules/mount/`):
   - RPCs: `getMountList`, `checkHaveMount`, `renewMount`, `addMountExp` (item 3804), `addMountUpExp` (3805/6273), `beginMounting` / `stopMounting`.
   - Riding broadcasts `onMountOn` / `onMountOff` to the map. `mountInfo` is sent at login. Stats come through a stat provider. Level 50 gate.
-  - **The mounted sprite does not render**: the mount atlases are about 1600×31000 px, past the GPU texture limit. `Entity.swapRes` keeps the normal sprite for oversized sheets.
-    Showing the rider needs a `tools/swf` change that splits tall atlases.
+  - The rider sprite now renders (paged WebP atlases; M13 phase A): `AvatarView` shows the mount sheet instead of the body (clips use
+    behaviours 8 / 9 / 10), hidden on a costume / transform body and while flying. Scene rows carry `av.mount` (`AppearanceService.mountArt`),
+    `onMountOn` / `onMountOff` are handled by `AppearanceController`. See `docs/memory/appearance.md`.
 - Client: `DailySystemsController`, `StoreSystemsController`, the strip icons; "Ủy thác" opens from the minimap red function column and "Thú cưỡi" from the character panel (Trang bị tab, legacy CharactorPanel.showMount) — no separate HUD button bar.
 
 ## Deferred

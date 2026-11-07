@@ -107,4 +107,4 @@ class StarView implements ForgeTabView {
   }
 }
 
-export const starTab: ForgeTab = { id: 'star', label: 'Cường hóa', build: (host, body) => new StarView(host, body) };
+export const starTab: ForgeTab = { id: 'star', label: 'Thăng tinh', build: (host, body) => new StarView(host, body) };

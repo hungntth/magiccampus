@@ -19,6 +19,7 @@ import { MountService } from './mount.service';
     CharacterModule, GameDataModule, InventoryModule, ProgressionModule, StatsModule,
   ],
   providers: [MountService, MountRpc],
+  exports: [MountService],
 })
 export class MountModule implements OnModuleInit {
   constructor(

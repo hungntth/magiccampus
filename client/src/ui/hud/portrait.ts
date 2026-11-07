@@ -5,6 +5,7 @@ import { LEVEL_EXP, type PlayerData } from '@mc/shared';
 import { iconUrl } from '../../assets';
 import type { HudActions } from './mainHud';
 import { healButtonState } from '../bloodBagPanel';
+import { setVipGem, VIP_LEVEL_NAME } from '../vipGem';
 import { div, place, setStates, skinButton, skinImage, std } from './skin';
 
 export class Bar {
@@ -26,6 +27,15 @@ export class Bar {
   }
 }
 
+/** A "BtnLevelUp"-skinned 46x22 text button (Up / VIP). */
+function labelButton(parent: HTMLElement, x: number, y: number, label: string, tip: string, onClick: () => void): HTMLDivElement {
+  const b = skinButton(std('MainStage_CharInfo/LevelUp'), parent, x, y, tip, onClick);
+  b.classList.add('hud-label-btn');
+  place(b, x, y, 46, 22);
+  b.textContent = label;
+  return b;
+}
+
 export class PortraitCanvas {
   private readonly root: HTMLDivElement;
   private readonly head: HTMLImageElement;
@@ -37,6 +47,7 @@ export class PortraitCanvas {
   private readonly exp: Bar;
   private readonly lvUp: HTMLDivElement;
   private readonly vip: HTMLDivElement;
+  private readonly vipBadge: HTMLSpanElement;
   private readonly heal: HTMLDivElement[];
 
   constructor(parent: HTMLElement, actions: HudActions) {
@@ -49,6 +60,10 @@ export class PortraitCanvas {
     this.head.title = 'Nhấp xem thông tin chi tiết';
     this.head.onclick = actions.onCharacter;
     this.root.appendChild(this.head);
+    // selfHeadPMFlag: the VIP level gem over the head's top-left corner (hidden without VIP).
+    this.vipBadge = place(document.createElement('span'), 2, 1, 22, 20) as HTMLSpanElement;
+    this.vipBadge.classList.add('hud-vip-badge');
+    this.root.appendChild(this.vipBadge);
     this.level = place(div('hud-label hud-level', this.root), 62, 1, 22) as HTMLDivElement;
     this.name = place(div('hud-label hud-name', this.root), 84, 3, 86) as HTMLDivElement;
     this.hp = new Bar(this.root, 'MainStage_CharInfo/HPBar', 80, 22, 89, 5);
@@ -62,10 +77,9 @@ export class PortraitCanvas {
       () => actions.onBloodBag(bt)));
     skinButton(std('MainStage_CharInfo/ItemBag'), this.root, 173, 3, 'Vật phẩm nhân vật sử dụng', actions.onBag);
     // "Up" sits outside the body and only shows when the exp bar is full (manual level-up from Lv 20).
-    this.lvUp = skinButton(std('MainStage_CharInfo/LevelUp'), this.root, 198, 0, 'Thăng cấp', actions.onLevelUp);
-    this.vip = place(div('hud-vip off', this.root, 'VIP'), 198, 30, 46, 22) as HTMLDivElement;
-    this.vip.title = 'VIP';
-    this.vip.onclick = actions.onVip;
+    // Both are Flash BasicGlowButton styleName "BtnLevelUp" at 46x22 (the 39x19 skin is stretched), labelled "Up" / "VIP".
+    this.lvUp = labelButton(this.root, 198, 0, 'Up', 'Thăng cấp', actions.onLevelUp);
+    this.vip = labelButton(this.root, 198, 30, 'VIP', 'VIP', actions.onVip);
   }
 
   update(p: PlayerData): void {
@@ -75,9 +89,9 @@ export class PortraitCanvas {
       b.title = s.tip;
     });
     this.head.src = iconUrl(p.iconCode);
+    setVipGem(this.vipBadge, p.pmLevel ?? 0);
+    this.vipBadge.title = p.pmLevel ? `VIP${p.pmLevel} ${VIP_LEVEL_NAME[p.pmLevel] ?? ''}` : '';
     this.level.textContent = String(p.level);
-    this.vip.textContent = p.pmLevel ? `VIP${p.pmLevel}` : 'VIP';
-    this.vip.classList.toggle('off', !p.pmLevel);
     this.name.textContent = p.name;
     // Max HP/MP come from property (gear and buffs applied); maxHp/maxMp are only the base cache.
     const maxHp = p.property?.finalHp ?? p.maxHp;

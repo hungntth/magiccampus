@@ -124,6 +124,12 @@ export class PetService implements PetItemHook, OnModuleInit {
 
   // --- acquisition ---
 
+  /** Whether `incoming` more pets fit the pet bag (Go HasPetCapacity; item-use award bags check it before anything is spent). */
+  async hasRoom(characterId: number, incoming: number): Promise<boolean> {
+    const count = await this.pets.countDocuments({ characterId });
+    return hasPetRoom(count, await this.petMaxNum(characterId), incoming);
+  }
+
   /** Creates a pet (no lock: the caller holds it). Null when the pet bag is full or the creature is unknown. */
   async award(characterId: number, creatureId: number, opts: AwardOptions = {}): Promise<PetWrapper | null> {
     const tpl = this.gameData.petTemplate(creatureId);

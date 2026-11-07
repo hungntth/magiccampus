@@ -17,7 +17,7 @@ type Choice = PlayerData | 'back' | 'reload';
 
 const ui = (): HTMLElement => document.getElementById('ui')!;
 
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, parent?: HTMLElement, text?: string): HTMLElementTagNameMap[K] {
+export function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, parent?: HTMLElement, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
   e.className = cls;
   if (text !== undefined) e.textContent = text;
@@ -26,7 +26,7 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, parent?:
 }
 
 /** Absolute box in the 900x570 frame. */
-function at<T extends HTMLElement>(e: T, x: number, y: number, w?: number, h?: number): T {
+export function at<T extends HTMLElement>(e: T, x: number, y: number, w?: number, h?: number): T {
   e.style.left = `${x}px`;
   e.style.top = `${y}px`;
   if (w !== undefined) e.style.width = `${w}px`;
@@ -34,7 +34,7 @@ function at<T extends HTMLElement>(e: T, x: number, y: number, w?: number, h?: n
   return e;
 }
 
-function loginButton(parent: HTMLElement, label: string, onClick: () => void, disabled = false): HTMLButtonElement {
+export function loginButton(parent: HTMLElement, label: string, onClick: () => void, disabled = false): HTMLButtonElement {
   const b = el('button', 'cs-btn', parent, label);
   b.disabled = disabled;
   b.onclick = onClick;
@@ -42,7 +42,7 @@ function loginButton(parent: HTMLElement, label: string, onClick: () => void, di
 }
 
 /** Full-screen background plus the scaled 900x570 frame; returns the frame and a disposer for the resize listener. */
-function frame(): { root: HTMLElement; dispose: () => void } {
+export function frame(): { root: HTMLElement; dispose: () => void } {
   clearUi();
   const screen = el('div', 'cs-screen', ui());
   const root = at(el('div', 'cs-frame', screen), 0, 0, W, H);
@@ -95,7 +95,7 @@ function renderSelect(client: GameClient, chars: CharListEntry[], classes: Class
     loginButton(at(el('div', 'cs-pass', root), 560, 315, 107, 29), 'Tạo lại pass', () => toast('Chức năng mã bảo vệ chưa hỗ trợ'));
 
     const panel = at(el('div', 'cs-panel', root), 239, 345, 425, 105);
-    el('div', 'cs-title', panel);
+    el('div', 'cs-title', panel, 'Chọn nhân vật');
     const slots = at(el('div', 'cs-slots', panel), 0, 30, 425, 67);
     const left = el('button', 'cs-arrow cs-left', panel);
     const right = el('button', 'cs-arrow cs-right', panel);
@@ -142,11 +142,11 @@ function renderSelect(client: GameClient, chars: CharListEntry[], classes: Class
         const card = at(el('div', `cs-card${c === selected ? ' selected' : ''}${c.deleted ? ' deleted' : ''}`, slots), x, 0, 129, 67);
         const face = at(el('img', 'cs-face', card), 12, 10, 47, 47);
         face.alt = '';
-        face.src = iconUrl(c.portraitCode && c.portraitCode !== '0' ? c.portraitCode : c.iconCode);
+        face.src = iconUrl(c.iconCode); // head avatar (same as the HUD portrait), not the full-body portraitCode
         face.onerror = () => (face.style.visibility = 'hidden');
-        at(el('div', 'cs-label', card, c.name), 61, 5);
-        at(el('div', 'cs-label', card, `LV ${c.level}`), 61, 24);
-        at(el('div', 'cs-label', card, classOf(classes, c.classId)?.name ?? ''), 61, 41);
+        at(el('div', 'cs-label', card, c.name), 61, 5, 64).title = c.name;
+        at(el('div', 'cs-label', card, `LV ${c.level}`), 61, 24, 64);
+        at(el('div', 'cs-label', card, classOf(classes, c.classId)?.name ?? ''), 61, 41, 64);
         card.onclick = () => {
           selected = c;
           render();

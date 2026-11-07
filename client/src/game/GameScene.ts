@@ -26,6 +26,7 @@ import { BagController } from './BagController';
 import { ForgeController } from './ForgeController';
 import { MallController } from './MallController';
 import { CharacterController } from './CharacterController';
+import { AppearanceController } from './AppearanceController';
 import { PetController } from './PetController';
 import { RankingPanel } from '../ui/rankingPanel';
 import { PetLayer } from './PetLayer';
@@ -87,6 +88,7 @@ export class GameScene {
   private readonly tempBag: TempBagController;
   private readonly auction: AuctionController;
   private readonly character: CharacterController;
+  private readonly appearance: AppearanceController;
   private readonly pet: PetController;
   private readonly ranking: RankingPanel;
   private readonly activity: ActivityController;
@@ -137,10 +139,21 @@ export class GameScene {
       onForge: (tab) => this.forge.open(tab),
       onRank: () => this.ranking.toggle(), onAchieve: () => this.character.toggleAchievements(), onDaily: () => this.activity.openDaily(), onVip: () => this.activity.openVip(), onOffline: () => this.activity.openOffline(),
       onPet: () => this.pet.toggle(),
+      onQuest: () => this.quest.toggleLog(),
       onArena: () => this.pet.toggleArena(), onPpve: () => this.pet.togglePpve(),
       onLevelUp: () => this.character.levelUp(),
       onRecover: (kind) => this.bag.actions.recover(kind), bagItems: () => this.bag.list(), useBagItem: (it) => this.bag.actions.use(it), onBloodBag: (bt) => this.hud.bloodBag.open(bt),
+      onFly: () => this.appearance.toggleFlight(),
       onViewChanged: () => this.applyView(), travel: (id, group) => this.bag.funcs.travelTo(id, group),
+      localMap: {
+        map: () => this.mapInfo, self: () => this.self, npcs: () => this.npcs.onMiniMap(),
+        gates: () => this.portals.list().map((p) => ({ id: p.item.id, name: p.item.name, x: p.bounds.x + p.bounds.width / 2, y: p.bounds.bottom })),
+        walk: (x, y) => this.walkGround(x, y), talk: (id) => this.npcs.talkTo(id),
+        enterGate: (id) => {
+          const p = this.portals.list().find((g) => g.item.id === id);
+          if (p) this.gateWalk(p, p.bounds.x + p.bounds.width / 2, p.bounds.y + p.bounds.height / 2);
+        },
+      },
     });
     this.quest = new QuestController({
       client, chat: this.chat, player,
@@ -153,9 +166,9 @@ export class GameScene {
     }, ui);
     this.bag = new BagController({ client, chat: this.chat, player, shop: this.panels.shop });
     this.mall = new MallController(client, this.bag, player);
-    this.forge = new ForgeController(client, this.bag, () => player);
+    this.forge = new ForgeController(client, this.bag, () => player, () => this.character.openMagicWeapon());
     this.ranking = new RankingPanel(client);
-    this.dungeons = new DungeonController(client, entityOf, (id) => this.bag.countOf(id));
+    this.dungeons = new DungeonController(client, (id) => this.bag.countOf(id));
     this.maze = new MazeController(client, () => player.level);
     this.activity = new ActivityController({ client, player, refreshHud: () => this.updateHud(), entityOf, bagCount: (id) => this.bag.countOf(id), openDungeons: () => void this.dungeons.openHub(), openStar: () => this.dungeons.star.toggle(), openMaze: () => this.maze.toggleLobby(), openQuiz: () => this.quiz.openFromStrip() });
     this.quiz = new QuizController(client, player, this.chat);
@@ -164,7 +177,14 @@ export class GameScene {
     this.mail = new MailController({ client, player, bagItems: () => this.bag.listTabs(), pets: () => this.pet.pets() });
     this.tempBag = new TempBagController({ client, player, bag: this.bag, chat: this.chat });
     this.auction = new AuctionController({ client, player, bagItems: () => this.bag.listTabs(), pets: () => this.pet.pets() });
-    this.character = new CharacterController({ client, player, bag: this.bag, entityOf, onMount: () => this.activity.openMount() });
+    this.appearance = new AppearanceController({
+      client, player, entityOf, self: () => this.self, hitMask: () => this.hitMask, walkTo: (s, x, y, cb) => this.walkTo(s, x, y, cb),
+      isFollower: () => this.party.followerLocked, setFlyLabel: (f) => this.hud.setFlyLabel(f), inBattle: () => this.battle.locked,
+    });
+    this.character = new CharacterController({
+      client, player, bag: this.bag, entityOf, onMount: () => this.activity.openMount(),
+      dressHide: { get: () => this.appearance.dressHidden(), set: (h, done) => this.appearance.setDressHide(h, done) },
+    });
     this.guild = new GuildController({ client, player, bagItems: () => this.bag.list(), entities: this.entityLayer });
     this.pet = new PetController({ client, player, chat: this.chat, bag: this.bag, setBattlePet: (p) => this.hud.setBattlePet(p), onDetail: () => this.character.detail.toggle('pet') });
     this.battle = new BattleController({
@@ -173,6 +193,7 @@ export class GameScene {
       stopWalking: () => this.self?.teleport(this.self.x, this.self.y),
       mapSafe: () => (this.mapInfo?.safeFlag ?? 0) > 0,
       onEndReply: (reply) => this.dungeons.star.onBattleReply(reply) || this.maze.onBattleEnd(),
+      onBattleOver: () => this.npcs.resumePending(),
     });
     this.entityLayer.sortableChildren = true;
     this.npcs = new NpcLayer({
@@ -217,7 +238,7 @@ export class GameScene {
     for (const off of this.offs) off();
     const { social, party, friends, guild, trade, quest, bag, character, pet, petLayer, battle, hud } = this;
     for (const c of [social, party, friends, guild, trade, quest, bag, character, pet, petLayer, battle, hud, this.bosses, this.scripts, this.instanceNpcs]) c.destroy();
-    for (const c of [this.mail, this.tempBag, this.auction, this.mall, this.forge, this.ranking, this.activity, this.dungeons, this.maze, this.quiz, this.worldBoss]) c.destroy();
+    for (const c of [this.appearance, this.mail, this.tempBag, this.auction, this.mall, this.forge, this.ranking, this.activity, this.dungeons, this.maze, this.quiz, this.worldBoss]) c.destroy();
     this.panels.destroy();
     this.npcs.clear();
     this.app.ticker.stop();
@@ -249,6 +270,8 @@ export class GameScene {
     this.hitMask = mask;
 
     this.self = new Entity(res.self.id, 'self', res.self.name, res.self.iconCode, res.self.resCode, res.self.posX, res.self.posY, res.self.posDir);
+    this.self.applyScene(res.self);
+    this.appearance.bindSelf(this.self);
     this.entityLayer.addChild(this.self);
     this.party.track(res.self);
     this.character.applyTitles(this.self, res.self);
@@ -292,10 +315,12 @@ export class GameScene {
     const existing = this.players.get(data.id);
     if (existing) {
       existing.teleport(data.posX, data.posY);
+      existing.applyScene(data);
       this.party.track(data);
       return;
     }
     const e = new Entity(data.id, 'player', data.name, data.iconCode, data.resCode, data.posX, data.posY, data.posDir);
+    e.applyScene(data);
     this.players.set(data.id, e);
     this.social.bindPlayer(e, data.name);
     this.entityLayer.addChild(e);
@@ -320,14 +345,19 @@ export class GameScene {
   }
 
   private onTap(e: FederatedPointerEvent): void {
+    const local = this.world.toLocal(e.global);
+    this.walkGround(local.x, local.y);
+  }
+
+  /** Ground walk to map point (x, y): stage tap and the area map click. */
+  private walkGround(mx: number, my: number): void {
     if (!this.self || !this.mapInfo || this.chat.focused || this.battle.locked || this.party.blocked()) return;
     if (this.player.currentHp <= 0) return this.battle.deadWalk(); // M9: dead players get the relive question instead of walking
     this.npcs.cancelPending();
     this.pendingGate = null;
-    const local = this.world.toLocal(e.global);
-    let x = Math.max(0, Math.min(this.mapInfo.width, Math.round(local.x)));
-    let y = Math.max(0, Math.min(this.mapInfo.height, Math.round(local.y)));
-    if (this.hitMask) {
+    let x = Math.max(0, Math.min(this.mapInfo.width, Math.round(mx)));
+    let y = Math.max(0, Math.min(this.mapInfo.height, Math.round(my)));
+    if (this.hitMask && !this.self.freeFlight) { // in the air the mask is ignored
       const ok = this.hitMask.nearestWalkable(x, y);
       if (!ok) return;
       x = ok.x;
@@ -341,7 +371,7 @@ export class GameScene {
    * (passed the final position). Returns false, without calling `onArrive`, when there is nowhere to go.
    */
   private walkTo(self: Entity, x: number, y: number, onArrive?: (ex: number, ey: number) => void): boolean {
-    const route = this.hitMask ? findRoute(this.hitMask, self.x, self.y, x, y) : [[x, y] as RoutePoint];
+    const route = this.hitMask && !self.freeFlight ? findRoute(this.hitMask, self.x, self.y, x, y) : [[x, y] as RoutePoint]; // flying: straight line
     if (route.length === 0) return false;
     const [ex, ey] = route[route.length - 1];
     const dir = dirFromDelta(route[0][0] - self.x, route[0][1] - self.y, self.dir);
@@ -355,13 +385,18 @@ export class GameScene {
 
   /** Gate click (SceneItemView.mouseDown): walk to the clicked point; arriving on the gate sends sceneChange(gateId). */
   private onGateTap(portal: Portal, e: FederatedPointerEvent): void {
+    e.stopPropagation();
+    const local = this.world.toLocal(e.global);
+    this.gateWalk(portal, local.x, local.y);
+  }
+
+  /** Walk to map point (x, y) on a gate (stage tap or area map gate icon); arriving on it sends sceneChange. */
+  private gateWalk(portal: Portal, mx: number, my: number): void {
     const self = this.self;
     if (!self || !this.mapInfo || this.chat.focused || this.battle.locked || this.party.blocked()) return;
-    e.stopPropagation();
     this.npcs.cancelPending();
-    const local = this.world.toLocal(e.global);
-    let x = clamp(Math.round(local.x), 0, this.mapInfo.width);
-    let y = clamp(Math.round(local.y), 0, this.mapInfo.height);
+    let x = clamp(Math.round(mx), 0, this.mapInfo.width);
+    let y = clamp(Math.round(my), 0, this.mapInfo.height);
     const ok = this.hitMask?.nearestWalkable(x, y);
     if (this.hitMask && !ok) return;
     if (ok) ({ x, y } = ok);
@@ -397,6 +432,7 @@ export class GameScene {
     this.petLayer.tick(dt);
     this.party.tick(dt);
 
+    this.root.scale.set(stageScale() * this.appearance.zoomStep(dt)); // flyEffect zoom
     const scale = this.root.scale.x;
     const sw = this.app.screen.width / scale;
     const sh = this.app.screen.height / scale;

@@ -18,7 +18,8 @@ const UNSUPPORTED_NPC_TYPES: ReadonlySet<number> = new Set([
   NpcType.WALK, NpcType.BOSS, NpcType.HULA, NpcType.DOTA, NpcType.TRIPLE_TOWN,
 ]);
 
-export type NpcRow = Pick<SceneNpc, 'id' | 'name' | 'posX' | 'posY' | 'posDir' | 'iconCode' | 'resCode' | 'type'> & { questState?: number };
+export type NpcRow = Pick<SceneNpc, 'id' | 'name' | 'posX' | 'posY' | 'posDir' | 'iconCode' | 'resCode' | 'type' | 'miniMap'>
+  & { questState?: number };
 
 export interface NpcLayerHost {
   client: GameClient;
@@ -33,6 +34,7 @@ export interface NpcLayerHost {
 export class NpcLayer {
   private readonly npcs = new Map<number, Entity>();
   private readonly icons = new Map<number, string>();
+  private readonly miniMap = new Set<number>();
   private readonly lastClick = new Map<number, number>();
   private pending: Entity | null = null;
 
@@ -50,6 +52,11 @@ export class NpcLayer {
     return this.npcs.size;
   }
 
+  /** NPCs flagged for the area map (legacy MapCanvas.addNpc: mini_map == 1). */
+  onMiniMap(): Entity[] {
+    return [...this.npcs.values()].filter((e) => this.miniMap.has(e.entityId));
+  }
+
   add(n: NpcRow): void {
     if (this.npcs.has(n.id)) return;
     const e = new Entity(n.id, 'npc', n.name, n.iconCode, n.resCode, n.posX, n.posY, n.posDir, n.type);
@@ -60,6 +67,7 @@ export class NpcLayer {
     if (n.questState !== undefined) e.setQuestState(n.questState);
     this.npcs.set(n.id, e);
     this.icons.set(n.id, n.iconCode);
+    if (n.miniMap === 1) this.miniMap.add(n.id);
     this.host.entities.addChild(e);
   }
 
@@ -70,12 +78,14 @@ export class NpcLayer {
     e.destroy({ children: true });
     this.npcs.delete(id);
     this.icons.delete(id);
+    this.miniMap.delete(id);
   }
 
   clear(): void {
     for (const e of this.npcs.values()) e.destroy({ children: true });
     this.npcs.clear();
     this.icons.clear();
+    this.miniMap.clear();
     this.lastClick.clear();
     this.pending = null;
   }
@@ -83,6 +93,11 @@ export class NpcLayer {
   /** A ground tap or a gate walk cancels the pending walk-up. */
   cancelPending(): void {
     this.pending = null;
+  }
+
+  /** A battle cut the walk-up short (stopWalking drops the route): walk on to the pending NPC. */
+  resumePending(): void {
+    if (this.pending) this.click(this.pending);
   }
 
   /** Walk to an NPC on this map and talk to it (quest tracker "Tìm"). */

@@ -4,12 +4,13 @@
 // Pages: 1..7 general bag pages (opened ones only, PlayerData.bagSlotNum), 8 = quest page (type 508 only), 9 = pet-item page.
 // Interactions: double-click = use / equip (or deposit while the bank is open), Ctrl + double-click = sell, drag = move /
 // merge / swap (Shift = split), drop on a tab = moveItemToPage, drop an equipped item here = unequip into that slot;
-// tool modes Sử dụng / Vứt bỏ / Tách rời / Sửa chữa act on the next click. Khóa and the pet grid are rendered disabled.
+// tool modes Sử dụng / Vứt bỏ / Tách rời / Sửa chữa act on the next click. Khóa is rendered disabled. Pet tabs + grid: bagPets.ts.
 
 import {
   BAG_PAGE_SLOTS, BagTab, MAX_BAG_PAGES, PageType, SlotType, openBagPages, sidOf, type BagItem, type PlayerData,
 } from '@mc/shared';
 import type { BagActions } from '../game/bagActions';
+import { BagPets } from './bagPets';
 import { BagWallet } from './bagWallet';
 import { TabStrip, type TabDef } from './bagTabs';
 import { endDrag, dragging, fillItemCell, type DragPayload } from './itemCell';
@@ -22,9 +23,6 @@ import './tempBag.css';
 export { NAME_COLORS } from './itemCell';
 
 const SKIN = '/ui/Panels_BagPanel';
-const PET_SLOTS = 18;
-const PET_TABS = 10;
-const UNSUPPORTED = 'Chức năng chưa mở';
 const PAGE_ITEM_TYPES: readonly number[] = [SlotType.BAG, SlotType.QUEST_BAG, SlotType.PET_BAG];
 
 const BAG_TAB_DEFS: TabDef[] = [
@@ -71,6 +69,7 @@ export class BagPanel {
   private grid: HTMLElement | null = null;
   private tabs: TabStrip | null = null;
   private readonly wallet: BagWallet;
+  private readonly pets = new BagPets();
   private mode: ToolMode | null = null;
   /** Vứt bỏ multi-select: item ids picked across the pages (cleared when the mode ends). */
   private readonly picked = new Set<number>();
@@ -125,12 +124,7 @@ export class BagPanel {
     box.append(this.grid, scroll);
     root.appendChild(box);
 
-    root.appendChild(this.disabledTabs());
-    const petBox = el('div', 'bag-box bag-pets');
-    const petGrid = el('div', 'bag-grid');
-    for (let i = 0; i < PET_SLOTS; i++) petGrid.appendChild(el('div', 'bag-cell'));
-    petBox.appendChild(petGrid);
-    root.appendChild(petBox);
+    root.append(this.pets.tabs, this.pets.box);
 
     root.appendChild(this.toolbar());
     const temp = el('button', 'bag-temp-btn', 'Túi tiện dụng');
@@ -164,6 +158,7 @@ export class BagPanel {
     this.tabs?.refresh(this.page, (page) => page > MAX_BAG_PAGES || page <= open);
     const bySid = this.itemsBySid();
     this.grid.replaceChildren(...this.pageSids().map((sid) => this.cell(sid, bySid.get(sid))));
+    this.pets.render(p.petList, p.petMaxNum);
     this.wallet.render(p);
   }
 
@@ -196,18 +191,6 @@ export class BagPanel {
     endDrag();
     const src = d && d.from !== 'equip' ? [...this.host.items()].find((i) => i.id === d.id) : undefined;
     if (src) this.host.actions.moveToPage(src, PageType.BAG, page);
-  }
-
-  /** Static pet-item tab strip (the pet grid below is not ported). */
-  private disabledTabs(): HTMLElement {
-    const row = el('div', 'bag-tab-row bag-pet-tabs');
-    for (let i = 0; i < PET_TABS; i++) {
-      const tab = el('button', i === 0 ? 'bag-tab selected' : 'bag-tab', 'P...');
-      tab.disabled = i > 0;
-      tab.title = i === 0 ? '' : UNSUPPORTED;
-      row.appendChild(tab);
-    }
-    return row;
   }
 
   private toolbar(): HTMLElement {

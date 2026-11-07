@@ -34,6 +34,7 @@ Legacy (Go/Flash) knowledge: `D:\mcgame\docs\PROJECT_KNOWLEDGE_BASE.md`.
 - [Progression foundation, titles, achievements](memory/progression.md) — stat provider registry, currencies, character_features, gmGrant, titles with buffs, achievement hooks and claims.
 - [Stat-feature panels](memory/stat-features.md) — train soul, awakening, war sprite, magic crystal, heiyaoshi, zodiac stars (Tu luyện window).
 - [Magic weapon](memory/magic-weapon.md) — Thần Khí slots 15-20, data_tbl_artifact upgrades, repair/resolve/transfer/reset.
+- [Appearance + flying (M13 A)](memory/appearance.md) — avatar resolver (`av`), costume / flyer / mount layers, beginFlying / stopFlying / fixFlyState, setDressHide, AvatarView + AppearanceController.
 - [Activities](memory/activities.md) — UTC+7 day keys, activity strip, sign-in, diary + DiaryEvents, online/offline exp, festivals, daily boss, lotto, prabuff, mount.
 - [VIP](memory/vip.md) — PM packages and levels, daily rights (mark-first), findback, VIP shop rotation.
 - [Loop quests](memory/loop-quest.md) — TBL_QUEST_LOOP take/cancel/repair, playable round pools, round rewards, [Vòng] NPC entries.
@@ -52,3 +53,4 @@ Legacy (Go/Flash) knowledge: `D:\mcgame\docs\PROJECT_KNOWLEDGE_BASE.md`.
 - [Training (M10)](memory/training.md) — HMTXL room, Ảo Ma Tháp, TXKC, Vô Danh Động, Mật Đạo.
 - [Boss towers (M10)](memory/boss-towers.md) — nine boss, corridor, trials (VDRL), flop pass; character_towers state.
 - [World boss (M10)](memory/world-boss.md) — world boss event, schedule-boss respawn, boss loot.
+- [Item use effects](memory/item-use.md) — useItem dispatcher + ItemUseRegistry, award bags, money chests / kim phieu / mystery key, description-bag parser, currency / stone / pet bags, choose-one gift boxes, buff foods, rule potions, pet-target items, useMultiItem, exp / encounter books, attribute reset, mount dress bags, gacha boxes (phases A-G, complete).

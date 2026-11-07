@@ -6,12 +6,13 @@ import { Injectable } from '@nestjs/common';
 import { BATTLE_ENEMY_SLOTS } from '@mc/shared';
 import { SceneManager } from '../../gateway/scene.manager';
 import type { Session } from '../../gateway/session';
+import { BuffService } from '../buff/buff.service';
 import { GameDataService } from '../gamedata/gamedata.service';
 import { PartyManager } from '../party/party.manager';
 import { CharacterStatsService, type CharStats } from '../stats/character-stats.service';
 import type { Fighter } from './battle.types';
 import { CombatService } from './combat.service';
-import { rollEncounter } from './encounter';
+import { encounterMods, rollEncounter } from './encounter';
 import { spawnFighter } from './fighters';
 import { selectRoster } from './roster';
 
@@ -28,6 +29,7 @@ export class EncounterService {
     private readonly gameData: GameDataService,
     private readonly stats: CharacterStatsService,
     private readonly parties: PartyManager,
+    private readonly buffs: BuffService,
   ) {}
 
   addTuner(fn: EncounterTuner): void {
@@ -45,10 +47,12 @@ export class EncounterService {
     if (party && party.leaderId !== cid && !party.afk.has(cid)) return;
     const map = this.gameData.getMap(session.mapId);
     if (!map || Number(map.safe_flag ?? 0) > 0) return;
+    const mods = encounterMods((await this.buffs.listActive(cid)).map((b) => b.buffId)); // encounter books (313 / 314 / 1365)
+    if (mods.noEncounter) return;
     const lead = party?.leaderId ?? null;
     // The enemy count depends on the roster size, so a first roster (HP unknown) is picked before the encounter roll.
     const pre = selectRoster(cid, session.mapId, this.combat.candidates(session, party, () => 1), lead);
-    const rows = rollEncounter(Number(map.basic_battle_rate ?? 0), this.gameData.mapCreatures(session.mapId), this.combat.rng, pre.length);
+    const rows = rollEncounter(Number(map.basic_battle_rate ?? 0), this.gameData.mapCreatures(session.mapId), this.combat.rng, pre.length, mods);
     if (!rows) return;
     const sts = new Map(await Promise.all(pre.map(async (id): Promise<[number, CharStats]> => [id, await this.stats.compute(id)])));
     const hpOf = (id: number): number => sts.get(id)?.doc.currentHp ?? 0;

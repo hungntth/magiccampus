@@ -1,9 +1,9 @@
 // Applies the reward of a VIP right (see pm-rules.ts rewardOf) after the claim was marked: exp through RewardGrantService, bound gold
 // coupons (onAddMoney + onUPP), the daily buff (upLongBuff + stat refresh), bound bag items (onAddItem + onAddCharactorSlot) and the
-// transform push (onSetRes, the persisted res code is written with the claim mark). `precheck` refuses a full bag before marking.
+// transform push (onSetRes + buff 2730 via upLongBuff, the persisted res code is written with the claim mark). `precheck` refuses a full bag before marking.
 
 import { Injectable } from '@nestjs/common';
-import { ItemKind } from '@mc/shared';
+import { ItemKind, PM_TRANSFORM_BUFF_ID } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
 import type { Session } from '../../gateway/session';
 import { RewardGrantService } from '../activity-rewards/reward-grant.service';
@@ -13,7 +13,7 @@ import { GameDataService } from '../gamedata/gamedata.service';
 import { maxStack, type AddSpec } from '../inventory/bag-rules';
 import { InventoryService } from '../inventory/inventory.service';
 import { CharacterStatsService } from '../stats/character-stats.service';
-import type { PmReward } from './pm-rules';
+import { secondsLeftToday, type PmReward } from './pm-rules';
 
 @Injectable()
 export class PmRewardService {
@@ -70,10 +70,13 @@ export class PmRewardService {
         for (const slot of changed) session.callback('onAddCharactorSlot', slot);
         return;
       }
-      case 'transform':
+      case 'transform': {
         session.callback('onSetRes', { id: cid, res: reward.resCode });
+        // Same end as the stored transform (pm.service): the buff bar timer fires delBuffClient then, which reverts the look.
+        session.callback('upLongBuff', await this.buffs.grant(cid, PM_TRANSFORM_BUFF_ID, secondsLeftToday(Date.now())));
         session.callback('onBlueMsg', 'Hôm nay bạn đã biến hình!');
         return;
+      }
     }
   }
 }

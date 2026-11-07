@@ -101,6 +101,9 @@ export interface VipLogin {
 /** Right ids with a server-side rule (TBL_PM_RIGHT id). The other rights are display only. */
 export const PmRight = { EXP: 1, COUPON: 2, BUFF: 3, BOOK: 7, MONTH_BAG: 10, TRANSFORM: 13, FINDBACK: 24 } as const;
 
+/** TBL_BUFF 2730 "Biến Hình Kỳ Lạ": marks the right-13 transform on the buff bar; removing it (click or expiry) reverts the look. */
+export const PM_TRANSFORM_BUFF_ID = 2730;
+
 /** Daily rights the findback right can recover (day-bound buff / transform and the monthly bag are not recoverable). */
 export const PM_RECOVERABLE_RIGHTS: readonly number[] = [PmRight.EXP, PmRight.COUPON, PmRight.BOOK];
 

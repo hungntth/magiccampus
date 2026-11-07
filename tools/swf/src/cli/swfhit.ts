@@ -20,6 +20,10 @@ interface Size {
   h: number;
 }
 
+// Share of sampled pixels that differ from the pixel one row above (rowBreaks): a real grid stays well under it
+// (~0.005), a wrong row stride shears the mask into stripes (0.04-0.4).
+const MAX_ROW_BREAKS = 0.02;
+
 const { flags } = parseFlags(
   { cache: DEFAULT_CACHE, resmap: '../../server/resmap.json', sizes: '', out: '../../client/public/sheets', png: false },
   'usage: swfhit [-cache DIR] -resmap resmap.json -sizes sizes.json -out DIR [-png]',
@@ -71,10 +75,10 @@ function extract(raw: Uint8Array): { bits: Uint8Array; gw: number; gh: number } 
   let gw = 0;
   let gh = 0;
   let bits: Uint8Array | null = null;
+  const abc: SwfTag[] = [];
   for (const t of f.tags) {
     if (t.code === Tag.DoABCDefine || t.code === Tag.DoABC) {
-      const g = abcGridSize(t);
-      if (g) [gw, gh] = g;
+      abc.push(t);
     } else if (t.code === Tag.DefineBinaryData && t.data.length >= 6) {
       try {
         bits = inflate(t.data.subarray(6));
@@ -84,12 +88,52 @@ function extract(raw: Uint8Array): { bits: Uint8Array; gw: number; gh: number } 
     }
   }
   if (!bits) throw new Error('no DefineBinaryData');
+  for (const t of abc) {
+    const g = gridSize(bits, abcNumbers(t));
+    if (g) [gw, gh] = g;
+  }
   return { bits, gw, gh };
 }
 
-// abcGridSize reads the first two doubles of the ABC constant pool: the generated
-// ClassBytes class stores the grid width/height there (e.g. 2031.45, 1530.4).
-function abcGridSize(t: SwfTag): [number, number] | null {
+// gridSize picks the grid width/height among the ABC constants of the generated ClassBytes class. Usually both are
+// doubles (2031.45, 1530.4), but a whole number sits in the int pool (SCENE_FOLDER_000004: int 3076, double 2094.95),
+// the height may come first (SCENE_FOLDER_000018) or be missing (SCENE_FOLDER_000070 stores only 3132.x). So every
+// constant is tried as the row stride and the one whose rows line up best wins (a wrong stride shears the mask into
+// stripes); the height is the other constant that fits the payload, else the number of whole rows.
+function gridSize(bits: Uint8Array, nums: number[]): [number, number] | null {
+  const cands = nums.map(Math.trunc).filter((v) => v > 0 && v <= 20000);
+  let w = 0;
+  let best = MAX_ROW_BREAKS;
+  for (const c of cands) {
+    const s = rowBreaks(bits, c);
+    if (s < best) [w, best] = [c, s];
+  }
+  if (w === 0) return null;
+  const rows = Math.floor((bits.length * 8) / w);
+  const h = cands.find((v) => v !== w && v <= rows && rows - v < 3) ?? rows;
+  return [w, h];
+}
+
+// Share of sampled pixels that differ from the pixel one row above when rows are `w` bits long.
+function rowBreaks(bits: Uint8Array, w: number): number {
+  const rows = Math.floor((bits.length * 8) / w);
+  const at = (x: number, y: number): number => {
+    const i = y * w + x;
+    return (bits[i >> 3] >> (i & 7)) & 1;
+  };
+  let diff = 0;
+  let n = 0;
+  for (let y = 1; y < rows; y += 5) {
+    for (let x = 0; x < w; x += 4) {
+      diff += at(x, y) ^ at(x, y - 1);
+      n++;
+    }
+  }
+  return n === 0 ? 1 : diff / n;
+}
+
+// abcNumbers lists the int, uint and double constant pools in that order.
+function abcNumbers(t: SwfTag): number[] {
   const b = t.data;
   let p = 0;
   if (t.code === Tag.DoABC) {
@@ -109,18 +153,14 @@ function abcGridSize(t: SwfTag): [number, number] | null {
     }
     return v;
   };
-  // Skip the int and uint pools to reach the double pool.
+  const out: number[] = [];
   for (let pool = 0; pool < 2; pool++) {
     const n = u30();
-    for (let i = 1; i < n; i++) u30();
+    for (let i = 1; i < n; i++) out.push(pool === 0 ? u30() | 0 : u30());
   }
   const n = u30();
-  if (n < 3 || p + 16 > b.length) return null;
-  const dv = new DataView(b.buffer, b.byteOffset + p, 16);
-  const w = dv.getFloat64(0, true);
-  const h = dv.getFloat64(8, true);
-  if (!(w > 0 && h > 0 && w <= 20000 && h <= 20000)) return null;
-  return [Math.trunc(w), Math.trunc(h)];
+  for (let i = 1; i < n && p + 8 <= b.length; i++, p += 8) out.push(new DataView(b.buffer, b.byteOffset + p, 8).getFloat64(0, true));
+  return out;
 }
 
 function writePreview(path: string, bits: Uint8Array, w: number, h: number): void {

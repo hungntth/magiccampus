@@ -1,1 +1,1 @@
-{"fps":24,"width":65,"height":57,"ox":0,"oy":0,"images":[{"h":57,"w":65,"x":0,"y":0}],"anims":{"default":[{"d":1,"objs":[{"i":0,"m":[-1,0,0,-1,65,57]}]}]},"order":["default"]}
+{"fps":24,"width":65,"height":57,"ox":0,"oy":0,"pages":["EFF_PLAYER_105011.webp"],"images":[{"h":57,"w":65,"x":0,"y":0}],"anims":{"default":[{"d":1,"objs":[{"i":0,"m":[-1,0,0,-1,65,57]}]}]},"order":["default"]}

@@ -26,7 +26,7 @@ Plan: `docs/plans/2026-11-03_01_NPC_TALK.md`. Implemented 2026-11-03.
   1100 ms throttle per NPC. WALK/BATTLE/STORY_BATTLE/QUEST_BATTLE/BOSS/HULA/DOTA/TRIPLE_TOWN -> placeholder toast.
 - Talk-only (quest state <= 0 and npcType <= 0) -> bubble; else DOM dialog "Đối thoại" with quest rows (sorted by state desc,
   click -> quest panel), function button (`NpcDialog.show(..., onFunc)`: Shop -> `npcFuncClick`, other types placeholder toast) and "Rời khỏi".
-- Dialog look follows the Flash window (pure CSS, no skin assets): navy panel + gold frame, banner title, 56 px framed
+- Dialog look follows the Flash window (pure CSS, no skin assets): navy panel + gold frame, banner title, top-right close button, 56 px framed
   portrait, function button (orange) under the name, scrolling text box, "Nhiệm vụ" list box with state markers
   (`!` red = can take, `?` grey = taken, `?` gold = can finish; tooltip carries the state), centered "Rời khỏi".
 - NPC head markers: `SceneNpc.questState` at creation, then `onSetNpcState` (QuestController). Dialog closes on scene change/destroy and when the player is > 300 px away.

@@ -14,6 +14,7 @@ import { AchievementEventsModule } from '../achievement/achievement-events.modul
 import { CharacterItem, CharacterItemSchema } from '../inventory/character-item.schema';
 import { InventoryModule } from '../inventory/inventory.module';
 import { CharacterFeature, CharacterFeatureSchema } from '../progression/feature.schema';
+import { BuffModule } from '../buff/buff.module';
 import { VipCoreModule } from '../vip/vip-core.module';
 import { PetArenaEntry, PetArenaEntrySchema } from '../pet-battle/arena-entry.schema';
 import { PetBattleService } from './pet-battle.service';
@@ -23,6 +24,7 @@ import { PetEquipService } from './pet-equip.service';
 import { PetGearRpc } from './pet-gear.rpc';
 import { PetGrowthRpc } from './pet-growth.rpc';
 import { PetGrowthService } from './pet-growth.service';
+import { PetItemService } from './pet-item.service';
 import { PetJoinService } from './pet-join.service';
 import { PetMaterialService } from './pet-materials.service';
 import { PetContractRpc } from './pet-contract.rpc';
@@ -54,6 +56,7 @@ import { PetStatRegistry } from './pet-stat-registry.service';
       { name: PetArenaEntry.name, schema: PetArenaEntrySchema }, // read by PetMaterialService: the arena line-up pets are busy
     ]),
     AchievementEventsModule,
+    BuffModule,
     GameDataModule,
     InventoryModule,
     VipCoreModule,
@@ -61,13 +64,13 @@ import { PetStatRegistry } from './pet-stat-registry.service';
   providers: [
     PetService, PetFollowService, PetBattleService, PetCatchService, PetObjectiveService, PetRpc,
     PetBonusService, PetEquipService, PetGoldService, PetSkillService, PetSlotService, PetGearRpc, PetDetailRpc,
-    PetGrowthService, PetGrowthRpc, PetJoinService, PetMaterialService,
+    PetGrowthService, PetGrowthRpc, PetJoinService, PetMaterialService, PetItemService,
     PetEvolutionService, PetEvolutionRpc, PetContractService, PetContractRpc, PetIllusionService,
     PetHandbookStatProvider, PetContractStatProvider,
     { provide: PET_STAT_BONUS_PROVIDERS, useFactory: (): PetStatProvider[] => [] },
     PetStatRegistry,
   ],
-  exports: [PetService, PetFollowService, PetBattleService, PetCatchService, PetObjectiveService, PetBonusService, PetStatRegistry, PetMaterialService],
+  exports: [PetService, PetFollowService, PetBattleService, PetCatchService, PetObjectiveService, PetBonusService, PetStatRegistry, PetMaterialService, PetItemService, PetSlotService],
 })
 export class PetModule implements OnModuleInit {
   constructor(

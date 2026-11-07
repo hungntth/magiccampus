@@ -1,5 +1,5 @@
-// Forge tab "Ghép" (legacy EquiptFuncPanel material / gem tabs): pick a material stack (Nguyên liệu) or a gem stack
-// (Bảo thạch), choose how many units per attempt (2..5) and mix once or all. Both RPCs are awaited and reply
+// Forge tabs "Ng.liệu" and "Bảo thạch" (legacy EquiptFuncPanel tabBtnA2 / A3): pick a material stack or a gem stack,
+// choose how many units per attempt (2..5) and mix once or all. Both RPCs are awaited and reply
 // {slotId, num, flag, finalNum}; the success toasts are the Flash strings, failures come from the server push.
 
 import type { BagItem, MaterialMixReply } from '@mc/shared';
@@ -12,22 +12,18 @@ import type { ForgeHost, ForgeTab, ForgeTabView } from './forgeTypes';
 const GEM_TYPE = 503;
 type Mode = 'mix' | 'jewel';
 
-const MODES: { id: Mode; label: string }[] = [{ id: 'mix', label: 'Nguyên liệu' }, { id: 'jewel', label: 'Bảo thạch' }];
-
 class MixView implements ForgeTabView {
-  private mode: Mode = 'mix';
   private selectedId: number | null = null;
   private num = MIX_MAX;
   private busy = false;
   private disposed = false;
-  private readonly modeRow = el('div', 'mall-tabs forge-subtabs');
   private readonly grid = el('div', 'forge-grid');
   private readonly info = el('div', 'forge-rates');
   private readonly numSel = el('select', 'forge-num');
   private readonly one = el('button', 'shop-btn forge-go', 'Ghép 1 lần');
   private readonly all = el('button', 'shop-btn forge-go', 'Ghép tất cả');
 
-  constructor(private readonly host: ForgeHost, body: HTMLElement) {
+  constructor(private readonly host: ForgeHost, body: HTMLElement, private readonly mode: Mode) {
     for (let n = MIX_MIN; n <= MIX_MAX; n++) {
       const o = el('option', '', `${n} cái`);
       o.value = String(n);
@@ -44,7 +40,7 @@ class MixView implements ForgeTabView {
     this.one.onclick = () => void this.run(false);
     this.all.onclick = () => void this.run(true);
     buttons.append(this.one, this.all);
-    body.append(this.modeRow, this.grid, numRow, this.info, buttons);
+    body.append(this.grid, numRow, this.info, buttons);
     this.render();
   }
 
@@ -57,9 +53,7 @@ class MixView implements ForgeTabView {
   }
 
   accept(item: BagItem): boolean {
-    const mode = this.modeOf(item);
-    if (!mode) return false;
-    this.mode = mode;
+    if (this.modeOf(item) !== this.mode) return false;
     this.selectedId = item.id;
     this.render();
     return true;
@@ -80,16 +74,6 @@ class MixView implements ForgeTabView {
   }
 
   private render(): void {
-    this.modeRow.replaceChildren(...MODES.map((m) => {
-      const b = el('button', 'mall-tab', m.label);
-      if (m.id === this.mode) b.classList.add('selected');
-      b.onclick = () => {
-        this.mode = m.id;
-        this.selectedId = null;
-        this.render();
-      };
-      return b;
-    }));
     const stacks = this.stacks();
     if (this.selectedId !== null && !stacks.some((i) => i.id === this.selectedId)) this.selectedId = null;
     this.grid.replaceChildren(...(stacks.length === 0 ? [el('div', 'forge-hint', this.mode === 'mix'
@@ -148,4 +132,9 @@ class MixView implements ForgeTabView {
   }
 }
 
-export const mixTab: ForgeTab = { id: 'mix', label: 'Ghép', build: (host, body) => new MixView(host, body) };
+export const mixTab: ForgeTab = {
+  id: 'mix', label: 'Ng.liệu', group: 'mix', build: (host, body) => new MixView(host, body, 'mix'),
+};
+export const jewelTab: ForgeTab = {
+  id: 'jewel', label: 'Bảo thạch', group: 'jewel', build: (host, body) => new MixView(host, body, 'jewel'),
+};

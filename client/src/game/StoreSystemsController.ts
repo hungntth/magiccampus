@@ -1,22 +1,19 @@
 // M8 phase D on the client (part 2): the wish tree (getLottoData / lottoByClient + the holding bag calls, push updateLottoBag), the
 // magic array (getMagicArrayData / addPracticeExp, push updatePraView) and the mount (list / feed / evolve / ride; pushes onAddMountExp,
-// onUpdateDressList, onMountOn / onMountOff swap the rider sprite of the map entity). Owned by ActivityController.
+// onUpdateDressList; the rider sprite of onMountOn / onMountOff is AppearanceController's). Owned by ActivityController.
 
 import {
-  PRA_TRACKS, type AddMountExpReply, type AddMountUpExpReply, type LottoData, type LottoEntry, type MountListReply, type MountOffPush,
-  type MountOnPush, type PlayerData, type PraView,
+  PRA_TRACKS, type AddMountExpReply, type AddMountUpExpReply, type LottoData, type LottoEntry, type MountListReply, type PlayerData, type PraView,
 } from '@mc/shared';
 import type { GameClient } from '../net/client';
 import { LottoPanel } from '../ui/lottoPanel';
 import { MountPanel } from '../ui/mountPanel';
 import { PrabuffPanel } from '../ui/prabuffPanel';
 import { toast } from '../ui/screens';
-import type { Entity } from './Entity';
 
 export interface StoreSystemsHost {
   client: GameClient;
   player: PlayerData;
-  entityOf(id: number): Entity | undefined;
   bagCount(templateId: number): number;
 }
 
@@ -72,11 +69,6 @@ export class StoreSystemsController {
         this.pra.render();
         void this.refreshBalances(view.praType);
       }),
-      client.on('onMountOn', (d) => {
-        const p = d as MountOnPush;
-        host.entityOf(p.cid)?.swapRes(p.resCode);
-      }),
-      client.on('onMountOff', (d) => host.entityOf((d as MountOffPush).cid)?.swapRes(null)),
       client.on('onAddMountExp', () => this.mount.isOpen && this.loadMount()),
       client.on('onUpdateDressList', () => this.mount.isOpen && this.loadMount()),
     );

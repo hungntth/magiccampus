@@ -30,6 +30,9 @@ The stat-feature panels are in `stat-features.md`; the magic weapon is in `magic
 - Pushes: `onTitleUpdate` / `onActTitleUpdate` broadcast to the map, `onAddTitle` / `onAddActTitle` on grants.
   `Entity.setTitles` draws `t` above the name and `actT` below.
 - Client: the title panel (260×385, two tabs) opens from the "Danh hiệu" button on the character panel.
+- Grant expiry (Go `grant_character_title`, `title-medal.ts nextTitleExpiry`): a re-grant adds its time to what is left, an expired row restarts, a permanent grant makes a timed title permanent, an owned permanent title is unchanged (no push).
+- Title medals (type 550 "Huy Chương …", `title-medal.service.ts`, a `UseItemService` use hook): the title comes from the teacher-rank map (749-794 → titles 1-6), else from the single `data_tbl_item_award` type 33 row (353 medals), else from the description "tặng / phong / nhận danh hiệu X" (e.g. 795 Xuất Vân Chi Hồng). Duration: "(N Ngày)" in the name, then "duy trì N ngày", then `t` minutes (not for forever titles, k = 1); a 12-digit `t` is the medal's own ICT deadline. Spend first, then grant. H5: a medal for an owned permanent title is kept, not consumed for nothing.
+  - Not ported: title upgrade chains (`title/chains.go`), the world announce on first acquisition, the "Tự chọn 1 trong những danh hiệu" choice bags (4961-4963), and the medals whose title is missing from `data_tbl_title` (1820-1829, 2357, 960: unusable in Go too).
 
 ## Achievements (`modules/achievement/`, shared `achievement.ts`)
 - Tracking: `AchievementEvents.record(...)` hooks in quest, combat, pet, title, guild, social and lvUp; a failing hook only logs.

@@ -1,0 +1,29 @@
+/* Bottom-menu quest manager: compact legacy two-column task book. */
+.qlog {
+  position: absolute;
+  left: calc(50% - 250px);
+  top: 10%;
+  width: 500px;
+  height: 390px;
+  box-sizing: border-box;
+  border: 2px solid #8fe6ea;
+  border-radius: 9px;
+  background: linear-gradient(180deg, #2a879f 0 32px, #15526c 33px, #0d3d58 100%);
+  box-shadow: 0 0 0 2px #092b42, inset 0 0 0 1px rgba(210, 255, 255, 0.35), 0 7px 20px rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font: 12px Tahoma, Verdana, Arial, sans-serif;
+  pointer-events: auto;
+}
+.qlog-head { position: absolute; inset: 0 0 auto; height: 33px; cursor: move; }
+.qlog-title { position: absolute; top: 3px; left: 50%; min-width: 120px; padding: 3px 18px 4px; transform: translateX(-50%); border: 1px solid #ffce5c; border-radius: 0 0 11px 11px; background: #0d4c68; color: #fff0a4; font: bold 16px/19px Georgia, serif; text-align: center; }
+.qlog-close { position: absolute; z-index: 2; top: 5px; right: 7px; width: 20px; height: 20px; padding: 0; border: 1px solid #ffd0d0; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ff8a7a, #c41818 70%); color: #fff; font: bold 14px/16px Arial, sans-serif; cursor: pointer; }
+.qlog-tabs { position: absolute; top: 36px; left: 18px; display: flex; gap: 3px; }
+.qlog-tab { height: 23px; padding: 0 9px; border: 1px solid #76cfe1; border-radius: 5px 5px 0 0; background: linear-gradient(#277a9b, #14516e); color: #fff; font: bold 12px Tahoma, sans-serif; cursor: pointer; }
+.qlog-tab.on { background: linear-gradient(#fff2a3, #e5a832); border-color: #fff4bf; color: #573200; }
+.qlog-list { position: absolute; top: 60px; bottom: 14px; left: 18px; width: 205px; overflow-y: auto; border: 1px solid #5ac1d5; border-radius: 5px; background: rgba(5, 33, 55, 0.72); scrollbar-color: #50d6df #0c3b56; }
+.qlog-row { display: flex; width: 100%; gap: 5px; padding: 6px 8px; border: 0; border-bottom: 1px solid rgba(100, 200, 220, 0.2); background: transparent; color: #fff; font: 12px Tahoma, sans-serif; text-align: left; cursor: pointer; }
+.qlog-row:hover, .qlog-row.selected { background: rgba(72, 173, 199, 0.42); }
+.qlog-mark { color: #ff5a30; font-weight: 700; }.qlog-mark.ready { color: #ffe84a; }.qlog-row-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qlog-detail { position: absolute; top: 60px; right: 18px; bottom: 14px; left: 233px; padding: 10px; overflow-y: auto; border: 1px solid #5ac1d5; border-radius: 5px; background: rgba(7, 42, 65, 0.72); }
+.qlog-name { color: #fff0a4; font-weight: 700; font-size: 14px; }.qlog-info { margin: 7px 0; line-height: 17px; color: #d5f7ff; }.qlog-cap { margin-top: 9px; color: #8feef8; font-weight: 700; }.qlog-line { padding: 2px 0 2px 10px; color: #f3f6ff; }.qlog-line.ready, .qlog-progress { color: #7dff8d; }.qlog-progress { margin-top: 7px; font-weight: 700; }
+.qlog-rewards { display: flex; flex-direction: column; gap: 3px; margin-top: 10px; color: #ffe35b; }.qlog-gift { color: #bdf5ff; }.qlog-open { position: absolute; right: 10px; bottom: 9px; padding: 3px 13px; border: 1px solid #fff0a8; border-radius: 4px; background: linear-gradient(#ffd36d, #d97914); color: #fff; font-weight: 700; text-shadow: 0 1px #673000; cursor: pointer; }.qlog-empty { padding: 10px; color: #b5d7e5; }

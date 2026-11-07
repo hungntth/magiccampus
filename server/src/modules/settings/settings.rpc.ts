@@ -1,6 +1,7 @@
 // Interface-setting RPCs (M9): uif(key, value, isPet) (apvp, auto-battle and hotbar keys), skillSetBattle(skillId, level, slot,
 // isPet), skillSetUserBar(skillId, level, "<n>") -> true and us(map) -> {success} (bulk save: ubl and the "Hệ thống" panel keys).
-// No pushes (the Flash client updates its GLOBAL_SETTING locally).
+// No pushes of its own (the Flash client updates its GLOBAL_SETTING locally); a changed dressHide runs the dress look sync (onEquipOn /
+// onEquipOff dressFlag true + onSetRes, see AppearanceService).
 
 import { Injectable } from '@nestjs/common';
 import {
@@ -9,6 +10,7 @@ import {
 import { RpcException } from '../../gateway/errors';
 import { Rpc } from '../../gateway/rpc.decorator';
 import type { Session } from '../../gateway/session';
+import { AppearanceService } from '../appearance/appearance.service';
 import { PkService } from '../pk/pk.service';
 import { SettingsService } from './settings.service';
 import { usValue } from './us-value';
@@ -20,6 +22,7 @@ export class SettingsRpc {
     private readonly settings: SettingsService,
     private readonly pk: PkService,
     private readonly perms: PermissionService,
+    private readonly appearance: AppearanceService,
   ) {}
 
   @Rpc('uif', { requireCharacter: true })
@@ -68,6 +71,7 @@ export class SettingsRpc {
     }
     await this.settings.setCharacterKeys(session.characterId!, fields);
     this.perms.saved(session.characterId!, fields);
+    await this.appearance.onSettingsSaved(session.characterId!, fields);
     return { success: true };
   }
 

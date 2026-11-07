@@ -1,10 +1,11 @@
 // battlePlayEnd(): the per-participant end of a battle. Every member's client calls it after its own end marker; each gets only
 // its own pushes: onAddChaQuest / onSetNpcState (kill credit), onBossOff (a loop boss whose kill completed, M9), onAddMoney, onUPP, onPlayerLevelUp, the owner's pet pushes (onUpdatePet exp / life / level,
-// onRefreshPetProp), onAddItem + onAddCharactorSlot / onRedMsg (loot), onAddPet for caught pets (last), onSetCharState back to normal. The battle is dropped once every member has ended it or is gone.
+// onRefreshPetProp), upLongBuff / delBuff (battle-count food buffs losing a charge), onAddItem + onAddCharactorSlot / onRedMsg (loot), onAddPet for caught pets (last), onSetCharState back to normal. The battle is dropped once every member has ended it or is gone.
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { BattleResult, CharState, type PlayerLevelUp, type SetCharState } from '@mc/shared';
 import { SceneManager } from '../../gateway/scene.manager';
+import { BuffService } from '../buff/buff.service';
 import { sendPushes } from '../inventory/pushes';
 import { LoopBossService } from '../loop/loop-boss.service';
 import type { Session } from '../../gateway/session';
@@ -25,6 +26,8 @@ export function pushCharState(scenes: SceneManager, session: Session, state: num
 
 @Injectable()
 export class BattleEndService {
+  private readonly logger = new Logger(BattleEndService.name);
+
   constructor(
     private readonly manager: BattleManager,
     private readonly settleService: BattleSettleService,
@@ -33,6 +36,7 @@ export class BattleEndService {
     private readonly quests: QuestService,
     private readonly bosses: LoopBossService,
     private readonly hooks: BattleHooks,
+    private readonly buffs: BuffService,
   ) {}
 
   async end(session: Session): Promise<unknown> {
@@ -57,6 +61,7 @@ export class BattleEndService {
     const cid = session.characterId!;
     await this.pushQuestKills(session, cid, r);
     if (r.report.money > 0) session.callback('onAddMoney', cid, 'moneyBind', r.report.money, r.moneyTotal);
+    await this.consumeBuffCharges(session, cid); // before the stat refresh: an expired food buff leaves the stats
     const update = await this.stats.refreshPayload(cid);
     session.callback('onUPP', update);
     if (r.levelUp) {
@@ -71,6 +76,17 @@ export class BattleEndService {
       if (r.loot.bagFull) session.callback('onRedMsg', 'Túi đồ đã đầy');
     }
     sendPushes(session, r.catchPushes); // caught pets arrive after everything else
+  }
+
+  /** Legacy ConsumeBattleCharges at battlePlayEnd: battle-count buffs lose one charge (upLongBuff), the last one deletes the row (delBuff). */
+  private async consumeBuffCharges(session: Session, cid: number): Promise<void> {
+    try {
+      const { updated, removed } = await this.buffs.consumeBattleCharges(cid);
+      for (const b of updated) session.callback('upLongBuff', b);
+      for (const id of removed) session.callback('delBuff', id);
+    } catch (e) {
+      this.logger.error(`battle buff charges failed for character ${cid}: ${(e as Error).message}`);
+    }
   }
 
   /** Kill credit: the changed quests (remaining counts), then the marker of each finish NPC standing on this map. */

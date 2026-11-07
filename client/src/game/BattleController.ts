@@ -47,6 +47,8 @@ export interface BattleHost {
   mapSafe(): boolean;
   /** battlePlayEnd reply hook (M10 star report): true = a card was shown instead of the generic result toast */
   onEndReply?(reply: unknown): boolean;
+  /** The battle is over and the player is alive and back on the map (resume an interrupted walk-up). */
+  onBattleOver?(): void;
 }
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
@@ -319,7 +321,7 @@ export class BattleController implements HotbarBattle {
     // BattleStage.as:1605: refill from the Túi cứu thương after every battle when a pool has something (silent on failure).
     if (parseEp(this.host.player.ep).some((v) => v > 0)) void this.host.client.call('useBloodBag').catch(() => undefined);
     this.teardown();
-    if (this.host.player.currentHp > 0) return;
+    if (this.host.player.currentHp > 0) return this.host.onBattleOver?.();
     await this.revive.run();
   }
 

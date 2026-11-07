@@ -6,10 +6,11 @@ import { healAmount, planRecover, type RecoverCandidate } from './potion';
 const c = (id: number, stackCount: number, amount: number, priority: number): RecoverCandidate => ({ id, stackCount, amount, priority });
 
 describe('healAmount', () => {
-  it('uses the hardcoded tables for potions and i1/i2 for food', () => {
+  it('uses the hardcoded tables for potions; food (502) never heals', () => {
     assert.deepEqual(healAmount({ id: 110, type: 501, i1: 0, i2: 0 }), { hp: 1000, mp: 0 });
     assert.deepEqual(healAmount({ id: 125, type: 501, i1: 2494, i2: 0 }), { hp: 0, mp: 600 }); // i1 is a buff id: ignored
-    assert.deepEqual(healAmount({ id: 5000, type: 502, i1: 80, i2: 20 }), { hp: 80, mp: 20 });
+    assert.deepEqual(healAmount({ id: 5000, type: 502, i1: 80, i2: 20 }), { hp: 0, mp: 0 }); // i1 / i2 are recipe ids
+    assert.deepEqual(healAmount({ id: 110, type: 502, i1: 80, i2: 20 }), { hp: 0, mp: 0 }); // the potion table only applies to 501
     assert.deepEqual(healAmount({ id: 9, type: 500 }), { hp: 0, mp: 0 });
     assert.deepEqual(healAmount({ id: 999, type: 501 }), { hp: 0, mp: 0 });
     assert.deepEqual(healAmount(undefined), { hp: 0, mp: 0 });

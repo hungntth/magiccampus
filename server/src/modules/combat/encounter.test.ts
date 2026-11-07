@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import type { MapCreatureRow } from '../gamedata/combat-data';
-import { enemyCount, normalizeEncounterRate, pickRow, rollEncounter } from './encounter';
+import { encounterMods, enemyCount, normalizeEncounterRate, pickRow, rollEncounter } from './encounter';
 
 const row = (id: number, cid: number, start: number, end: number, boss = 0): MapCreatureRow => ({
   id, mapId: 3, creatureId: cid, startRate: start, endRate: end, level: 3, bossFlag: boss, exp: -1, expMulti: 1, withCloud: -1,
@@ -54,5 +54,21 @@ describe('enemyCount / pickRow / rollEncounter', () => {
     const noBoss = rollEncounter(50, rows, seq(0.1, 0.1, 0.999, 0));
     assert.ok(noBoss && noBoss.every((r) => r.bossFlag === 0));
     assert.equal(rollEncounter(50, [row(9, 181, 0, 100, 2)], seq(0.1)), null);
+  });
+});
+
+describe('encounter book buffs', () => {
+  it('encounterMods reads buffs 313 / 314 / 1365', () => {
+    assert.deepEqual(encounterMods([]), { noEncounter: false, crazy: false, full: false });
+    assert.deepEqual(encounterMods([313, 1203]), { noEncounter: true, crazy: false, full: false });
+    assert.deepEqual(encounterMods([314, 1365]), { noEncounter: false, crazy: true, full: true });
+  });
+  it('crazy: the roll always succeeds, but a map with rate 0 never encounters', () => {
+    assert.equal(rollEncounter(50, rows, seq(0.99, 0.1, 0.1, 0.2), 1, { crazy: true, full: false })?.length, 1);
+    assert.equal(rollEncounter(0, rows, seq(0), 1, { crazy: true, full: false }), null);
+  });
+  it('full: every enemy slot of the board is filled (5)', () => {
+    const got = rollEncounter(50, rows, seq(0.1, 0.1, 0.2, 0.7, 0.2, 0.7), 1, { crazy: false, full: true });
+    assert.equal(got?.length, 5);
   });
 });

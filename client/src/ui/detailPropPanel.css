@@ -6,7 +6,7 @@
 
 .detail-grid {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   padding: 4px 2px;
 }
 
@@ -26,12 +26,15 @@
 }
 
 .detail-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: pre;
   color: #9fe3ff;
 }
 
 .detail-value {
-  min-width: 52px;
+  flex: 0 0 54px;
   padding: 0 4px;
   text-align: right;
   background: rgba(0, 0, 0, 0.35);
@@ -39,3 +42,60 @@
   border-radius: 3px;
   color: #fff;
 }
+
+/* Character detail is attached to the character panel, so it moves and closes with that panel. */
+.char-detail-panel {
+  position: absolute;
+  z-index: 3;
+  top: -2px;
+  left: calc(100% + 2px);
+  width: 345px;
+  height: 460px;
+  box-sizing: border-box;
+  padding: 34px 10px 10px;
+  background: linear-gradient(180deg, #3fa3c8 0%, #2581ab 16%, #1b6b93 60%, #165a7e 100%);
+  border: 2px solid #9fe3ff;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px #0b3550, inset 0 0 0 1px #0f4c70, inset 0 2px 8px rgba(255, 255, 255, 0.25),
+    0 6px 18px rgba(0, 0, 0, 0.55);
+  color: #fff;
+}
+
+.char-detail-head { position: absolute; inset: 0 0 auto; height: 32px; }
+
+.char-detail-title {
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  min-width: 92px;
+  padding: 3px 16px 4px;
+  transform: translateX(-50%);
+  border: 1px solid #9fe3ff;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #0f4c75, #0a3556);
+  color: #ffe9a8;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  text-shadow: 0 1px #5a3a00;
+}
+
+.char-detail-close {
+  position: absolute;
+  z-index: 1;
+  top: 5px;
+  right: 6px;
+  width: 21px;
+  height: 21px;
+  padding: 0;
+  border: 1px solid #ffe0e0;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #ff8a7a, #e0301e 50%, #a8140a);
+  box-shadow: 0 0 0 1px #5a0a04;
+  color: #fff;
+  font: bold 16px/17px Tahoma, sans-serif;
+  cursor: pointer;
+}
+
+.char-detail-body { height: 100%; overflow: hidden; }
+.char-detail-panel .detail-grid { padding: 2px 0; }

@@ -4,6 +4,7 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Character, CharacterSchema } from '../character/character.schema';
+import { AppearanceModule } from '../appearance/appearance.module';
 import { CharacterModule } from '../character/character.module';
 import { CharacterService } from '../character/character.service';
 import { GameDataModule } from '../gamedata/gamedata.module';
@@ -17,7 +18,7 @@ import { PermissionModule } from './permission.module';
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Character.name, schema: CharacterSchema }, { name: Pet.name, schema: PetSchema }]),
-    CharacterModule, GameDataModule, PermissionModule, PkModule, SkillModule,
+    AppearanceModule, CharacterModule, GameDataModule, PermissionModule, PkModule, SkillModule,
   ],
   providers: [SettingsService, SettingsRpc],
   exports: [SettingsService],

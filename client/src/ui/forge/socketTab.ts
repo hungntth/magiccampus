@@ -184,4 +184,4 @@ class SocketView implements ForgeTabView {
   }
 }
 
-export const socketTab: ForgeTab = { id: 'socket', label: 'Khảm', build: (host, body) => new SocketView(host, body) };
+export const socketTab: ForgeTab = { id: 'socket', label: 'Khảm nạm', build: (host, body) => new SocketView(host, body) };

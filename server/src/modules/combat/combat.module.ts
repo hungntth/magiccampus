@@ -7,6 +7,8 @@ import { Character, CharacterSchema } from '../character/character.schema';
 import { CharacterModule } from '../character/character.module';
 import { GameDataModule } from '../gamedata/gamedata.module';
 import { AchievementEventsModule } from '../achievement/achievement-events.module';
+import { AppearanceModule } from '../appearance/appearance.module';
+import { BuffModule } from '../buff/buff.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { LoopCoreModule } from '../loop/loop-core.module';
 import { NpcScriptModule } from '../npcscript/npcscript.module';
@@ -44,6 +46,8 @@ import { CharacterItem, CharacterItemSchema } from '../inventory/character-item.
   imports: [
     MongooseModule.forFeature([{ name: Character.name, schema: CharacterSchema }, { name: CharacterItem.name, schema: CharacterItemSchema }]),
     AchievementEventsModule,
+    AppearanceModule,
+    BuffModule,
     CharacterModule,
     GameDataModule,
     InventoryModule,

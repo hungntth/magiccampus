@@ -10,12 +10,14 @@ import { SceneManager } from '../../gateway/scene.manager';
 import { GameGateway } from '../../gateway/game.gateway';
 import { CharacterService } from '../character/character.service';
 import { GameDataService } from '../gamedata/gamedata.service';
+import { NPC_DRAWN_GATES } from '../gamedata/sceneitem-data';
 import { QuestService } from '../quest/quest.service';
 import { BuffService } from '../buff/buff.service';
 import { TitleService } from '../title/title.service';
 import { PartyService } from '../party/party.service';
 import { PetFollowService } from '../pet/pet-follow.service';
 import { PmStateService } from '../vip/pm-state.service';
+import { AppearanceService } from '../appearance/appearance.service';
 import { portalDataOf } from './portal-data';
 import { resolveGate } from './portal.rules';
 import { SceneTransportService } from './scene-transport.service';
@@ -40,6 +42,7 @@ export class SceneRpc implements OnModuleInit {
     private readonly vip: PmStateService,
     private readonly hooks: SceneHooks,
     private readonly instances: InstanceNpcService,
+    private readonly appearance: AppearanceService,
   ) {}
 
   onModuleInit(): void {
@@ -77,7 +80,7 @@ export class SceneRpc implements OnModuleInit {
     for (const peer of this.scenes.members(session.mapId)) {
       if (peer === session || peer.characterId === null) continue;
       const doc = await this.characters.getById(peer.characterId).catch(() => null);
-      if (doc) out[String(doc._id)] = await this.vip.decorate(await this.petFollow.decorate(this.party.decorate(this.characters.toSceneCharacter(doc))));
+      if (doc) out[String(doc._id)] = await this.appearance.decorate(await this.vip.decorate(await this.petFollow.decorate(this.party.decorate(this.characters.toSceneCharacter(doc)))), session.mapId, false);
     }
     return out;
   }
@@ -143,7 +146,7 @@ export class SceneRpc implements OnModuleInit {
   /** Scene items (gates, decorations) on the caller's map; the client draws the type-3 transport gates. */
   @Rpc('createSceneItems', { requireCharacter: true })
   createSceneItems(session: Session): SceneItem[] {
-    return this.gameData.sceneItemsOnMap(session.mapId).map((r) => ({
+    return this.gameData.sceneItemsOnMap(session.mapId).filter((r) => !NPC_DRAWN_GATES.has(r.id)).map((r) => ({
       id: r.id,
       tid: r.tid,
       type: r.type,

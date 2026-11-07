@@ -56,3 +56,6 @@ Known pre-existing issue seen while testing: after a socket drop the old `GameSc
   `gamedata/sceneitem-data.ts` moves it onto Xuất Vân Thôn (map 1, 1723,604 walkable), so Vân Đài gate 757 lands beside
   it instead of at the map 1 safe point, and map 1 gets its gate back to Vân Đài. Its formula landing (1565,690) is a
   wall, so `GATE_LANDING_POINTS` has an H5 entry 731 -> (1700, 660) (63 entries: 62 from Go + this one).
+- Duplicate gate fix (2026-11-07): moving 731 onto map 1 also made the client draw it on top of NPC 1287 (two gates to
+  Vân Đài). `NPC_DRAWN_GATES` (`gamedata/sceneitem-data.ts`) = {731}: kept in the server tables for 757's landing, filtered
+  out of `createSceneItems`, so map 1 only shows the NPC gate (clickNpc(1287) -> map 3).

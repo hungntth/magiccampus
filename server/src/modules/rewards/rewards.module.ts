@@ -2,6 +2,8 @@
 // dungeon, tower and event modules. Pure helpers: plan-roller.ts, item-award.ts.
 
 import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+import { Character, CharacterSchema } from '../character/character.schema';
 import { ActivityRewardsModule } from '../activity-rewards/activity-rewards.module';
 import { GameDataModule } from '../gamedata/gamedata.module';
 import { InventoryModule } from '../inventory/inventory.module';
@@ -9,7 +11,7 @@ import { ProgressionModule } from '../progression/progression.module';
 import { GrantService } from './grant.service';
 
 @Module({
-  imports: [ActivityRewardsModule, GameDataModule, InventoryModule, ProgressionModule],
+  imports: [MongooseModule.forFeature([{ name: Character.name, schema: CharacterSchema }]), ActivityRewardsModule, GameDataModule, InventoryModule, ProgressionModule],
   providers: [GrantService],
   exports: [GrantService],
 })

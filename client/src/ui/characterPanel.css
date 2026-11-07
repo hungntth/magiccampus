@@ -119,6 +119,25 @@
   text-shadow: none;
 }
 
+/* "Sau" cycles the five main tabs without adding a sixth feature category. */
+.char-next {
+  width: 43px;
+  height: 20px;
+  padding: 0 2px;
+  border: 1px solid #8fd2f2;
+  border-radius: 5px 5px 0 0;
+  background: linear-gradient(180deg, #79c5e5 0%, #287da9 55%, #185d88 100%);
+  color: #fff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  text-shadow: 0 1px #0a2a40;
+  cursor: pointer;
+}
+
+.char-next::before { content: '◒ '; color: #d9faff; font-size: 9px; }
+.char-next:hover { filter: brightness(1.16); }
+
 /* Equipment box (legacy CanvasBorder ViewStack): slots keep the descriptor coordinates (inline left/top). */
 .char-equip {
   position: absolute;
@@ -205,6 +224,39 @@
   top: 166px;
   display: flex;
   gap: 4px;
+}
+
+/* Equipment-page shortcuts (legacy "Tủ đồ" / "Hồn khí") sit under the character figure. */
+.char-equiptools {
+  z-index: 1;
+  position: absolute;
+  left: 91px;
+  top: 176px;
+  display: flex;
+  gap: 5px;
+}
+
+.char-equiptools .char-ok { padding: 0 6px; }
+
+/* Ẩn thời trang checkbox beside the costume slot (legacy dressHide at box 90, 81). */
+.char-dresshide {
+  z-index: 2;
+  position: absolute;
+  left: 94px;
+  top: 86px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  color: #e8f4ff;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.char-dresshide input {
+  width: 12px;
+  height: 12px;
+  margin: 0;
 }
 
 .char-mwtools .char-ok {
@@ -325,4 +377,43 @@
 
 .char-stats .char-ok {
   padding: 0;
+}
+
+/* Right-edge tab toggles the secondary-rate detail window beside this character card. */
+.char-detail-toggle {
+  position: absolute;
+  z-index: 4;
+  top: 159px;
+  right: -13px;
+  width: 13px;
+  height: 66px;
+  padding: 0;
+  border: 1px solid #8fe7ef;
+  border-left: 0;
+  border-radius: 0 7px 7px 0;
+  background: linear-gradient(90deg, #0d6981, #24b8c4 48%, #8cf7fa);
+  box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.52), inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+  color: #07384b;
+  font-size: 0;
+  text-shadow: 0 1px #e1ffff;
+  cursor: pointer;
+}
+
+.char-detail-toggle::before {
+  content: '';
+  position: absolute;
+  top: 27px;
+  left: 4px;
+  width: 0;
+  height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 6px solid #07384b;
+  filter: drop-shadow(0 1px #e1ffff);
+  transition: transform 120ms ease-out;
+}
+
+/* Closed points right to reveal details; open points left to hide them. */
+.char-panel.detail-open .char-detail-toggle::before {
+  transform: rotate(180deg);
 }

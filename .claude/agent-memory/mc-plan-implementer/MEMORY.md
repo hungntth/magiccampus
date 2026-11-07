@@ -25,3 +25,7 @@
 - [M12 client C5 (Menh Hon window)](m12_client_petsoul.md) — petsoul wiring, text cells (no icons), static gen, smoke + browser traps
 - [M12 client C6 (PPVE / arena / replay)](m12_client_petbattle.md) — WatchMode replay, HUD red column buttons, client test + fixture recipe, live-battle trick
 - [M12 orchestration](m12_orchestration.md) — review user code first (it did not boot), 14 sequential slices, bug classes
+- [Item use A+G](item_use_ag.md) — item-use module/registry wiring, PushSink collector, lock-free handler rule, desc-bag coverage + smoke recipe
+- [Item use B+C](item_use_bc.md) — gift box / food buff wiring, smoke_bc recipe, nest-watch dist pitfall
+- [Item use D+E+F](item_use_def.md) — pet handler hook, battle consumers, useMultiItem, client gate, smoke + shell pitfalls
+- [M13 appearance + flying (A)](m13_appearance_a.md) — EquipHooks cycle trick, TEMPLATE_FIELDS projection, dir-0 Chinese clip labels, fly smoke recipe

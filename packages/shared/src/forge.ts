@@ -115,7 +115,7 @@ export interface MakeRecipe {
   reqLevel: number;
   reqClass: string; // "|1|3|" or ""
   color: number;
-  materials: { slot: number; tid: number; name: string; num: number }[]; // slot 1..3 = require_item1..3 (empty slots omitted)
+  materials: { slot: number; tid: number; name: string; iconCode: string; num: number }[]; // slot 1..3 = require_item1..3 (empty slots omitted)
 }
 
 export interface MaterialMixReply {

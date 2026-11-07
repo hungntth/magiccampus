@@ -41,8 +41,8 @@ handY, totalWidth, totalHeight`. The Flash client positions every resource at `(
 |-------------|---------|
 | `swfinfo`   | JSON structural dump of one SWF (tags, sprites, labels, symbols). |
 | `swfscan`   | Classifies every SWF in the cache → `swfscan.tsv` (uses `resmap.json` for names). |
-| `swf2sheet` | Converts one bitmap SWF to `<name>.png` atlas + `<name>.json`. |
-| `swfbatch`  | Runs the conversion for every convertible SWF → `client/public/sheets/<family>/<name>.{png,json}` + `manifest.json` (worker threads, `-workers N`). |
+| `swf2sheet` | Converts one bitmap SWF to WebP atlas pages (`<name>.webp`, `<name>_1.webp`, …) + `<name>.json`. |
+| `swfbatch`  | Runs the conversion for every convertible SWF → `client/public/sheets/<family>/<name>.{webp,json}` + `manifest.json` (worker threads, `-workers N`). |
 | `swfhit`    | Extracts walkability masks → `client/public/sheets/scene/SCENE_FOLDER_xxxxxx/hit.{bin,json,png}`. |
 | `swfui`     | Renders named UI skin symbols (vector + bitmap) of one SWF to one PNG each + `index.json`. |
 | `swfanim`   | Renders a vector SWF with nested animated sprites frame by frame into one sheet (`vector-anim`). |
@@ -58,7 +58,8 @@ by md5 (`swfbatch -only unnamed`) but nothing references them yet.
 
 ```json
 { "fps": 24, "width": 200, "height": 150, "ox": 0, "oy": 0,
-  "images": [ { "x": 0, "y": 0, "w": 200, "h": 150 } ],
+  "pages": ["NPC_CRE_000001.webp"],
+  "images": [ { "x": 0, "y": 0, "w": 200, "h": 150 }, { "x": 0, "y": 0, "w": 90, "h": 120, "p": 1 } ],
   "order": ["0-0", "0-1", "…"],
   "anims": { "1-2": [ { "d": 4, "objs": [ { "i": 3, "m": [1,0,0,1,0,0] } ] } ] },
   "meta": { "midX": 100, "footY": 102, "bodyY": 11, "bodyHeight": 99, "headY": 10, "…": 0 } }
@@ -67,6 +68,13 @@ by md5 (`swfbatch -only unnamed`) but nothing references them yet.
 `meta` (omitted when the SWF has no `GameResInst` metrics) is read from the DoABC bytecode by
 `tools/swf/src/swf/abc.ts`; `Entity.ts` anchors the animation at `(-meta.midX, -meta.footY)`.
 
+`pages` lists the atlas files next to the JSON; an image rect's `p` is its page (absent = 0). Sheets without
+`pages` (`swfanim` output, `ui/UI_LOADING_BACK`) are one `<name>.png`. `swf2sheet`/`swfbatch` (`src/sheet/atlas.ts`)
+crop every bitmap to its opaque bounds (the crop offset is folded into the placement matrices), shelf-pack them onto
+pages of at most `-maxw` (2048) × 4096 px and encode lossy WebP (quality 82, lossless alpha) with `sharp`. The page cap
+matters: single atlases used to reach 1539×28727 px (boss/evolution creatures, PC bodies), above WebGL's
+`MAX_TEXTURE_SIZE` (16384, 8192 on low-end GPUs), and such textures render as black boxes.
+
 `d` = duration in SWF frames, `objs` = images drawn back-to-front with an affine matrix
 `[a,b,c,d,tx,ty]` in pixels relative to the stage origin. Nested sprites are flattened per frame.
 The client plays these with `client/src/game/SheetAnim.ts`; `Entity.ts` picks the sheet from the
@@ -74,8 +82,13 @@ creature `resCode` (`creature/PC_MALE_000001`, `creature/NPC_FUNC_000173`, …).
 
 ## Hit mask
 
-`MAP_HIT_NEW.swf` holds one `DefineBinaryData` (zlib) and an ABC class whose first two doubles are the
-grid size (e.g. `2031.45 × 1530.4` for a 2000×1500 map — the grid is slightly larger than the image).
+`MAP_HIT_NEW.swf` holds one `DefineBinaryData` (zlib) and an ABC class whose constants carry the grid
+size (e.g. `2031.45 × 1530.4` for a 2000×1500 map — the grid is slightly larger than the image). The
+constants are not reliable on their own: a whole number lands in the int pool (`SCENE_FOLDER_000004`: int
+3076, double 2094.95), the height can come first (`000018`) or be missing (`000070`). `swfhit` therefore
+tries every int / uint / double as the row stride and keeps the one whose rows line up (fewest pixel
+changes between consecutive rows); the height is the other constant that fits the payload, else the whole
+row count. Never take `mapW × mapH` as the stride: a wrong stride shears the mask into diagonal stripes.
 Bit `i = y*w + x` of the inflated data, tested as `byte[i>>3] & (1 << (i&7))`, is 1 when walkable.
 `client/src/game/HitMask.ts` loads it and snaps clicks to the nearest walkable pixel.
 
@@ -142,4 +155,3 @@ applies the matrices as SVG `feColorMatrix` (offsets / 255). `totem.png` is `TOT
   sheets (`swf2sheet` stays bitmap-only; `swfanim` covers nested-sprite loops of one-frame vector SWFs).
 - Text fields inside UI skins (rare: 3 symbols), filters (glow/shadow), blend modes.
 - Sounds (`resource/sound`), fonts.
-- Atlas PNGs are written with fast compression (754 MB total). Run `oxipng`/`pngquant` before shipping.

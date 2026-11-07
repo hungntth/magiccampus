@@ -1,6 +1,7 @@
 // Wire protocol between the H5 client and the NestJS game server (JSON over WebSocket).
 // Mirrors the old RTMP shape: client "call" (method + args) and server "callback" pushes.
 
+import type { AvatarView } from './appearance.js';
 import type { QuestKill } from './battle.js';
 import type { CharProperty } from './character.js';
 import type { InterfaceData } from './autoBattle.js';
@@ -116,6 +117,8 @@ export interface PlayerData extends PetLoginInfo, Partial<PetBoostLoginInfo>, Pa
   apvp?: boolean;
   /** Interface settings (M9): auto-battle keys (character bucket merged with the active pet bucket, defaults filled). */
   interfaceData?: InterfaceData;
+  /** Server-derived look at login (M13 phase A): body kind, costume, flyer, flying, mount. */
+  av?: AvatarView;
   /** Skill exp pool (M9 phase B): exp above the current level's floor (legacy Character.Experience). */
   expSkill?: number;
   /** Unread mail count (M11, Thùng Thư); the HUD notice blinks while > 0. */
@@ -158,6 +161,10 @@ export interface SceneCharacter {
   posDir: number;
   iconCode: string;
   resCode: string;
+  /** Weapon art held in hand (legacy `wp`, equipt_template res code); absent or '0' = no weapon. */
+  wp?: string;
+  /** Full server-derived look (body kind, costume, flyer, flying, mount); `resCode` / `wp` above mirror its `res` / `wp`. */
+  av?: AvatarView;
   /** Party flags (multiplayer phase B); false when the character has no party. */
   inGroup: boolean;
   isLeader: boolean;
@@ -185,6 +192,7 @@ export interface SceneNpc {
   type: number;
   subType: string; // raw sub_type: "-1", "13|1720|1721", "all"
   questState: number; // H5 extension: initial head marker (QuestState or -1); later via onSetNpcState
+  miniMap?: number; // data_tbl_npc.mini_map: 1 = drawn on the area map (MapCanvas.addNpc)
   nid?: number; // M10 instance NPCs: template id (art / name) when `id` is a per-viewer instance id
 }
 
@@ -199,6 +207,7 @@ export interface MapInfo {
   safeY: number;
   safeFlag: number; // > 0: no random encounters (the client never sends cbom there)
   pk?: number; // > 0: forced PvP map (the entry notice); -1 / 0 none
+  mMap?: number; // data_tbl_map.m_map: < 0 the area map (M key) is not available here
   sArea?: string; // PK safe rectangles "x1,y1-x2,y2|..." ("0" none), see pk.ts parseSafeAreas
   info: string;
 }

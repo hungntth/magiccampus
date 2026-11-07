@@ -6,3 +6,5 @@
 - [Go multiplayer navigation](reference_go_multiplayer_navigation.md) — chat/group/social/trade/group-battle code map, in-memory vs DB, quirks, stale claims
 - [Go activities navigation](reference_go_activities_navigation.md) — M8: mock vs live activity handlers, shadowed registrations, loop quests/PM/diary data traps
 - [Go progression navigation](reference_go_progression_navigation.md) — stat-feature foundation, dead-bonus traps, shadowed stubs, titles/achievements/MW/zodiac quirks
+- [Go dress/flyer navigation](reference_go_dress_flyer_navigation.md) — Tủ Đồ RPC map, appearance resolver, flight registry, recipe_plan collision
+- [Go item-use navigation](reference_go_item_use_navigation.md) — useItem dispatch order, use_type 4 gate, dead typed handlers, food/scroll counts (award/gift-box notes were overwritten, re-derive)

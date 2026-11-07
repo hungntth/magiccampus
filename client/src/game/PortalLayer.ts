@@ -100,6 +100,11 @@ export class PortalLayer {
     for (const p of this.portals.values()) p.anim.tick(dt);
   }
 
+  /** Gates of the current map (area map icons). */
+  list(): Portal[] {
+    return [...this.portals.values()];
+  }
+
   /** Legacy hitTestObject(player shadow): is the point (feet + shadow ellipse box) over the gate sprite? */
   contains(portal: Portal, x: number, y: number): boolean {
     const b = portal.bounds;

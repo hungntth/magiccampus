@@ -13,6 +13,7 @@ import { Character } from '../character/character.schema';
 import { GameDataService } from '../gamedata/gamedata.service';
 import { withCharLock } from '../inventory/char-lock';
 import { CharacterStatsService } from '../stats/character-stats.service';
+import { nextTitleExpiry } from './title-medal';
 import { isOwnedNow, isSpecialTitle, titleListStrings, titleLists, titleLongBuff, titleView } from './title-rules';
 import { CharacterTitle } from './title.schema';
 
@@ -84,11 +85,35 @@ export class TitleService {
 
   /** Grants (or refreshes) a title; `seconds` 0 = permanent. Pushes onAddTitle (+ onAddActTitle for special titles) if online. */
   async grant(characterId: number, titleId: number, seconds = 0): Promise<TitleAdded> {
+    return (await this.grantFor(characterId, titleId, seconds)).added;
+  }
+
+  /** False when a grant of `seconds` would leave the owned row as is (the title is already permanent). */
+  async wouldChange(characterId: number, titleId: number, seconds: number): Promise<boolean> {
+    const row = await this.titles.findOne({ characterId, titleId }, { expiresAt: 1 }).lean();
+    return nextTitleExpiry(row ? (row.expiresAt ?? null) : undefined, seconds, Date.now()) !== 'unchanged';
+  }
+
+  /**
+   * grant() plus what changed (legacy GrantTitleFor): a re-grant adds `seconds` to the time left, an expired row restarts,
+   * a permanent grant makes a timed title permanent and an owned permanent title is left as is (`changed` false, no push).
+   */
+  async grantFor(
+    characterId: number, titleId: number, seconds = 0,
+  ): Promise<{ added: TitleAdded; changed: boolean; first: boolean }> {
     if (!this.tpl(titleId)) throw RpcException.notFound(`title ${titleId} not found`);
-    const expiresAt = seconds > 0 ? new Date(Date.now() + seconds * 1000) : null;
+    const now = Date.now();
+    const row = await this.titles.findOne({ characterId, titleId }, { expiresAt: 1 }).lean();
+    const next = nextTitleExpiry(row ? (row.expiresAt ?? null) : undefined, seconds, now);
+    if (next === 'unchanged') {
+      const lists = titleListStrings(titleLists(await this.owned(characterId), this.tpl, now));
+      return { added: { f: 1, t: titleId, ct: lists.ct, view: this.viewOf(titleId, null) }, changed: false, first: false };
+    }
+    const expiresAt = next.expiresAt;
+    const restart = !row || (!!row.expiresAt && row.expiresAt.getTime() <= now); // an extension keeps obtainedAt
     await this.titles.updateOne(
       { characterId, titleId },
-      { $set: { expiresAt, obtainedAt: new Date() } },
+      { $set: { expiresAt, ...(restart ? { obtainedAt: new Date(now) } : {}) } },
       { upsert: true },
     );
     const rows = await this.owned(characterId);
@@ -98,7 +123,7 @@ export class TitleService {
     const online = this.scenes.findByCharacter(characterId);
     online?.callback('onAddTitle', added);
     if (isSpecialTitle(this.tpl(titleId))) online?.callback('onAddActTitle', lists.cts);
-    return added;
+    return { added, changed: true, first: next.first };
   }
 
   /** setTitle(id | -1): own the title (or clear), persist, push the buff row + stats, broadcast onTitleUpdate. */

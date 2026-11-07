@@ -1,4 +1,4 @@
-// swf2sheet converts one bitmap-based animation SWF into a PNG atlas + JSON (see sheet/sheet.ts).
+// swf2sheet converts one bitmap-based animation SWF into WebP atlas pages + JSON (see sheet/sheet.ts).
 // Usage: swf2sheet [-cache DIR] -out DIR [-name NAME] [-maxw N] <file-or-md5>
 
 import { readFileSync } from 'node:fs';
@@ -16,9 +16,9 @@ if (args.length !== 1) {
 const path = MD5_RE.test(args[0]) ? join(flags.cache, args[0]) : args[0];
 const name = flags.name || basename(path, extname(path));
 try {
-  const res = convert(parse(readFileSync(path)), flags.out, name, flags.maxw);
+  const res = await convert(parse(readFileSync(path)), flags.out, name, flags.maxw);
   console.log(
-    `${name}: ${res.images} images, ${res.anims} anims, ${res.frames} frames, atlas ${res.width}x${res.height}, ${res.skipped} unsupported objects`,
+    `${name}: ${res.images} images, ${res.anims} anims, ${res.frames} frames, atlas ${res.pages} page(s) ${res.width}x${res.height}, ${res.skipped} unsupported objects`,
   );
 } catch (e) {
   console.error((e as Error).message);

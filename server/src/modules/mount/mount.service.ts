@@ -18,11 +18,12 @@ import { GameDataService } from '../gamedata/gamedata.service';
 import { maxStack } from '../inventory/bag-rules';
 import { withCharLock } from '../inventory/char-lock';
 import { InventoryService } from '../inventory/inventory.service';
+import { push, type Push } from '../inventory/pushes';
 import { FeatureStoreService } from '../progression/feature-store.service';
 import { CharacterStatsService } from '../stats/character-stats.service';
 import { mountTables } from './mount-data';
 import {
-  MOUNT_FEATURE_KEY, computeLevel, evolveItem, feedCount, levelCap, mountPatch, ownedDresses, parseMount, rollEvolve, rollFeed,
+  MOUNT_FEATURE_KEY, computeLevel, dressBagExpiry, evolveItem, feedCount, levelCap, mountPatch, ownedDresses, parseMount, rollEvolve, rollFeed,
   type MountRow, type MountState,
 } from './mount-rules';
 
@@ -186,6 +187,28 @@ export class MountService {
       session.callback('onUpdateDressList', 1, dressId, expiry);
       return expiry;
     });
+  }
+
+  /**
+   * Mount dress bag (item use, Go GrantMountDressItem): 30 days of the dress, +30 when it is held, nothing when it is permanent.
+   * Lock-free (the caller holds the character lock); `apply` saves the new expiry after the bag was consumed.
+   */
+  async dressBagPlan(characterId: number, dressId: number): Promise<
+    { refuse: 'reborn' | 'unknown' } | { refuse: 'permanent'; name: string } | { apply: () => Promise<Push[]> }
+  > {
+    if ((await this.level(characterId)) < MOUNT_MIN_LEVEL) return { refuse: 'reborn' };
+    const t = await mountTables(this.gameData);
+    const dress = t.dresses.get(dressId);
+    if (!dress) return { refuse: 'unknown' };
+    const s = await this.load(characterId);
+    const expiry = dressBagExpiry(ownedDresses(s, t.rows, this.now()).get(dressId), this.now(), MOUNT_RENEW_DAYS);
+    if (expiry === null) return { refuse: 'permanent', name: dress.name };
+    return {
+      apply: async () => {
+        await this.save(characterId, { ...s, extra: { ...s.extra, [String(dressId)]: expiry } });
+        return [push('onUpdateDressList', 1, dressId, expiry)];
+      },
+    };
   }
 
   /** beginMounting(dressId): rides an owned skin; every player on the map gets onMountOn. */

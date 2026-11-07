@@ -11,6 +11,8 @@ export type PetStateValue = (typeof PetState)[keyof typeof PetState];
 
 export const PetLimits = { defaultSlots: 6, maxSlots: 180, maxLevel: 160, maxLife: 10000, nameMax: 20 } as const;
 export const PET_ATTR_POINTS_PER_LEVEL = 5;
+/** Go pet.MaxLoyalty: the loyalty (`close`) of a pet that never lost any. */
+export const PET_MAX_LOYALTY = 100;
 /** Growth colour bands (Flash PET_GROWRATE_NUM): index 0..4 by the largest band the growth rate reaches. */
 export const PET_GROWRATE_BANDS: readonly number[] = [1.1, 1.3, 1.6, 2.0, 2.5];
 /** M12 pet-training constants, copied from Flash GamePredef.as PET_STAR_* / PET_GROWRATE_NUM. */
@@ -136,7 +138,7 @@ export interface PetView extends Record<PetSkillKey, number>, Record<PetEquKey, 
   currentHp: number;
   currentMp: number;
   life: number; // 0..10000
-  close: number; // intimacy, always 0
+  close: number; // loyalty "T.thành" 0..100 (Go Pet.Loyalty); H5 has no loyalty loss yet, so always PET_MAX_LOYALTY
   element: number;
   upgradeNum: number;
   starNum?: number;
@@ -152,6 +154,8 @@ export interface PetView extends Record<PetSkillKey, number>, Record<PetEquKey, 
   divine?: boolean;
   qLevel: number;
   useLv: number;
+  /** H5: creature catchable flag (0 = "Không thể bắt" in the pet hover tip). */
+  catchable?: number;
   resCode: string;
   iconCode: string;
   colorCode: string;

@@ -69,6 +69,8 @@ export interface BossDailyData {
 export interface BossDailyRow {
   id: number;
   name: string;
+  /** Main creature visual resource used by the client handbook card. */
+  resCode: string;
   level: number;
   type: 1 | 2;
   isSuper: boolean;

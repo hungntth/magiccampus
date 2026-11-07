@@ -1,5 +1,6 @@
 // Buff RPCs: delBuffClient(rowId) and the dev command gmAddBuff(buffId, seconds).
-// Pushes (self): delBuff(rowId), upLongBuff(LongBuff), onUPP (stat refresh). initLongBuff is pushed by sceneLogin.
+// Pushes (self): delBuff(rowId), upLongBuff(LongBuff), onUPP (stat refresh), plus whatever BuffService.onRemoved hooks push (VIP
+// transform revert: onSetRes). initLongBuff is pushed by sceneLogin.
 
 import { Injectable } from '@nestjs/common';
 import type { LongBuff } from '@mc/shared';
@@ -26,11 +27,13 @@ export class BuffRpc {
     const row = await this.buffs.findOwned(session.characterId!, rowId);
     if (!row) {
       session.callback('delBuff', rowId);
+      await this.buffs.runRemovedHooks(session, null);
       return null;
     }
     if (!this.buffs.removable(row)) return null;
     await this.buffs.remove(session.characterId!, rowId);
     session.callback('delBuff', rowId);
+    await this.buffs.runRemovedHooks(session, row.buffId);
     await this.stats.refreshPush(session);
     return null;
   }

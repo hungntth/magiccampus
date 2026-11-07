@@ -4,26 +4,33 @@
 // quest-reward order: onAddMoney / onUPP (exp + silver, level-up) -> onAddItem + onAddCharactorSlot -> onUPP {currencies}.
 
 import { Injectable, Logger } from '@nestjs/common';
-import { ItemKind, resolveCurrency, type CurrencyKey } from '@mc/shared';
-import type { Session } from '../../gateway/session';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { ItemKind, resolveCurrency, type CurrencyKey, type MoneyKey } from '@mc/shared';
+import { Character } from '../character/character.schema';
 import { RewardGrantService } from '../activity-rewards/reward-grant.service';
 import { GameDataService } from '../gamedata/gamedata.service';
 import { InstanceDataService } from '../gamedata/instance-data';
 import { maxStack, type AddSpec } from '../inventory/bag-rules';
 import { InventoryService } from '../inventory/inventory.service';
 import { CurrencyService } from '../progression/currency.service';
-import { pickItemAwards, randIntOf } from './item-award';
+import { awardColorCode, pickItemAwards, randIntOf, type ItemAwardRow } from './item-award';
 import { gradeColor, type PlanDrop } from './plan-roller';
+import type { PushSink } from './push-sink';
 
 export type Grant =
   | { kind: 'item'; table: number; templateId: number; qty: number; bound: boolean; color?: number }
   | { kind: 'currency'; key: CurrencyKey; amount: number }
   | { kind: 'exp'; amount: number }
-  | { kind: 'silver'; amount: number }; // bound silver (moneyBind)
+  | { kind: 'silver'; amount: number } // bound silver (moneyBind)
+  | { kind: 'money'; key: MoneyKey; amount: number }; // wallet money / gold (award type 30, money chests, kim phieu)
 
 const EQUIP_TABLE = 19;
 const ITEM_TABLE = 29;
 const CURRENCY_TYPES: ReadonlySet<number> = new Set([30, 35]);
+const EXP_TYPE = 31;
+/** Award type 30 basic currency ids (Go BasicCurrencyDescriptor) that are wallet fields: 0 bac, 1 vang, 3 kim phieu. 2 (honor) is a special currency. */
+const BASIC_MONEY: Readonly<Record<number, MoneyKey>> = { 0: 'money', 1: 'gold', 3: 'goldBind' };
 
 @Injectable()
 export class GrantService {
@@ -35,6 +42,7 @@ export class GrantService {
     private readonly inventory: InventoryService,
     private readonly currencies: CurrencyService,
     private readonly expSilver: RewardGrantService,
+    @InjectModel(Character.name) private readonly chars: Model<Character>,
   ) {}
 
   /** Plan drops as grants; medal rows (ti 98) and unknown tables are skipped with a log line (decision 12). */
@@ -51,23 +59,44 @@ export class GrantService {
     return out;
   }
 
-  /** A gift bag's contents (one Go award-picker draw), as grants. Bags inside bags are unpacked once more. */
-  unpack(bagId: number, rng: () => number, depth = 0): Grant[] {
+  /**
+   * A gift bag's contents (one Go award-picker draw), as grants. Bags inside bags are unpacked once more. `bound` is the bind of
+   * the opened bag (dungeon chests are always bound). Pets (12) and titles (33) are not grants: the item-use AwardBagService
+   * handles them, other callers skip them with a log line.
+   */
+  unpack(bagId: number, rng: () => number, depth = 0, bound = true): Grant[] {
     const out: Grant[] = [];
     for (const r of pickItemAwards(this.instanceData.itemAwardRows(bagId), randIntOf(rng))) {
-      if (CURRENCY_TYPES.has(r.type)) {
-        const key = resolveCurrency(r.awardId);
-        if (key) out.push({ kind: 'currency', key, amount: r.count });
-        else this.logger.log(`bag ${bagId}: currency ${r.awardId} has no H5 key, skipped`);
-      } else if (r.type === ITEM_TABLE && depth < 2 && this.instanceData.itemAwardRows(r.awardId).length > 0) {
-        for (let i = 0; i < r.count; i++) out.push(...this.unpack(r.awardId, rng, depth + 1));
-      } else if (r.type === ITEM_TABLE || r.type === EQUIP_TABLE) {
-        out.push({ kind: 'item', table: r.type, templateId: r.awardId, qty: r.count, bound: true });
-      } else {
-        this.logger.log(`bag ${bagId}: award type ${r.type} (${r.awardId}) not granted`);
-      }
+      out.push(...this.fromAwardRow(r, rng, { depth, bound }));
     }
     return out;
+  }
+
+  /**
+   * One picked award row as grants (empty when the row type has no grant here). `nested` (default on) unpacks an item row that is
+   * itself a bag (dungeon chests); opening a bag by hand (item-use) passes false and grants the inner bag as an item, like Go.
+   */
+  fromAwardRow(r: ItemAwardRow, rng: () => number, opts: { depth?: number; bound?: boolean; nested?: boolean } = {}): Grant[] {
+    const { depth = 0, bound = true, nested = true } = opts;
+    if (r.type === 30 && BASIC_MONEY[r.awardId]) return [{ kind: 'money', key: BASIC_MONEY[r.awardId], amount: r.count }];
+    if (CURRENCY_TYPES.has(r.type)) {
+      const key = resolveCurrency(r.awardId);
+      if (key) return [{ kind: 'currency', key, amount: r.count }];
+      this.logger.log(`bag ${r.bagId}: currency ${r.awardId} has no H5 key, skipped`);
+      return [];
+    }
+    if (r.type === EXP_TYPE) return [{ kind: 'exp', amount: r.count }];
+    if (nested && r.type === ITEM_TABLE && depth < 2 && this.instanceData.itemAwardRows(r.awardId).length > 0) {
+      const out: Grant[] = [];
+      for (let i = 0; i < r.count; i++) out.push(...this.unpack(r.awardId, rng, depth + 1, bound));
+      return out;
+    }
+    if (r.type === ITEM_TABLE || r.type === EQUIP_TABLE) {
+      const q = awardColorCode(r.quality);
+      return [{ kind: 'item', table: r.type, templateId: r.awardId, qty: r.count, bound, ...(q > 0 ? { color: q } : {}) }];
+    }
+    this.logger.log(`bag ${r.bagId}: award type ${r.type} (${r.awardId}) not granted`);
+    return [];
   }
 
   private async specs(grants: readonly Grant[]): Promise<{ spec: AddSpec; durability: number; name: string }[]> {
@@ -96,7 +125,7 @@ export class GrantService {
   }
 
   /** Grants everything (call `fits` first when a full bag must refuse). Returns false when an item could not be added. */
-  async grant(session: Session, grants: readonly Grant[]): Promise<boolean> {
+  async grant(session: PushSink, grants: readonly Grant[]): Promise<boolean> {
     const cid = session.characterId!;
     const exp = grants.reduce((s, g) => s + (g.kind === 'exp' ? g.amount : 0), 0);
     const silver = grants.reduce((s, g) => s + (g.kind === 'silver' ? g.amount : 0), 0);
@@ -112,6 +141,15 @@ export class GrantService {
         this.logger.warn(`character ${cid}: grant ${s.spec.templateId} x${s.spec.amount} failed: ${(e as Error).message}`);
       }
     }
+    const wallet: Partial<Record<MoneyKey, number>> = {};
+    for (const g of grants) {
+      if (g.kind !== 'money' || g.amount <= 0) continue;
+      const saved = await this.chars.findByIdAndUpdate(cid, { $inc: { [g.key]: g.amount } }, { new: true, projection: { [g.key]: 1 } }).lean();
+      if (!saved) continue;
+      wallet[g.key] = saved[g.key] ?? 0;
+      session.callback('onAddMoney', cid, g.key, g.amount, saved[g.key] ?? 0);
+    }
+    if (Object.keys(wallet).length > 0) session.callback('onUPP', wallet);
     const cur = grants.filter((g): g is Extract<Grant, { kind: 'currency' }> => g.kind === 'currency' && g.amount > 0);
     for (const g of cur) await this.currencies.credit(cid, g.key, g.amount);
     if (cur.length > 0) await this.currencies.push(session);

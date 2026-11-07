@@ -10,7 +10,9 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { BattleResult } from '@mc/shared';
 import { AchievementEvents } from '../achievement/achievement-events.service';
+import { BuffService } from '../buff/buff.service';
 import { Character } from '../character/character.schema';
+import { GameDataService } from '../gamedata/gamedata.service';
 import { PetBattleService } from '../pet/pet-battle.service';
 import { PetCatchService } from '../pet/pet-catch.service';
 import { petBattleExp } from '../pet/pet-rules';
@@ -19,6 +21,7 @@ import { QuestService } from '../quest/quest.service';
 import { BattleLootService } from './battle-loot.service';
 import { BattleHooks } from './battle-hooks';
 import type { Battle, BattleMember, Fighter } from './battle.types';
+import { charExp, expRateOfBuffs, petExp, type ExpRate } from './exp-rate';
 import { expReward, moneyReward } from './rewards';
 import { applyPvpVitals } from './pvp-rules';
 import { aboveBossGap } from './boss-loot';
@@ -36,7 +39,23 @@ export class BattleSettleService {
     private readonly petCatch: PetCatchService,
     private readonly achievements: AchievementEvents,
     private readonly hooks: BattleHooks,
+    private readonly buffs: BuffService,
+    private readonly gameData: GameDataService,
   ) {}
+
+  /** Exp-rate buffs (books, props 24 / 25) of each surviving winner; a failure to read them leaves the base exp. */
+  private async expRates(survivors: readonly BattleMember[]): Promise<Map<number, ExpRate>> {
+    const out = new Map<number, ExpRate>();
+    for (const m of survivors) {
+      try {
+        const active = await this.buffs.listActive(m.cid);
+        out.set(m.cid, expRateOfBuffs(active.map((b) => this.gameData.getBuff(b.buffId))));
+      } catch (e) {
+        this.logger.error(`exp rate buffs failed for character ${m.cid}: ${(e as Error).message}`);
+      }
+    }
+    return out;
+  }
 
   /** Decides the battle's result and credits it once; later calls do nothing. */
   async settle(battle: Battle, result: number): Promise<void> {
@@ -55,8 +74,10 @@ export class BattleSettleService {
     const free = battle.ctx?.noRewards === true; // M10 I: the world boss pays per battle itself
     const exp = free ? 0 : splitReward(leader ? expReward(leader.level, dead) : 0, survivors.length);
     const money = free ? 0 : splitReward(moneyReward(dead), survivors.length);
+    const rates = free || exp <= 0 ? new Map<number, ExpRate>() : await this.expRates(survivors);
     for (const m of survivors) {
-      m.result.report.exp = exp;
+      const rate = rates.get(m.cid);
+      m.result.report.exp = rate ? charExp(exp, rate) : exp;
       m.result.report.money = money;
     }
     // M10 I schedule boss: more than 10 levels above the boss row -> exp 1, no money, no loot (Go level_gap.go)
@@ -66,7 +87,7 @@ export class BattleSettleService {
       m.result.report.exp = Math.min(m.result.report.exp, 1);
       m.result.report.money = 0;
     }
-    await this.settlePets(battle, survivors, exp);
+    await this.settlePets(battle, survivors, exp, rates);
     await this.contractCaught(battle);
     if (win) await this.creditQuestsAndLoot(survivors.filter((m) => !gapped.has(m)), present, dead, battle, free);
     for (const m of present) await this.persist(m, fighterOf(m)!, survivors.includes(m));
@@ -87,11 +108,15 @@ export class BattleSettleService {
   }
 
   /** Pet exp (survivor owners of a win) and life drain (every pet participant). A failure is logged and never blocks the rest. */
-  private async settlePets(battle: Battle, survivors: readonly BattleMember[], splitExp: number): Promise<void> {
+  private async settlePets(
+    battle: Battle, survivors: readonly BattleMember[], splitExp: number, rates: ReadonlyMap<number, ExpRate>,
+  ): Promise<void> {
     const owners = new Set(survivors.map((m) => m.cid));
     for (const s of petSettlements(battle.fighters.values(), owners, petBattleExp(splitExp))) {
       try {
-        const pushes = await this.petBattle.settle(s.ownerCid, s.petId, s.exp);
+        const rate = rates.get(s.ownerCid);
+        const gain = s.exp !== null && rate ? petExp(s.exp, rate) : s.exp; // the owner's pet exp book (buff prop 25)
+        const pushes = await this.petBattle.settle(s.ownerCid, s.petId, gain);
         const owner = battle.members.get(s.ownerCid);
         if (owner && !owner.left) owner.result.petPushes = pushes;
       } catch (e) {

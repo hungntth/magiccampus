@@ -74,12 +74,17 @@ Plan: `docs/plans/2026-11-03_05_BAG_SHOP_BUY_SELL.md`. Implemented 2026-11-03. L
   - title and close button;
   - tabs 1 2 3 4 5 < > N.vụ Pet;
   - 6 x 5 grid plus a scrollbar (the thumb fills the track because there is one page);
-  - 10 "P..." pet tabs and a 6 x 3 pet grid;
+  - 10 "P..." pet tabs and a 6 x 3 pet grid (`ui/bagPets.ts`, 2026-11-07): the player's pets from `petList` by id, 18 per
+    page, tabs past `petMaxNum` disabled; cell = icon + level + state badge (C xuất chiến, T đi theo); hover = `ui/petTip.ts`, a port of Flash
+    TipCre (259 x 328: 12 upgrade stars, Cấp / T.thành (loyalty `close`, H5 sends PET_MAX_LOYALTY 100) / Thọ / Điểm / N.tố,
+    qLevel + class line, catchable line (`PetView.catchable`), Điểm = final attributes, Tư chất = round((apt + Ex + Evolution) x
+    (growRate + growRateAdd + upgrade bonus 9:.1 10:.3 11:.35 12:.4)), stand frame of the model drawn on a canvas from the cached
+    sheet atlas, P.Chất, SVG pentagon raw vs final (max 10000), skill tab 1 = skill1..5). Skin art (frames, star icons) is CSS. Redrawn by `BagController.petsChanged()` from `PetController.refreshAll`. No click / drag actions yet;
   - tool icons Sử dụng / Vứt bỏ / Tách rời / Sửa chữa / Khóa / Sắp xếp;
   - 2 x 2 currency fields (Ngân phiếu = moneyBind, Kim phiếu = goldBind, Bạc = money, Vàng = gold) with payment checkboxes.
 - Working: page 1 and Sắp xếp. Sử dụng, Vứt bỏ and Tách rời are modes: click the tool, then click an item. Tách rời splits
   into the first free slot through the amount dialog.
-- Disabled or display-only: pages 2–5, < >, N.vụ, Pet, the pet tabs and pet grid (empty), Sửa chữa, Khóa and the
+- Disabled or display-only: pages 2–5, < >, N.vụ, Pet, Sửa chữa, Khóa and the
   checkboxes. The checkboxes show the server defaults Ngân phiếu / Kim phiếu; ChangeMoneyType is not ported.
 - Art quirks: Sửa chữa is `button_repair_up` / `button_rpeair_over` (legacy typo). Sắp xếp only has an over state, which is
   also used for up.
@@ -108,3 +113,6 @@ Bank, bag pages, repair, payment radios and the mall are in `economy.md`; crafti
 
 ## Escrow (M11 phase A)
 Rows parked by a mail / auction live at `characterId 0`, `slotType 90` (`SlotType.ESCROW`), `slotIndex = itemId`, with `escrowRef` (`mail:<id>`); every bag query filters by `characterId`, so they never show in a bag. See `memory/mail.md`.
+
+## Item use extensions (item use D, 2026-11-07)
+`UseItemService.usePet` (useItem targetType 2): blood bags and type 507 as before, every other item needs use_type 2 / 3 (else "Vật phẩm này pet không dùng được!") and goes through `addPetHandler` handlers (item-use module). `consumeCtx()` builds the shared `ItemConsumeCtx`. `BagItem` has `useType` / `reqClass` (items only) for the client gate. `useMultiItem` lives in the item-use module (`multi-use.*`). The inventory module still never imports item-use.

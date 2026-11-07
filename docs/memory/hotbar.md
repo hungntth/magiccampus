@@ -16,7 +16,8 @@ Plan: `docs/plans/2026-11-04_12_CORE_LOOP.md` §2.1 / phase C. Legacy: `hotbar-u
 - Server `settings/settings.rpc.ts` (`skillSetUserBar`, `us`, hotbar keys in `uif`), `settings.service.ts` (`setCharacterKeys`,
   `setUserBarSkill`).
 - Client `game/hotbarController.ts` (state, writes, key / click / use rules, `setHotbarBattle` bridge), `ui/hud/userBar.ts` (render,
-  drag/drop, lock, toggle), `MainHud` (owner, digits 1-0 through the SystemBar key map), `BattleController.hotbarUse` + `PetStep.castById`.
+  drag/drop, lock, toggle; lock = Flash AutoBattleCanva btnLock at (396,27) 20x20 under the toggle, skins
+  `MainStage_ShortcutCanvas/1..3` unlocked and `1320/21038/31742` locked), `MainHud` (owner, digits 1-0 through the SystemBar key map), `BattleController.hotbarUse` + `PetStep.castById`.
   Drag sources: skill window rows (`HOTBAR_DRAG_MIME`), bag cells (`itemCell.dragging()`), other slots (move clears the source;
   dragging off the bar clears).
 

@@ -21,6 +21,7 @@ import type { Battle, BattleMember } from './battle.types';
 import { ENCOUNTER_COOLDOWN_MS } from './encounter';
 import { petFighter, playerFighter, toParticipant } from './fighters';
 import { endStepFor, leaveResult, pvpBoard } from './pvp-rules';
+import { WeaponLookService } from '../inventory/weapon-look.service';
 
 /** One duelist as the PK service hands it over. */
 export interface Duelist {
@@ -42,12 +43,14 @@ export class PvpService {
     private readonly trades: TradeService,
     private readonly characters: CharacterService,
     private readonly spectate: SpectateService,
+    private readonly weapons: WeaponLookService,
   ) {}
 
   /** Registers the duel and sends both clients their start pushes. Sync; null when either side started another battle meanwhile. */
   start(attacker: Duelist, target: Duelist): Battle | null {
     if (attacker.session.battleId !== null || target.session.battleId !== null) return null;
-    const fighterOf = (d: Duelist, slot: number) => playerFighter(slot, d.st, this.characters.resCode(d.st.doc.classId, d.st.doc.gender));
+    const fighterOf = (d: Duelist, slot: number) =>
+      playerFighter(slot, d.st, this.characters.resCode(d.st.doc.classId, d.st.doc.gender), this.weapons.cached(d.st.doc._id));
     const a = fighterOf(attacker, 0);
     const t = fighterOf(target, 0);
     const board = pvpBoard(a, attacker.pet && petFighter(a.slot, attacker.pet), t, target.pet && petFighter(t.slot, target.pet));

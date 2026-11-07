@@ -16,9 +16,14 @@ import { TradeModule } from '../trade/trade.module';
 import { PetModule } from '../pet/pet.module';
 import { TitleModule } from '../title/title.module';
 import { VipCoreModule } from '../vip/vip-core.module';
+import { InventoryModule } from '../inventory/inventory.module';
+import { AppearanceModule } from '../appearance/appearance.module';
 
 @Module({
-  imports: [CharacterModule, GameDataModule, QuestModule, BuffModule, PartyModule, TradeModule, PetModule, TitleModule, VipCoreModule, NpcScriptModule],
+  imports: [
+    CharacterModule, GameDataModule, QuestModule, BuffModule, PartyModule, TradeModule, PetModule, TitleModule, VipCoreModule, NpcScriptModule,
+    InventoryModule, AppearanceModule,
+  ],
   providers: [SceneRpc, SceneTransportService, SceneHooks, UnstuckRpc],
   exports: [SceneTransportService, SceneHooks],
 })

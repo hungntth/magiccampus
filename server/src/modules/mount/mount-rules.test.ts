@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  computeLevel, defaultMount, evolveItem, feedCount, levelCap, mountBonuses, mountPatch, ownedDresses, parseMount, rollEvolve, rollFeed,
+  computeLevel, defaultMount, evolveItem, feedCount, levelCap, mountBonuses, mountPatch, ownedDresses, dressBagExpiry, parseMount, rollEvolve, rollFeed,
   type MountRow,
 } from './mount-rules';
 
@@ -59,4 +59,12 @@ test('riding bonuses add the rank row and the skin percents', () => {
   const b = mountBonuses(rows[8], { life: 8, phyAttack: 0, magAttack: 0, phyDefense: 0, magDefense: 0 });
   assert.deepEqual([b.pct.maxHp, b.pct.attack, b.pct.magicDefense], [14, 6, 6]);
   assert.deepEqual(mountBonuses(undefined, undefined).pct, {});
+});
+
+test('dress bag expiry: 30 days from now, +30 on top of a held dress, none for a permanent one', () => {
+  const DAY = 86_400_000;
+  assert.equal(dressBagExpiry(undefined, 1000, 30), 1000 + 30 * DAY);
+  assert.equal(dressBagExpiry(500, 1000, 30), 1000 + 30 * DAY); // expired: runs from now
+  assert.equal(dressBagExpiry(1000 + 5 * DAY, 1000, 30), 1000 + 35 * DAY);
+  assert.equal(dressBagExpiry(1, 1000, 30), null);
 });

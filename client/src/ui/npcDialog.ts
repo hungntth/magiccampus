@@ -49,6 +49,10 @@ export class NpcDialog {
     const header = el('div', 'npc-header');
     header.appendChild(el('div', 'npc-title', 'Đối thoại'));
     root.appendChild(header);
+    const close = el('button', 'npc-close', '×');
+    close.title = 'Đóng';
+    close.onclick = () => this.close();
+    root.appendChild(close);
 
     const head = el('div', 'npc-head');
     const portrait = el('div', 'npc-portrait');
@@ -106,6 +110,10 @@ export class NpcDialog {
     const header = el('div', 'npc-header');
     header.appendChild(el('div', 'npc-title', title || 'Đối thoại'));
     root.appendChild(header);
+    const close = el('button', 'npc-close', '×');
+    close.title = 'Đóng';
+    close.onclick = () => this.close();
+    root.appendChild(close);
     const head = el('div', 'npc-head');
     const portrait = el('div', 'npc-portrait');
     if (iconCode && iconCode !== '0') {

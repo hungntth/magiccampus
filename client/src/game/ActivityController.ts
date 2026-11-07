@@ -72,7 +72,7 @@ export class ActivityController {
     this.training = new TrainingController({ client, player });
     this.towers = new TowerController({ client, player });
     this.trials = new TrialsController(client);
-    this.stores = new StoreSystemsController({ client, player, entityOf: host.entityOf, bagCount: host.bagCount });
+    this.stores = new StoreSystemsController({ client, player, bagCount: host.bagCount });
     this.strip.setList(player.startedActList ?? {});
     this.daily = new DailyActPanel({
       catalog: () => this.catalog, data: () => this.diary, online: () => this.online,

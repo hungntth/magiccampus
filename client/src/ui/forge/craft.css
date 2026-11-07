@@ -1,0 +1,221 @@
+/* Forge "Chế tạo" tab (legacy EquiptFuncPanel tab 0): tree | recipe list + class dropdown | item panel, rates footer.
+   Everything is drawn with CSS (no skin bitmaps): navy inset boxes, gold selection, orange buttons. */
+.craft { display: flex; flex-direction: column; gap: 6px; }
+.craft-top { display: flex; gap: 6px; height: 244px; }
+
+.craft-box,
+.craft-tree,
+.craft-list {
+  box-sizing: border-box;
+  background: #16405f;
+  border: 1px solid #5d8fb6;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px #0b2238, inset 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+/* Kind/type tree */
+.craft-tree { flex: none; width: 104px; padding: 4px 2px; overflow-y: auto; }
+.craft-node {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 3px;
+  border-radius: 2px;
+  color: #fff;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+.craft-node:hover { background: rgba(127, 180, 221, 0.18); }
+.craft-type { padding-left: 18px; }
+.craft-type.selected { background: linear-gradient(180deg, #ffc65a, #f0a83a); color: #fff; text-shadow: 0 1px 1px #6b3300; }
+
+/* [+] / [-] toggle */
+.craft-toggle {
+  position: relative;
+  flex: none;
+  width: 9px;
+  height: 9px;
+  background: linear-gradient(180deg, #fff, #c9d6e2);
+  border: 1px solid #6c87a0;
+  border-radius: 1px;
+}
+.craft-toggle::before,
+.craft-toggle::after { content: ''; position: absolute; background: #1c4c7a; }
+.craft-toggle::before { left: 1px; right: 1px; top: 4px; height: 1px; }
+.craft-toggle::after { top: 1px; bottom: 1px; left: 4px; width: 1px; }
+.craft-toggle.open::after { display: none; }
+
+/* Green box (kind) and gold face (type) glyphs */
+.craft-ico-kind {
+  flex: none;
+  width: 12px;
+  height: 11px;
+  background: linear-gradient(135deg, #d6ff9a 0 30%, #6fc23a 30% 65%, #2f7d1c 65%);
+  border: 1px solid #1f5a12;
+  border-radius: 2px;
+  transform: skewY(-12deg);
+}
+.craft-ico-type {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  background: radial-gradient(circle at 50% 35%, #fff6b0 0 20%, #ffd23a 45%, #d98a0a 100%);
+  border: 1px solid #8a5200;
+  border-radius: 50%;
+}
+
+/* Recipe list + "Chọn nghề" dropdown */
+.craft-mid { flex: none; display: flex; flex-direction: column; gap: 6px; width: 98px; }
+.craft-list { flex: 1 1 auto; padding: 2px 0; overflow-x: hidden; overflow-y: auto; }
+.craft-row {
+  height: 22px;
+  padding: 0 4px;
+  line-height: 22px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: #fff;
+  cursor: pointer;
+}
+/* Flash ScrollBar: teal track, green thumb, arrow buttons. */
+.craft-list::-webkit-scrollbar { width: 14px; }
+.craft-list::-webkit-scrollbar-track { background: linear-gradient(90deg, #0d3a4f, #1b5c74); border-left: 1px solid #0b2238; }
+.craft-list::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, #b8f07a, #5fbf2a 50%, #3d8f18);
+  border: 1px solid #1f5a12;
+  border-radius: 2px;
+}
+.craft-list::-webkit-scrollbar-button:single-button {
+  display: block;
+  height: 14px;
+  background: linear-gradient(180deg, #e9fbd2, #8fd35a) center / 100% 100%;
+  border: 1px solid #1f5a12;
+}
+.craft-list::-webkit-scrollbar-button:single-button:vertical:decrement {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2 7h6L5 3z' fill='%231c4c7a'/%3E%3C/svg%3E") center / 9px no-repeat, linear-gradient(180deg, #e9fbd2, #8fd35a);
+}
+.craft-list::-webkit-scrollbar-button:single-button:vertical:increment {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2 3h6L5 7z' fill='%231c4c7a'/%3E%3C/svg%3E") center / 9px no-repeat, linear-gradient(180deg, #e9fbd2, #8fd35a);
+}
+
+.craft-row:hover { background: rgba(127, 180, 221, 0.18); }
+.craft-row.selected { background: linear-gradient(180deg, #ffc65a, #f0a83a); text-shadow: 0 1px 1px #6b3300; }
+.craft-empty { padding: 6px 4px; color: #9fb8d0; }
+
+.craft-class {
+  flex: none;
+  height: 22px;
+  padding: 0 2px 0 6px;
+  background: linear-gradient(180deg, #2c8c8a 0%, #13615f 100%);
+  border: 1px solid #9fe0d6;
+  border-radius: 3px;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  text-shadow: 0 1px 1px #000;
+  cursor: pointer;
+}
+.craft-class option { background: #0e2a45; color: #fff; font-weight: 400; }
+
+/* Item panel */
+.craft-right { flex: 1 1 auto; min-width: 0; padding: 8px 10px; }
+.craft-label { margin: 6px 0 4px; color: #fff; }
+.craft-label:first-child { margin-top: 2px; }
+.craft-cells { display: flex; gap: 6px; min-height: 34px; }
+.forge-cell.craft-cell {
+  width: 34px;
+  height: 34px;
+  background: #0f2c45;
+  border: 2px solid #2d5878;
+  border-radius: 4px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
+  cursor: default;
+}
+.forge-cell.craft-cell.craft-slot { cursor: pointer; }
+.forge-cell.craft-cell.craft-slot:hover { border-color: #7fb4dd; }
+.craft-cell .forge-count { right: 2px; bottom: 0; font-size: 10px; }
+.craft-cell-name {
+  position: absolute;
+  inset: 1px;
+  overflow: hidden;
+  font-size: 9px;
+  line-height: 10px;
+  color: #cfe6ff;
+  word-break: break-word;
+}
+
+.craft-auto,
+.craft-go {
+  padding: 2px 8px 3px;
+  border-radius: 4px;
+  color: #fff;
+  font-weight: 700;
+  text-shadow: 0 1px 1px #000;
+}
+.craft-auto {
+  margin-top: 8px;
+  background: linear-gradient(180deg, #ffb26a 0%, #f06a1c 50%, #c94a08 100%);
+  border: 1px solid #ffe0b0;
+  box-shadow: 0 0 0 1px #7a3300;
+}
+.craft-go {
+  min-width: 46px;
+  background: linear-gradient(180deg, #e9eef2 0%, #9fb0bd 50%, #6d808f 100%);
+  border: 1px solid #f4f8fb;
+  box-shadow: 0 0 0 1px #33444f;
+}
+.craft-auto:hover:not(:disabled),
+.craft-go:hover:not(:disabled) { filter: brightness(1.12); }
+.craft-auto:disabled,
+.craft-go:disabled { filter: grayscale(0.6); opacity: 0.6; cursor: not-allowed; }
+
+/* Footer: quality rates + progress bar + "Chế" */
+.craft-bottom { display: flex; flex-direction: column; gap: 8px; padding: 8px 10px; }
+.craft-rate-row { display: flex; align-items: center; gap: 6px; }
+.craft-rate-label { flex: 0 0 64px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.craft-rate {
+  flex: 1 1 0;
+  height: 18px;
+  padding-right: 6px;
+  line-height: 16px;
+  box-sizing: border-box;
+  border: 2px solid #8fb7d3;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #102b44, #1a4566);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+  text-align: right;
+  font-weight: 700;
+  text-shadow: 0 1px 1px #000;
+}
+.craft-rate:nth-of-type(2) { color: #33ff33; }
+.craft-rate:nth-of-type(3) { color: #4fd2ff; }
+.craft-rate:nth-of-type(4) { color: #ff33ff; }
+.craft-rate:nth-of-type(5) { color: #ffff33; }
+
+.craft-act-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-left: 28px; }
+.craft-bar {
+  position: relative;
+  width: 182px;
+  height: 14px;
+  overflow: hidden;
+  background: #f4f6f8;
+  border: 1px solid #9fb0bd;
+}
+.craft-bar-fill {
+  width: 0;
+  height: 100%;
+  background: linear-gradient(180deg, #9cf27a, #3fae23);
+}
+.craft-bar.running .craft-bar-fill { width: 100%; transition: width 2s linear; }
+.craft-bar-text {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 14px;
+  color: #1c3a52;
+  text-align: center;
+  white-space: nowrap;
+}

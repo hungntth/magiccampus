@@ -1,1 +1,1 @@
-{"fps":24,"width":550,"height":400,"ox":0,"oy":0,"images":[{"h":77,"w":50,"x":0,"y":0}],"anims":{"default":[{"d":1,"objs":[{"i":0,"m":[1,0,0,1,250.45,161.95]}]}]},"order":["default"]}
+{"fps":24,"width":550,"height":400,"ox":0,"oy":0,"pages":["NPC_FUNC_000199.webp"],"images":[{"h":77,"w":50,"x":0,"y":0}],"anims":{"default":[{"d":1,"objs":[{"i":0,"m":[1,0,0,1,250.45,161.95]}]}]},"order":["default"]}

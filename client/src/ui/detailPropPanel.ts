@@ -30,25 +30,73 @@ export type DetailOwner = 'char' | 'pet';
 
 export class DetailPropPanel {
   private win: ActWindow | null = null;
+  private attached: HTMLElement | null = null;
+  private attachedAnchor: HTMLElement | null = null;
+  private attachedClose: (() => void) | null = null;
   private owner: DetailOwner = 'char';
   private readonly values = new Map<string, HTMLElement>();
 
   constructor(private readonly client: GameClient) {}
 
   toggle(owner: DetailOwner): void {
+    this.closeAttached();
     if (this.win && this.owner === owner) return this.close();
     this.open(owner);
+  }
+
+  /** Attaches the character detail panel to its source so both panels move as one unit. */
+  toggleAttached(anchor: HTMLElement, onClose: () => void): boolean {
+    if (this.attached) {
+      this.closeAttached();
+      return false;
+    }
+    this.win?.dispose();
+    this.win = null;
+    this.owner = 'char';
+    this.values.clear();
+    const root = el('char-detail-panel');
+    const head = el('char-detail-head');
+    head.appendChild(el('char-detail-title', 'Chi tiết'));
+    const x = el('char-detail-close', '×', 'button');
+    x.title = 'Đóng';
+    x.onclick = () => this.closeAttached();
+    const body = el('char-detail-body');
+    root.append(head, x, body);
+    anchor.appendChild(root);
+    this.attached = root;
+    this.attachedAnchor = anchor;
+    this.attachedClose = onClose;
+    this.renderRows(body);
+    void this.load();
+    return true;
   }
 
   close(): void {
     this.win?.dispose();
     this.win = null;
+    this.closeAttached();
   }
 
   private open(owner: DetailOwner): void {
     this.owner = owner;
     this.win ??= openActWindow('Chi tiết', 'detail-win', () => this.close());
     this.values.clear();
+    this.renderRows(this.win.body);
+    void this.load();
+  }
+
+  private closeAttached(): void {
+    if (!this.attached) return;
+    this.attached.remove();
+    this.attached = null;
+    this.attachedAnchor?.classList.remove('detail-open');
+    this.attachedAnchor = null;
+    const onClose = this.attachedClose;
+    this.attachedClose = null;
+    onClose?.();
+  }
+
+  private renderRows(body: HTMLElement): void {
     const cols = [el('detail-col'), el('detail-col')];
     ROWS.forEach(([key, label], i) => {
       const row = el('detail-row');
@@ -59,8 +107,7 @@ export class DetailPropPanel {
     });
     const grid = el('detail-grid');
     grid.append(...cols);
-    this.win.body.replaceChildren(grid);
-    void this.load();
+    body.replaceChildren(grid);
   }
 
   private async load(): Promise<void> {

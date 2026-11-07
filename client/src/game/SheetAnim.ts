@@ -1,9 +1,9 @@
-// Plays animations converted by tools/swf (swf2sheet): a PNG atlas plus JSON describing, per label
+// Plays animations converted by tools/swf (swf2sheet): WebP atlas pages (or one legacy PNG) plus JSON describing, per label
 // ("dir-behavior"), a list of frames; each frame holds N placed images with an affine matrix.
 // Direction indices run counter-clockwise from south: 0=S 1=SW 2=W 3=NW 4=N 5=NE 6=E 7=SE.
 
 import { Assets, Container, Matrix, Rectangle, Sprite, Texture } from 'pixi.js';
-import type { PointData } from 'pixi.js';
+import type { PointData, TextureSource } from 'pixi.js';
 
 // Pixels at or below this alpha are click-through (anti-aliased edges stay clickable).
 const HIT_ALPHA = 24;
@@ -24,7 +24,10 @@ export interface SheetData {
   height: number;
   ox?: number;
   oy?: number;
-  images: { x: number; y: number; w: number; h: number }[];
+  /** Atlas page files next to the JSON; absent on single-PNG sheets (<name>.png). */
+  pages?: string[];
+  /** Image rects; p = page index (absent = 0). */
+  images: { x: number; y: number; w: number; h: number; p?: number }[];
   anims: Record<string, SheetFrame[]>;
   order: string[];
   // Anchor metrics from the SWF's GameResInst class, in sheet coordinates. The Flash client places a
@@ -68,16 +71,22 @@ const loaded = new Map<string, Promise<LoadedSheet | null>>();
 export interface LoadedSheet {
   data: SheetData;
   textures: Texture[];
-  /** Atlas alpha channel, read lazily on the first hit test; null if the pixels can't be read. */
-  alpha?: { w: number; data: Uint8Array } | null;
 }
 
-function atlasAlpha(sheet: LoadedSheet): LoadedSheet['alpha'] {
-  if (sheet.alpha !== undefined) return sheet.alpha;
-  sheet.alpha = null;
-  const src = sheet.textures[0]?.source;
-  const img = src?.resource as CanvasImageSource | undefined;
-  if (!src || !img) return null;
+interface AtlasAlpha {
+  w: number;
+  data: Uint8Array;
+}
+
+/** Per-page alpha channel, read lazily on the first hit test; null if the pixels can't be read. */
+const alphas = new WeakMap<TextureSource, AtlasAlpha | null>();
+
+function atlasAlpha(src: TextureSource): AtlasAlpha | null {
+  const cached = alphas.get(src);
+  if (cached !== undefined) return cached;
+  alphas.set(src, null);
+  const img = src.resource as CanvasImageSource | undefined;
+  if (!img) return null;
   try {
     const w = src.pixelWidth;
     const h = src.pixelHeight;
@@ -87,24 +96,21 @@ function atlasAlpha(sheet: LoadedSheet): LoadedSheet['alpha'] {
     const rgba = ctx.getImageData(0, 0, w, h).data;
     const data = new Uint8Array(w * h);
     for (let i = 0; i < data.length; i++) data[i] = rgba[i * 4 + 3];
-    sheet.alpha = { w, data };
+    const alpha = { w, data };
+    alphas.set(src, alpha);
+    return alpha;
   } catch {
-    /* fall back to rectangle hit tests */
+    return null; // fall back to rectangle hit tests
   }
-  return sheet.alpha;
 }
 
 /** Sprite whose hit test ignores transparent atlas pixels (Pixi only checks the frame rectangle). */
 class AlphaSprite extends Sprite {
-  constructor(private readonly sheet: LoadedSheet) {
-    super();
-  }
-
   override containsPoint(point: PointData): boolean {
     if (!super.containsPoint(point)) return false;
-    const alpha = atlasAlpha(this.sheet);
-    if (!alpha) return true;
     const { frame, source } = this.texture;
+    const alpha = atlasAlpha(source);
+    if (!alpha) return true;
     const res = source.resolution;
     const px = Math.floor((frame.x + point.x) * res);
     const py = Math.floor((frame.y + point.y) * res);
@@ -119,9 +125,13 @@ export function loadSheet(name: string): Promise<LoadedSheet | null> {
     p = (async () => {
       try {
         const data = (await (await fetch(`/sheets/${name}.json`)).json()) as SheetData;
-        const base = (await Assets.load<Texture>({ src: `/sheets/${name}.png`, loadParser: 'loadTextures' })) as Texture;
+        const dir = name.slice(0, name.lastIndexOf('/') + 1);
+        const files = data.pages ?? [`${name.slice(dir.length)}.png`];
+        const pages = await Promise.all(
+          files.map((f) => Assets.load<Texture>({ src: `/sheets/${dir}${f}`, loadParser: 'loadTextures' })),
+        );
         const textures = data.images.map(
-          (r) => new Texture({ source: base.source, frame: new Rectangle(r.x, r.y, r.w, r.h) }),
+          (r) => new Texture({ source: pages[r.p ?? 0].source, frame: new Rectangle(r.x, r.y, r.w, r.h) }),
         );
         return { data, textures };
       } catch {
@@ -152,6 +162,11 @@ export class SheetAnim extends Container {
 
   get firstLabel(): string {
     return this.sheet.data.order[0] ?? '';
+  }
+
+  /** Label at position `i` of the sheet order: dir 0 clips are stored under their Chinese names first (order[0..7] = behaviors 0..7). */
+  orderLabel(i: number): string {
+    return this.sheet.data.order[i] ?? '';
   }
 
   has(label: string): boolean {
@@ -197,7 +212,7 @@ export class SheetAnim extends Container {
   private render(): void {
     const frame = this.frames[this.frameIdx];
     while (this.pool.length < frame.objs.length) {
-      const s = new AlphaSprite(this.sheet);
+      const s = new AlphaSprite();
       this.pool.push(s);
       this.addChild(s);
     }

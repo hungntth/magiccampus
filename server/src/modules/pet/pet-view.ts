@@ -1,6 +1,6 @@
 // DTO builders: Pet row + creature template -> the shared PetView / PetProperty / PetWrapper (Flash `data` block).
 
-import { featherAptitudes, petSoulInfoWire } from '@mc/shared';
+import { PET_MAX_LOYALTY, featherAptitudes, petSoulInfoWire } from '@mc/shared';
 import type {
   PetAptitudeExtras, PetEquKey, PetProperty, PetSceneView, PetSkillInfoMap, PetSkillKey, PetView, PetWrapper,
 } from '@mc/shared';
@@ -115,7 +115,7 @@ export function petView(row: Pet, tpl: PetTemplate, extras: PetExtras = {}): Pet
     currentHp: s.stats.maxHp,
     currentMp: s.stats.maxMp,
     life: row.life,
-    close: 0,
+    close: PET_MAX_LOYALTY, // loyalty (Trung thành) is not ported: every pet is at the Go default maximum
     element: row.element,
     upgradeNum: row.upgradeNum,
     starNum: row.starNum ?? 0,
@@ -132,6 +132,7 @@ export function petView(row: Pet, tpl: PetTemplate, extras: PetExtras = {}): Pet
     classId: tpl.classId,
     divine: creatureClassIds(tpl).includes(10),
     qLevel: tpl.qLevel,
+    catchable: tpl.catchable,
     useLv: tpl.useLevel,
     resCode: tpl.resCode,
     iconCode: tpl.iconCode,

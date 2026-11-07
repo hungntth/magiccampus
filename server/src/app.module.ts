@@ -65,6 +65,8 @@ import { PetStoneModule } from './modules/pet-stone/pet-stone.module';
 import { PetBoostModule } from './modules/pet-boost/pet-boost.module';
 import { PetSoulModule } from './modules/pet-soul/pet-soul.module';
 import { PetBattleModule } from './modules/pet-battle/pet-battle.module';
+import { ItemUseModule } from './modules/item-use/item-use.module';
+import { AppearanceModule } from './modules/appearance/appearance.module';
 
 @Module({
   imports: [
@@ -132,6 +134,8 @@ import { PetBattleModule } from './modules/pet-battle/pet-battle.module';
     PetBoostModule,
     PetSoulModule,
     PetBattleModule,
+    ItemUseModule,
+    AppearanceModule,
   ],
 })
 export class AppModule {}

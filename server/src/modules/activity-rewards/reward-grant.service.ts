@@ -5,7 +5,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
 import type { PlayerLevelUp, PlayerUpdate } from '@mc/shared';
-import type { Session } from '../../gateway/session';
+import type { PushSink } from '../rewards/push-sink';
 import { AchievementEvents } from '../achievement/achievement-events.service';
 import { Character } from '../character/character.schema';
 import { applyExp } from '../quest/quest.rules';
@@ -25,7 +25,7 @@ export class RewardGrantService {
     return doc?.level ?? 1;
   }
 
-  async grantExpSilver(session: Session, exp: number, silver: number): Promise<void> {
+  async grantExpSilver(session: PushSink, exp: number, silver: number): Promise<void> {
     const cid = session.characterId!;
     const doc = await this.chars.findById(cid, { level: 1, exp: 1, attrPoints: 1 }).lean();
     if (!doc || (exp <= 0 && silver <= 0)) return;

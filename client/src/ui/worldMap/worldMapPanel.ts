@@ -1,4 +1,4 @@
-// World map window (legacy compMain/WorldMap, M9 phase G; M key / minimap Earth button): two 900x570 pages with a pin per
+// World map window (legacy compMain/WorldMap, M9 phase G; the area map's "Thế giới" button): two 900x570 pages with a pin per
 // teleportable map (current map highlighted, maps above the player's level greyed), a TipMap-like hover title and a corner
 // button that flips the page. A pin click runs the scroll / gold transport confirm (ItemFuncs.travelTo).
 
@@ -25,6 +25,11 @@ export class WorldMapPanel {
   toggle(): void {
     if (this.win) this.close();
     else void this.open();
+  }
+
+  /** Opens the window if it is closed (area map "Thế giới" button). */
+  show(): void {
+    if (!this.win) void this.open();
   }
 
   close(): void {

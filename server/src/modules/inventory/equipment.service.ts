@@ -13,6 +13,7 @@ import { GameDataService } from '../gamedata/gamedata.service';
 import { CharacterStatsService } from '../stats/character-stats.service';
 import { firstFreeSlot, sidOf } from './bag-rules';
 import { CharacterItem } from './character-item.schema';
+import { EquipHooks } from './equip-hooks';
 import { classAllowed, equipPosition } from './equip-stats';
 import { InventoryService } from './inventory.service';
 import { withCharLock } from './char-lock';
@@ -21,6 +22,8 @@ import { push, type Push } from './pushes';
 export interface EquipOnResult {
   pushes: Push[];
   equipItems: BagItem[];
+  /** Template position that changed (worn-look listeners run after the lock: weapon, flyer, costume). */
+  position?: number;
 }
 
 @Injectable()
@@ -31,15 +34,21 @@ export class EquipmentService {
     private readonly gameData: GameDataService,
     private readonly inventory: InventoryService,
     private readonly stats: CharacterStatsService,
+    private readonly hooks: EquipHooks,
   ) {}
 
-  equipOn(characterId: number, itemId: number): Promise<EquipOnResult> {
-    return withCharLock(characterId, () => this.doEquipOn(characterId, itemId));
+  /** The worn-look listeners (weapon / flyer / costume pushes) run once the lock is released. */
+  async equipOn(characterId: number, itemId: number): Promise<EquipOnResult> {
+    const r = await withCharLock(characterId, () => this.doEquipOn(characterId, itemId));
+    if (r.position) void this.hooks.changed(characterId, r.position);
+    return r;
   }
 
   /** `toSid` -1 = first free bag slot, else that (empty) bag slot. */
-  equipOff(characterId: number, itemId: number, toSid: number): Promise<{ pushes: Push[] }> {
-    return withCharLock(characterId, () => this.doEquipOff(characterId, itemId, toSid));
+  async equipOff(characterId: number, itemId: number, toSid: number): Promise<{ pushes: Push[] }> {
+    const r = await withCharLock(characterId, () => this.doEquipOff(characterId, itemId, toSid));
+    if (r.position) void this.hooks.changed(characterId, r.position);
+    return r;
   }
 
   private async doEquipOn(characterId: number, itemId: number): Promise<EquipOnResult> {
@@ -74,10 +83,10 @@ export class EquipmentService {
     const pushes: Push[] = [push('onMoveItem', sidOf(item.slotIndex), position, item._id)];
     if (occupant) pushes.push(push('onMoveItem', position, sidOf(freeSlot), occupant._id));
     for (const update of await this.stats.gearChangeUpdates(characterId)) pushes.push(push('onUPP', update));
-    return { pushes, equipItems: await this.inventory.equipped(characterId) };
+    return { pushes, equipItems: await this.inventory.equipped(characterId), position };
   }
 
-  private async doEquipOff(characterId: number, itemId: number, toSid: number): Promise<{ pushes: Push[] }> {
+  private async doEquipOff(characterId: number, itemId: number, toSid: number): Promise<{ pushes: Push[]; position: number }> {
     const item = await this.items.findOne({ _id: itemId, characterId, slotType: SlotType.EQUIP }).lean();
     if (!item) throw RpcException.notFound('Trang bị không ở trên người');
     let target: number;
@@ -97,7 +106,7 @@ export class EquipmentService {
     await this.moveRow(characterId, item._id, SlotType.EQUIP, item.slotIndex, SlotType.BAG, target);
     const pushes: Push[] = [push('onMoveItem', item.slotIndex + 1, sidOf(target), item._id)];
     for (const update of await this.stats.gearChangeUpdates(characterId)) pushes.push(push('onUPP', update));
-    return { pushes };
+    return { pushes, position: item.slotIndex + 1 };
   }
 
   private async firstFree(characterId: number): Promise<number> {

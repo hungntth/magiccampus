@@ -89,6 +89,7 @@ export interface Fighter extends CombatStats {
   expBase: number; // map row exp override (> 0), else level * 10 is used
   classId?: number;
   gender?: number;
+  wp?: string; // characters only: weapon art in hand
   // pets only (kind 'pet', player side, slot = owner slot + 5)
   ownerCid?: number;
   tid?: number;
@@ -186,5 +187,5 @@ export interface PlayerCommand {
   heal?: { hp: number; mp: number };
   skill?: SkillCast; // set for a cast; absent for a basic attack (including the not-enough-MP fallback)
   leave?: boolean; // ESCAPE queued by a disconnect: the actor runs away and drops out, the battle goes on for the others
-  catch?: { catchable: number; room: number }; // CATCH (-70): target template facts + free pet slots at command time
+  catch?: { catchable: number; room: number; bonusPoints?: number }; // CATCH (-70): target template facts + free pet slots at command time
 }

@@ -44,6 +44,15 @@ Research: `docs/research/2026-11-04_03_COMBAT_CLIENT_RESEARCH.md`, `..._04_COMBA
   - Kill counters are `character_quests.objectives[].current`.
   - Collect objectives are counted from the bag at finish, and the items are **consumed** (Go `CompleteQuest`). There is no push on drop; the client recounts the bag.
 - **Quest battle** (`combat/quest-battle.ts`): NPC `sub_type` is a quest list. One enemy per remaining kill objective, enemy level `max(1, min_level/2)`.
+  With no list (`sub_type` null / `"-1"`) the active quests the NPC gives or takes are tried in order, skipping those with
+  no kill left (Go `questBattleMatchesNPC`). Fix 2026-11-07: NPC 600 Khảo Quan Trung Cấp (Tiên Lạp Thành, type 19, no
+  sub_type) never fought quest 645's six Khảo Quan (92/94/96/99/216/330, Lv 20); NPC 596 (sub_type 645) sits on map 900,
+  which does not exist. The same path covers 2470 (Thiên Diện Ma Vương) and 2471 at NPC 600.
+  Quest battles fill up to 10 enemy slots (front row `BATTLE_ENEMY_SLOTS`, then back row `ENEMY_PET_SLOTS`, Go
+  `MaxEnemySlots`); with only the 5 front slots the sixth Khảo Quan (330 Lưu Hỏa) was dropped.
+  Owner tuning (not legacy): `QUEST_BATTLE_WEAKEN` divides HP, attack, magic attack, defense and magic defense of a
+  quest's enemies; 645 = /10 (e.g. Bàn Địa 47740 HP / 5330 atk / 10620 def -> 4774 / 533 / 1062). Speed, hit, dodge,
+  crit, exp and loot unchanged.
   NPC 475 (map 3) fights creature 157 for quest 50. It is killable at Lv5 with full HP.
 - **Potion in battle**: consumed when the command is accepted; the heal is persisted at settle.
 - **Revive**: free. `freeRelive(1)` gives full HP/MP in place; `freeRelive(2)` and `toSafe` go to the safe point with half HP/MP (scene reload through `onSceneEnter`). They act only at HP 0.
@@ -141,3 +150,5 @@ PvP battles reuse BattleManager with two player sides; see `pk.md`.
 
 - 2026-11-05 (M12 slice 7): `combat/fighters.ts` gained `petFighterAt`, `scaledCreatureFighter` and `buildBattleStart` (the live `startGroup` uses it); `PetBattleService.battlePetsOf` builds pet battle views for any pets under a stat context. The simulated pet fights (PPVE, later the arena) run `resolveRound` headless in `modules/pet-battle/pet-sim.ts` with no sessions; live behaviour is unchanged.
 - 2026-11-05 (M12 client slice C6): `WatchMode` (`game/battle/watchMode.ts`) is also the pet replay stage: `onBattleReplay(start, bid)` opens it (ignored while `host.inBattle()`), the bare end marker of the single `onBattlePlayList` closes it after a short hold, `Thoát` skips `quitWatch` for replays. Live `BattleController` flow is unchanged (it now passes its own `inBattle` into the watch host).
+
+- 2026-11-07 (item use D / E): battle consumers of item buffs. `combat/exp-rate.ts` (pure, Go exp_rate_buffs.go) turns the active long buffs' props 24 / 25 into a character / pet exp rate; `BattleSettleService` applies it per surviving winner (character exp, and the half-exp pet share through `petExp`) before the boss level-gap clamp. `encounter.ts encounterMods` + `rollEncounter(..., mods)`: buff 313 = no encounter, 314 = rate 100 %, 1365 = all 5 enemy slots filled (`EncounterService` reads the buffs). Luyen Thu Don buff 565: `PetCatchService.bonusPoints` -> `PlayerCommand.catch.bonusPoints` -> shared `catchRate({ bonusPoints })` (gate `catchable <= 1 + bonus`). Details: `docs/memory/item-use.md`.

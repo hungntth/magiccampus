@@ -1,1 +1,1 @@
-{"fps":12,"width":220,"height":244,"ox":0,"oy":0,"images":[{"h":247,"w":227,"x":0,"y":0}],"anims":{"default":[{"d":1,"objs":[{"i":0,"m":[1,0,0,1,-3,-2]}]}]},"order":["default"]}
+{"fps":12,"width":220,"height":244,"ox":0,"oy":0,"pages":["SITEM_TREE_210001.webp"],"images":[{"h":247,"w":227,"x":0,"y":0}],"anims":{"default":[{"d":1,"objs":[{"i":0,"m":[1,0,0,1,-3,-2]}]}]},"order":["default"]}

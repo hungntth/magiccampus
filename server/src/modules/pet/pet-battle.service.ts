@@ -83,6 +83,11 @@ export class PetBattleService {
     return withCharLock(characterId, () => this.credit(characterId, petId, expGain ?? 0, true));
   }
 
+  /** Grow potions (item use): exp without the life drain. The caller already holds the character lock. */
+  grantExp(characterId: number, petId: number, gain: number): Promise<Push[]> {
+    return this.credit(characterId, petId, gain, false);
+  }
+
   /** finishQuest: the active pet gets the full quest exp. The caller already holds the character lock. */
   async grantQuestExp(characterId: number, exp: number): Promise<Push[]> {
     if (!(exp > 0)) return [];

@@ -12,7 +12,7 @@ import { emptyVip, type VipState } from './pm-rules';
 export interface VipDoc extends VipState {
   characterId: number;
   rev: number;
-  transform: { resCode: string; expiresAt: number } | null;
+  transform: { resCode: string; expiresAt: number; pm?: boolean } | null;
 }
 
 const stripTags = (s: unknown): string => String(s ?? '').replace(/<[^>]*>/g, '').replace(/\\[rn]|[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -93,6 +93,12 @@ export class PmStateService {
   async levelOf(characterId: number, now = Date.now()): Promise<number> {
     const doc = await this.vips.findOne({ characterId }, { vipType: 1, expiresAt: 1, pmExp: 1 }).lean<VipDoc>();
     return pmLevelOf(doc, now);
+  }
+
+  /** Active transform body art (VIP right 13 / Mê Huyễn curse) or null; no row is created. */
+  async activeTransform(characterId: number, now = Date.now()): Promise<string | null> {
+    const doc = await this.vips.findOne({ characterId }, { transform: 1 }).lean<VipDoc>();
+    return doc?.transform && doc.transform.expiresAt > now ? doc.transform.resCode : null;
   }
 
   /** Scene payload decoration: pmLevel, and today's right-13 transform replaces the map sprite (resCode). */

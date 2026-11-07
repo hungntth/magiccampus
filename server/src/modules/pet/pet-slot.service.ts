@@ -9,7 +9,7 @@ import { RpcException } from '../../gateway/errors';
 import { Character } from '../character/character.schema';
 import { GameDataService } from '../gamedata/gamedata.service';
 import { withCharLock } from '../inventory/char-lock';
-import type { Push } from '../inventory/pushes';
+import { push, type Push } from '../inventory/pushes';
 import { PetGoldService } from './pet-gold.service';
 
 @Injectable()
@@ -19,6 +19,20 @@ export class PetSlotService {
     private readonly gameData: GameDataService,
     private readonly gold: PetGoldService,
   ) {}
+
+  /** Pet slot book (item 326, item use): the slot count after one more slot, or the maximum when the bag cannot grow. Lock-free. */
+  async bookPlan(characterId: number): Promise<{ next: number } | { max: number }> {
+    const doc = await this.chars.findById(characterId, { petMaxNum: 1 }).lean();
+    if (!doc) throw RpcException.notFound('character not found');
+    const cur = doc.petMaxNum ?? PetLimits.defaultSlots;
+    return cur >= PetLimits.maxSlots ? { max: PetLimits.maxSlots } : { next: cur + 1 };
+  }
+
+  /** Credits the slot of a consumed book ($max keeps a repeated apply idempotent). */
+  async applyBook(characterId: number, next: number): Promise<Push[]> {
+    await this.chars.updateOne({ _id: characterId }, { $max: { petMaxNum: next } });
+    return [push('onUPP', { petMaxNum: next })];
+  }
 
   openSlot(characterId: number): Promise<Push[]> {
     return withCharLock(characterId, async () => {

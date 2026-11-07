@@ -6,6 +6,12 @@ import { stageEl, stageScale } from './stage';
 
 const NO_DRAG = 'button, input, select, textarea, a, [data-no-drag]';
 const POS_PREFIX = 'mc.pos.';
+let nextWindowLayer = 50;
+
+/** Keeps a complete panel and all of its z-indexed children in one stacking context above other game windows. */
+export function bringToFront(panel: HTMLElement): void {
+  panel.style.zIndex = String(++nextWindowLayer);
+}
 
 /**
  * Drag `panel` by pressing anywhere on it except controls (or only on `handle` when given). With `key` the saved position
@@ -14,6 +20,8 @@ const POS_PREFIX = 'mc.pos.';
 export function makeDraggable(panel: HTMLElement, handle?: HTMLElement, key?: string): () => void {
   const grip = handle ?? panel;
   if (key) restorePosition(panel, key);
+  bringToFront(panel);
+  const onFocus = (): void => bringToFront(panel);
   const onDown = (e: PointerEvent): void => {
     if (e.button !== 0 || (e.target instanceof Element && e.target.closest(NO_DRAG))) return;
     const stage = stageEl().getBoundingClientRect();
@@ -42,9 +50,13 @@ export function makeDraggable(panel: HTMLElement, handle?: HTMLElement, key?: st
     window.addEventListener('pointerup', onUp);
     e.preventDefault();
   };
+  panel.addEventListener('pointerdown', onFocus);
   grip.addEventListener('pointerdown', onDown);
   grip.style.cursor = 'move';
-  return () => grip.removeEventListener('pointerdown', onDown);
+  return () => {
+    panel.removeEventListener('pointerdown', onFocus);
+    grip.removeEventListener('pointerdown', onDown);
+  };
 }
 
 /** Replaces the CSS placement (centred or right-anchored) with explicit stage-pixel left/top. */

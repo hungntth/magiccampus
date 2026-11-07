@@ -1,10 +1,15 @@
 // Bag / equipment RPC calls with the client gates and throttles of the legacy client (Player.useItem, RPCConfig.RPC_DELAY).
 // All calls are fire-and-forget: failures arrive as onSystemMidMsgOrNote pushes, so rejections are ignored.
 
-import { BankQuickMove, EQUIP_SLOT_COUNT, ItemKind, type BagItem, type PlayerData, type RecoverEntry } from '@mc/shared';
+import {
+  BankQuickMove, EQUIP_SLOT_COUNT, ItemKind, PLAYER_USE_TEXT, batchUseKind, petGrowMaxUnits, petLevelOfExp, useGate,
+  type BagItem, type PlayerData, type RecoverEntry,
+} from '@mc/shared';
 
 /** Template type of pet life-restore items (useItem targetType 2). */
 const PET_FUNC_TYPE = 507;
+/** Quy Nguyen Chau: the reset asks for a confirmation first (Language.PLAYER_S[10]). */
+const RESET_POINT_ITEM = 995;
 import type { GameClient } from '../net/client';
 import type { PetGearActions } from './PetGearActions';
 import { RPC_DELAY, createThrottle } from '../net/throttle';
@@ -28,21 +33,48 @@ export class BagActions {
     private readonly items: () => Iterable<BagItem>,
   ) {}
 
-  /** Double-click on a bag item: equipment is equipped, anything else is used. */
+  /** Double-click on a bag item: equipment is equipped, anything else is used (Flash Player.useItem gates, then useItem / useMultiItem). */
   use(item: BagItem): void {
     if (this.petGear?.use(item)) return;
-    if (this.player().level < item.reqLevel) return void toast('Cấp độ bạn chưa đủ!');
+    const equip = item.itemType === ItemKind.EQUIP;
+    const onPet = !equip && (item.tplType === PET_FUNC_TYPE || item.useType === 2); // pet-only items go to the selected / battle pet
+    if (!onPet && this.player().level < item.reqLevel) return void toast(PLAYER_USE_TEXT.LEVEL);
     if (this.funcHook?.(item)) return;
-    if (item.itemType === ItemKind.EQUIP && (item.position < 1 || item.position > EQUIP_SLOT_COUNT)) {
-      return void toast('Vật phẩm này bạn không dùng được!');
-    }
+    if (equip && (item.position < 1 || item.position > EQUIP_SLOT_COUNT)) return void toast(PLAYER_USE_TEXT.NOT_FOR_CHAR);
     if (!this.allow('useItem', RPC_DELAY.useItem)) return;
-    if (item.tplType === PET_FUNC_TYPE) {
-      const petId = this.petTarget();
-      if (petId === null) return void toast('Bạn chưa có pet để sử dụng vật phẩm này!');
-      return this.send('useItem', 2, petId, item.id);
+    if (equip) return this.send('useItem', 1, -1, item.id);
+    let petId = -1;
+    if (onPet) {
+      const target = this.petTarget();
+      if (target === null) return void toast('Bạn chưa có pet để sử dụng vật phẩm này!');
+      petId = target;
     }
-    this.send('useItem', 1, -1, item.id);
+    const pet = onPet ? this.player().petList[petId] : undefined;
+    if (onPet && !pet) return;
+    if (item.useType !== undefined && item.tplType !== PET_FUNC_TYPE) {
+      const refusal = useGate(onPet ? 'pet' : 'char', { useType: item.useType, reqLevel: item.reqLevel, reqClass: item.reqClass }, {
+        charLevel: this.player().level, classId: this.player().classId, petLevel: pet ? petLevelOfExp(pet.exp) : 0,
+      });
+      if (refusal) return void toast(refusal);
+    }
+    const target = onPet ? 2 : 1;
+    const kind = batchUseKind(item.tid);
+    if (kind !== null && item.stackNum > 1) return this.askBatch(item, kind, target, petId, pet?.exp ?? 0);
+    if (item.tid === RESET_POINT_ITEM) return void askConfirm('Xác nhận tẩy điểm?', () => this.send('useItem', target, petId, item.id));
+    this.send('useItem', target, petId, item.id);
+  }
+
+  /** Quantity dialog of Player.useItem (ids 5375-5697, BATCH_ITEM_LIST, wallets, pet grow potions), then useMultiItem. */
+  private askBatch(item: BagItem, kind: 'stack' | 'one' | 'petGrow', target: 1 | 2, petId: number, petExp: number): void {
+    const max = kind === 'petGrow' ? Math.min(item.stackNum, petGrowMaxUnits(item.tid, petExp, this.player().level)) : item.stackNum;
+    if (max <= 0) return void toast(PLAYER_USE_TEXT.PET_GROW_CAP);
+    askAmount({
+      title: PLAYER_USE_TEXT.QTY_PROMPT,
+      max,
+      initial: kind === 'stack' ? max : 1,
+      totalText: (n) => `${PLAYER_USE_TEXT.QTY_TITLE} ${n} / ${item.stackNum}`,
+      onOk: (n) => this.send('useMultiItem', target, petId, item.id, n),
+    });
   }
 
   /** Drag from the bag onto the character panel. */

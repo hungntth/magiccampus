@@ -10,6 +10,8 @@ export interface AmountOptions {
   /** Text shown under the input for the current amount, e.g. "Thành tiền: 200 Bạc". */
   totalText(amount: number): string;
   onOk(amount: number): void;
+  /** Value the input starts with (default 1). */
+  initial?: number;
 }
 
 /** Opens the dialog and returns a function that closes it. */
@@ -24,7 +26,7 @@ export function askAmount(opts: AmountOptions): () => void {
   input.type = 'number';
   input.min = '1';
   input.max = String(opts.max);
-  input.value = '1';
+  input.value = String(Math.max(1, Math.min(opts.max, Math.floor(opts.initial ?? 1))));
   const total = document.createElement('div');
   total.className = 'amount-total';
   const ok = document.createElement('button');

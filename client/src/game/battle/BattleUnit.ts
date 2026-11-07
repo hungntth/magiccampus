@@ -50,6 +50,8 @@ export class BattleUnit extends Container {
   /** Top of the sprite relative to the feet (negative); bars and popups sit above it. */
   headY = -60;
   private anim: SheetAnim | null = null;
+  /** Weapon in hand (characters, BattleParticipant.wp): same labels and frame timings as the body, played in lockstep. */
+  private weapon: SheetAnim | null = null;
   private readonly body = new Container();
   private readonly bars = new Graphics();
   private readonly nameText: Text;
@@ -94,13 +96,14 @@ export class BattleUnit extends Container {
     this.nameText.position.set(0, NAME_Y);
     this.addChild(shadow, this.body, this.bars, this.nameText, this.buffs);
     this.eventMode = 'none';
-    void this.load(p.resCode);
+    void this.load(p.resCode, p.type === BattleParticipantType.CHARACTER ? p.wp : undefined);
     this.layout();
   }
 
-  private async load(resCode: string): Promise<void> {
+  private async load(resCode: string, wp: string | undefined): Promise<void> {
     const sheetName = sheetNameFromResCode(resCode);
-    const sheet = sheetName ? await loadSheet(sheetName) : null;
+    const wpName = wp ? sheetNameFromResCode(wp) : null;
+    const [sheet, wpSheet] = await Promise.all([sheetName ? loadSheet(sheetName) : null, wpName ? loadSheet(wpName) : null]);
     if (this.destroyed || !sheet || Object.keys(sheet.data.anims).length === 0) return;
     const anim = new SheetAnim(sheet);
     const { width, height, meta } = sheet.data;
@@ -109,6 +112,13 @@ export class BattleUnit extends Container {
     this.anim = anim;
     for (const c of this.body.removeChildren()) c.destroy();
     this.body.addChild(anim);
+    if (wpSheet) {
+      const w = new SheetAnim(wpSheet);
+      const d = wpSheet.data;
+      w.position.set(-(d.meta?.midX ?? d.width / 2), -(d.meta?.footY ?? d.height - 8));
+      this.weapon = w;
+      this.body.addChild(w);
+    }
     this.headY = (meta?.bodyY ?? meta?.headY ?? 0) - footY - 4;
     this.stand();
     this.layout();
@@ -179,8 +189,10 @@ export class BattleUnit extends Container {
     if (!anim.playDir(this.dir, action, true)) {
       anim.loop = true;
       anim.playDir(this.dir, Action.STAND, true);
+      this.syncWeapon();
       return Promise.resolve();
     }
+    this.syncWeapon();
     if (loop) return Promise.resolve();
     return new Promise<void>((resolve) => {
       anim.onComplete = () => {
@@ -190,9 +202,17 @@ export class BattleUnit extends Container {
     });
   }
 
+  /** Restarts the weapon on the body's label and loop flag (same frame timings, so both stay on the same frame). */
+  private syncWeapon(): void {
+    if (!this.anim || !this.weapon) return;
+    this.weapon.loop = this.anim.loop;
+    this.weapon.visible = this.weapon.play(this.anim.currentLabel, true);
+  }
+
   /** Keeps the last frame of a finished one-shot (the dead pose) instead of going back to stand. */
   hold(): void {
     if (this.anim) this.anim.loop = false;
+    if (this.weapon) this.weapon.loop = false;
   }
 
   /** Runs toward (tx, ty) and stops `stopShort` px away, at battle run speed. */
@@ -233,6 +253,7 @@ export class BattleUnit extends Container {
 
   tick(dt: number): void {
     this.anim?.tick(dt);
+    this.weapon?.tick(dt);
     if (this.goal) {
       const dx = this.goal.x - this.x;
       const dy = this.goal.y - this.y;

@@ -1,5 +1,4 @@
-// M10 phụ bản client: onDungeonRun(view | null) drives the run strip, onSetRes {id, res} swaps a character's map sprite (Mê Huyễn
-// Nhím Xanh curse and its cure; also the VIP transform push), openHub() shows the "Phó bản" window from getFbInfo() and
+// M10 phụ bản client: onDungeonRun(view | null) drives the run strip (the Mê Huyễn Nhím Xanh onSetRes swaps are AppearanceController's), openHub() shows the "Phó bản" window from getFbInfo() and
 // onAutoTaskStart drives the quick-complete window (AutoTaskPanel, opened from the hub).
 
 import type { AutoTaskPayload, DungeonRunView, FbInfo } from '@mc/shared';
@@ -8,7 +7,6 @@ import { AutoTaskPanel } from '../ui/autoTaskPanel';
 import { FbHub } from '../ui/dungeon/fbHub';
 import { RunStrip } from '../ui/dungeon/runStrip';
 import { toast } from '../ui/screens';
-import type { Entity } from './Entity';
 import { StarController } from './StarController';
 
 export class DungeonController {
@@ -19,17 +17,13 @@ export class DungeonController {
   private readonly hub = new FbHub(() => this.autoTask.toggle());
   private readonly autoTask: AutoTaskPanel;
 
-  constructor(private readonly client: GameClient, entityOf: (id: number) => Entity | undefined, bagCount: (templateId: number) => number = () => 0) {
+  constructor(private readonly client: GameClient, bagCount: (templateId: number) => number = () => 0) {
     this.autoTask = new AutoTaskPanel(client, bagCount);
     this.star = new StarController(client);
     this.offs.push(
       // quick complete (Flash CallBack.onAutoTaskStart -> panel refresh)
       client.on('onAutoTaskStart', (p) => this.autoTask.setData(p as AutoTaskPayload)),
       client.on('onDungeonRun', (view) => this.strip.set((view ?? null) as DungeonRunView | null)),
-      client.on('onSetRes', (p) => {
-        const d = p as { id?: unknown; res?: unknown } | null;
-        if (d && d.res !== undefined) entityOf(Number(d.id))?.swapRes(String(d.res));
-      }),
     );
   }
 

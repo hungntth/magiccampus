@@ -112,16 +112,24 @@ export class PetStoneService {
 
   /** Adds stones from a future source (gift bag, boss drop); false when the bag is full. Pushes the bag to an opened panel. */
   grant(characterId: number, tid: number, count: number): Promise<boolean> {
-    return withCharLock(characterId, async () => {
-      if (!this.data.petStone(tid) || !Number.isInteger(count) || count < 1) return false;
-      const bag = await this.store.load(characterId);
-      if (!bagCanAdd(bag, tid)) return false;
-      bagAdd(bag, tid, count);
-      await this.store.save(characterId, bag);
-      const session = this.scenes.findByCharacter(characterId);
-      if (session && this.opened.has(session)) session.callback('updatePetStoneBagData', bagWire(bag));
-      return true;
-    });
+    return withCharLock(characterId, () => this.grantUnlocked(characterId, tid, count));
+  }
+
+  /** grant() for callers that already hold the character lock (item use: the lock is not reentrant). */
+  async grantUnlocked(characterId: number, tid: number, count: number): Promise<boolean> {
+    if (!this.data.petStone(tid) || !Number.isInteger(count) || count < 1) return false;
+    const bag = await this.store.load(characterId);
+    if (!bagCanAdd(bag, tid)) return false;
+    bagAdd(bag, tid, count);
+    await this.store.save(characterId, bag);
+    const session = this.scenes.findByCharacter(characterId);
+    if (session && this.opened.has(session)) session.callback('updatePetStoneBagData', bagWire(bag));
+    return true;
+  }
+
+  /** Whether grantUnlocked(characterId, tid, ...) would succeed (checked before an item is consumed). */
+  async canGrantUnlocked(characterId: number, tid: number): Promise<boolean> {
+    return !!this.data.petStone(tid) && bagCanAdd(await this.store.load(characterId), tid);
   }
 
   /** Conditional silver charge: the selected kind first, then the other (never split). Null when neither covers it. */

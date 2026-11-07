@@ -1,13 +1,13 @@
-// Forge ("Lò rèn") flow: the HUD red function-column button "Chế tạo" opens the window on its craft tab (legacy funCanvas
+// Forge ("Tạo") flow: the HUD red function-column button "Chế tạo" opens the window on its craft tab (legacy funCanvas
 // button 2) or the "Luyện" button (upgrade tabs); the window sits beside the bag, whose double-click fills the active tab.
-// Tabs are listed in FORGE_TABS.
+// Tabs are listed in FORGE_TABS in the Flash top-row order; "Thần khí" opens the Thần khí window instead.
 
 import type { PlayerData } from '@mc/shared';
 import type { GameClient } from '../net/client';
 import { craftTab } from '../ui/forge/craftTab';
 import { ForgePanel } from '../ui/forge/forgePanel';
-import type { ForgeTab } from '../ui/forge/forgeTypes';
-import { mixTab } from '../ui/forge/mixTab';
+import type { ForgeGroup, ForgeTab } from '../ui/forge/forgeTypes';
+import { jewelTab, mixTab } from '../ui/forge/mixTab';
 import { refineTab } from '../ui/forge/refineTab';
 import { resolveTab } from '../ui/forge/resolveTab';
 import { socketTab } from '../ui/forge/socketTab';
@@ -18,16 +18,25 @@ import { petRestrainTab, petSublimeTab } from '../ui/forge/petSublimeTabs';
 import { tierTab } from '../ui/forge/tierTab';
 import type { BagController } from './BagController';
 
-const PET_TABS: readonly ForgeTab[] = [petLevelTab, petColorTab, petBindTab, petPreTab, petSublimeTab, petRestrainTab].map((t) => ({ ...t, group: 'pet' as const }));
+const inGroup = (group: ForgeGroup, tabs: readonly ForgeTab[]): ForgeTab[] => tabs.map((t) => ({ ...t, group }));
 
-export const FORGE_TABS: readonly ForgeTab[] = [mixTab, craftTab, starTab, socketTab, refineTab, tierTab, resolveTab, ...PET_TABS];
+/** Flash order: Trang bị | Cải tạo (Thăng tinh, Khảm nạm, Thăng cấp, Chữ ký/Đổi ng.tố/l.hồn/khóa, Phân giải) | Ng.liệu |
+ *  Bảo thạch | Thần khí (own window) | T.bị pet (Thăng cấp, Đổi màu, Đổi khóa, Tái thiết lập, Th.hoa, Khắc chế). */
+export const FORGE_TABS: readonly ForgeTab[] = [
+  ...inGroup('equip', [craftTab]),
+  ...inGroup('modify', [starTab, socketTab, tierTab, refineTab, resolveTab]),
+  ...inGroup('mix', [mixTab]),
+  ...inGroup('jewel', [jewelTab]),
+  ...inGroup('pet', [petLevelTab, petColorTab, petBindTab, petPreTab, petSublimeTab, petRestrainTab]),
+];
 
 export class ForgeController {
   private readonly panel: ForgePanel;
   private readonly off: () => void;
 
-  constructor(client: GameClient, private readonly bag: BagController, player: () => PlayerData) {
+  constructor(client: GameClient, private readonly bag: BagController, player: () => PlayerData, onMagicWeapon: () => void) {
     this.panel = new ForgePanel({ client, items: () => [...bag.list(), ...bag.equipped().values()], player, petGear: () => bag.petGear() }, FORGE_TABS);
+    this.panel.onMagicWeapon = onMagicWeapon;
     this.panel.onClose = () => {
       this.bag.forgeHook = null;
     };

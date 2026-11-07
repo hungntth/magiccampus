@@ -64,7 +64,8 @@
 .qp-body {
   display: grid;
   grid-template-columns: 140px 58px 1fr;
-  grid-template-rows: 232px auto auto auto;
+  /* Fixed rows (description, Tiền, Exp, Quà): the window keeps one size, long texts scroll inside their boxes. */
+  grid-template-rows: 232px 24px 24px 40px;
   column-gap: 8px;
   row-gap: 6px;
   padding: 10px 10px 0;
@@ -76,6 +77,7 @@
   flex-direction: column;
   gap: 8px;
   min-width: 0;
+  min-height: 0;
 }
 
 .qp-npc {
@@ -169,6 +171,7 @@
 
 .qp-desc {
   min-width: 0;
+  min-height: 0;
 }
 
 .qp-qname {

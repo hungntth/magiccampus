@@ -2,6 +2,7 @@
 // Pure with an injectable RNG; the service supplies the map rows and applies the cooldown / safe-map checks.
 
 import type { MapCreatureRow } from '../gamedata/combat-data';
+import { BATTLE_ENEMY_SLOTS } from '@mc/shared';
 import type { Rng } from './battle.types';
 import { groupEnemyCount } from './roster';
 
@@ -31,15 +32,32 @@ export function pickRow(rows: readonly MapCreatureRow[], rng: Rng): MapCreatureR
   return hit ?? rows[Math.min(rows.length - 1, Math.floor(rng() * rows.length))];
 }
 
+/** Encounter book buffs (item use phase E): 313 no encounter, 314 every check starts one, 1365 fills the enemy side (1203 is client-driven). */
+export const ENCOUNTER_BUFFS = { NONE: 313, CRAZY: 314, MEET_ON_STILL: 1203, FULL: 1365 } as const;
+
+export interface EncounterMods {
+  noEncounter: boolean;
+  crazy: boolean;
+  full: boolean;
+}
+
+export function encounterMods(buffIds: readonly number[]): EncounterMods {
+  const has = (id: number): boolean => buffIds.includes(id);
+  return { noEncounter: has(ENCOUNTER_BUFFS.NONE), crazy: has(ENCOUNTER_BUFFS.CRAZY), full: has(ENCOUNTER_BUFFS.FULL) };
+}
+
 /**
  * The spawn rows of one encounter, or null when it does not happen (rate 0, failed roll, no normal rows).
- * `rng()` is consumed in a fixed order: encounter roll, enemy count, then one band roll per enemy.
+ * `rng()` is consumed in a fixed order: encounter roll, enemy count, then one band roll per enemy. A crazy encounter buff makes the
+ * roll always succeed (maps with rate 0 still never encounter); a full roster buff fills every enemy slot of the board.
  */
-export function rollEncounter(rawRate: number, rows: readonly MapCreatureRow[], rng: Rng, rosterSize = 1): MapCreatureRow[] | null {
+export function rollEncounter(
+  rawRate: number, rows: readonly MapCreatureRow[], rng: Rng, rosterSize = 1, mods: Pick<EncounterMods, 'crazy' | 'full'> = { crazy: false, full: false },
+): MapCreatureRow[] | null {
   const rate = normalizeEncounterRate(rawRate);
-  if (rate <= 0 || rng() >= rate) return null;
+  if (rate <= 0 || rng() >= (mods.crazy ? 1 : rate)) return null;
   const pool = normalRows(rows);
   if (pool.length === 0) return null;
-  const n = enemyCount(pool, rng, rosterSize);
+  const n = mods.full ? BATTLE_ENEMY_SLOTS.length : enemyCount(pool, rng, rosterSize);
   return Array.from({ length: n }, () => pickRow(pool, rng));
 }

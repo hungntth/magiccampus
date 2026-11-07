@@ -10,7 +10,7 @@ import { capToPlayer, creatureStatsAt, spawnLevel, withDefaults, type CreatureCo
 import { bossDefenseFloor } from './mechanics/boss-floors';
 
 /** The solo player: current HP/MP from the document, everything else from the effective stats (gear + buffs). */
-export function playerFighter(slot: number, st: CharStats, resCode: string): Fighter {
+export function playerFighter(slot: number, st: CharStats, resCode: string, wp = '0'): Fighter {
   const p = st.property;
   const r = st.rates;
   const maxHp = st.maxHp;
@@ -19,7 +19,7 @@ export function playerFighter(slot: number, st: CharStats, resCode: string): Fig
     slot, side: 'player', kind: 'character', refId: st.doc._id, name: st.doc.name, level: st.doc.level,
     hp: Math.min(st.doc.currentHp, maxHp), hpMax: maxHp, mp: Math.min(st.doc.currentMp, maxMp), mpMax: maxMp,
     sp: 0, spMax: p.finalSp, resCode, bossFlag: 0, alive: st.doc.currentHp > 0, expBase: -1,
-    classId: st.doc.classId, gender: st.doc.gender,
+    classId: st.doc.classId, gender: st.doc.gender, wp,
     attack: p.finalAttack, magicAttack: p.finalMAttack, defense: p.finalDefence, magicDefense: p.finalMDefence,
     hit: p.finalHit, dodge: p.finalDodge, critical: p.finalCritical, criticalDmg: 200 + (r.finalCriticalDamage ?? 0),
     speed: p.finalSpeed, combo: r.finalCombo ?? 0, counter: r.finalCounter ?? 0, resiCritical: r.finalResiCritical ?? 0,
@@ -89,6 +89,7 @@ export function toParticipant(f: Fighter): BattleParticipant {
   if (f.kind === 'character') {
     p.classId = f.classId;
     p.gender = f.gender;
+    if (f.wp && f.wp !== '0') p.wp = f.wp;
   } else if (f.kind === 'pet') {
     Object.assign(p, { cid: f.ownerCid, tid: f.tid, colorCode: f.colorCode, iconCode: f.iconCode, element: f.element, skills: [...(f.skillList ?? [])] });
   }

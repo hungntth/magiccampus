@@ -35,6 +35,12 @@ export interface SceneItemTables {
  */
 export const GATE_MAP_FIXES: Readonly<Record<number, number>> = { 731: 1 };
 
+/**
+ * Gates kept server-side only (landing/pairing) but not sent to the client: on map 1 the visible gate to Vân Đài is
+ * transport NPC 1287 at the same spot (clickNpc teleports), so drawing 731 too showed two gates.
+ */
+export const NPC_DRAWN_GATES: ReadonlySet<number> = new Set([731]);
+
 const n = (v: unknown): number => {
   const x = Number(v ?? 0);
   return Number.isFinite(x) ? x : 0;

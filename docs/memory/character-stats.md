@@ -37,7 +37,9 @@ Bag operations are in `inventory.md`.
 - Potions are type 501 with hardcoded heal amounts per template id (`inventory/potion.ts`); `i1/i2` are not amounts. Food (502) heals `i1/i2`.
   - Spend first, then credit.
   - When already full, H5 shows "HP đã đầy!" and consumes nothing (legacy consumed it).
-- Buffs live in `character_buffs` (unique per character + buffId). Expiry is lazy.
+- Buffs live in `character_buffs` (unique per character + buffId). Expiry is lazy. `BuffService.grant(cid, buffId, seconds, { addRemaining, battles })`
+  stacks time / battles (foods, item-use phase C; math in `buff/buff-stack.ts`); battle-count rows (`buffType` 1) lose a charge per finished
+  battle in `BattleEndService` (`consumeBattleCharges`) and are deleted at 0.
   - The client's 10 s timer sends `delBuffClient` for expired buffs.
   - Template `buff == 0` cannot be removed.
 - Equip, use and bag ops are serialised per character by `inventory/char-lock.ts` (in process only).
@@ -58,8 +60,10 @@ Bag operations are in `inventory.md`.
 - Shared helpers: `ui/itemCell.ts` (slot render, tooltip, drag payload), `ui/confirmDialog.ts`, `net/throttle.ts` (legacy `RPC_DELAY`).
 - Client gates check only the level and the equip position (`BagItem` has no `req_class`/`use_type`); the server enforces the rest.
 
+- Character panel header (2026-11-07): Trang bị / Thần khí / Tinh cung / Thuộc tính / Thú cưỡi, a “Sau” cycle button, and Trang bị shortcuts Tủ đồ and Hồn khí. The old in-panel Chi tiết button was removed; the right-edge tab toggles an attached 345 px secondary-rate detail pane, which moves and closes with the character panel. Its CSS triangle points right while closed and left while open, including after the detail pane's X button is used.
+
 ## Deferred
-- Avatar appearance for weapon, dress, wing and flyer (`onEquipOn`/`onWingOn` broadcast).
+- Wing, fairy and deco looks; costume + flyer + flying are done in `docs/memory/appearance.md` (M13 phase A), the weapon below.
 - Stars, gems, soul, suits, random properties, element `ef` (MAX glow) and ee/en on the server property.
 - `getFinalPraDef` / `finalPraMagDef`, `useMultiItem`.
 - Pet targets and other item types.
@@ -84,3 +88,24 @@ Bonuses now come from the `STAT_BONUS_PROVIDERS` registry (gear, buffs, guild sk
 - `getFinalPraDef(key, value, cid)` / `finalPraMagDef` (character-stats.rpc): the caller's aggregated rate; reply `{key, value}` when
   args[0] is a non-empty string, else the number (`character/final-rate.ts`). Client `ui/detailPropPanel.ts` ("Chi tiết" in the
   character panel header): 26 labels in Flash order, 19 plain `x.xx` + 7 percent `x.xx%`.
+
+## Weapon in hand (M13 phase A slice, 2026-11-07)
+Superseded in part by `docs/memory/appearance.md` (2026-11-07): `scene.wp` / `onEquipOn` / `onEquipOff` are now built by `AppearanceService`
+(`WeaponLookService` keeps `weaponRes` / `cached` for battles), the equip hook is `EquipHooks`, and the client layer lives in `AvatarView`
+(`Entity.setWeapon` / `swapRes` no longer exist; `AppearanceController` handles the pushes).
+- Shared `appearance.ts`: `WEAPON_POSITION` 3, `EquipOnPush` / `EquipOffPush` `{cid, resCode, dressFlag: false}`; `SceneCharacter.wp`
+  (weapon res string, '0' none).
+- Server `inventory/weapon-look.service.ts`: art = equipt_template `res_code_male` / `res_code_female` (gender 1) of the item at equip
+  slotIndex 2 (`TEMPLATE_FIELDS` now projects both columns). `decorate()` adds `wp` to every scene payload (sceneLogin/enterScene/
+  enterCopy/createChars); `EquipmentService.equipOn/equipOff` broadcast `onEquipOn` / `onEquipOff` to the map (self included) after the
+  lock when the weapon slot changed (also covers useItem on a weapon).
+- Client `Entity.setWeapon(res)`: weapon `SheetAnim` from `sheets/equip/EQUIP_MC*/FC*` right above the body, same `(-midX, -footY)`
+  anchor, same label, ticked in lockstep (restarted together when it loads); hidden while `swapRes` shows another body (mount),
+  as Flash hides it on a costume/transform/mount. Pushes handled in `CharacterController`.
+- Battle: `BattleParticipant.wp` (characters) from `WeaponLookService.cached(cid)` (filled by every scene entry / weapon change;
+  battle starts are synchronous) via `playerFighter(..., wp)` in `CombatService.startGroup` and `PvpService.start`. `BattleUnit`
+  draws the weapon sheet above the body and restarts it on the body's label in `play()` (weapon and class-body sheets share all
+  64 labels and frame timings, checked on EQUIP_MC1_000001 vs PC_MALE_000001).
+- Not yet: reborn art `res_code_*2`, `ee` / `ef` / `star` glow fields, wing/dress/flyer layers.
+- Verified: ws e2e (two local test accounts on map 1: `wp` in sceneLogin/createChars, peer receives onEquipOff/onEquipOn) and
+  browser (self entity loads `EQUIP_MC1_000001`, mallet drawn at the hand).

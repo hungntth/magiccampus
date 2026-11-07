@@ -76,7 +76,7 @@ function catchAct(ctx: Ctx, p: Fighter, cmd: PlayerCommand): void {
   }
   const rate = catchRate({
     catchable: cmd.catch?.catchable ?? 0, room: cmd.catch?.room ?? 0, ownerLevel: p.level, creatureLevel: t.level, hp: t.hp, hpMax: t.hpMax,
-    creatureId: t.refId,
+    creatureId: t.refId, bonusPoints: cmd.catch?.bonusPoints,
   });
   const caught = rate > 0 && Math.floor(ctx.rng() * 100) < rate;
   ctx.groups.push([step(p.slot, t.slot, B.TURNTO, 100)]);

@@ -26,3 +26,9 @@ test('quest reward and npc `at` overrides', () => {
   const [n] = applyNpcOverrides([{ id: 2596, at: 'new|2025/9/4/10/0/0-2025/9/6/23/59/59' }]);
   assert.equal(n.at, null);
 });
+
+test('item award overlays include the pet / dragon key, bicanh rank and guild happy bag seeds', () => {
+  for (const n of ['guild_happy_bags', 'pet_keys', 'bicanh_rank_bags', 'dragon_keys']) {
+    assert.ok(OVERLAYS.data_tbl_item_award.includes(`data_tbl_item_award_${n}`), n);
+  }
+});

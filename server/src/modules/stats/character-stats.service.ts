@@ -12,6 +12,7 @@ import { distributedOf, profileOf } from '../character/character-profile';
 import { assembleStats, toCharProperty } from '../character/character-stats';
 import { Character } from '../character/character.schema';
 import { GameDataService } from '../gamedata/gamedata.service';
+import { refundOf, RESET_PIPELINE } from './attr-reset';
 import { collectBonuses, STAT_BONUS_PROVIDERS, type StatBonusProvider } from './stat-provider';
 
 export interface CharStats {
@@ -109,6 +110,20 @@ export class CharacterStatsService {
     st.doc.maxHp = st.maxHp;
     st.doc.maxMp = st.maxMp;
     return st;
+  }
+
+  /** Distributed attribute points a reset would refund (Quy Nguyen Chau). */
+  async allocatedPoints(characterId: number): Promise<number> {
+    const doc = await this.chars.findById(characterId).lean();
+    if (!doc) throw RpcException.notFound('character not found');
+    return refundOf(doc);
+  }
+
+  /** Quy Nguyen Chau: zeroes the distributed points and adds them to the free pool atomically; returns the refund. */
+  async resetAllocated(characterId: number): Promise<number> {
+    const old = await this.chars.findOneAndUpdate({ _id: characterId }, RESET_PIPELINE, { new: false }).lean();
+    if (!old) throw RpcException.notFound('character not found');
+    return refundOf(old);
   }
 
   /** Atomic heal capped at the given effective max; returns the new current values. */

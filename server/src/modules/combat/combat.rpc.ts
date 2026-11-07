@@ -1,11 +1,14 @@
 // Combat RPCs: cbom(x, y), battleUpdateCmd([cmd]), battlePlayEnd(), hitNpc(npcId) / clickBoss(npcId) (M9, the same NPC line-up fight;
-// M10 hit hooks claim feature NPCs first). Pushes (self): onSetCharState, onBattleStart,
+// M10 hit hooks claim feature NPCs first; M13: no random encounters while flying, and ground NPCs (layer != 3) refuse the fight
+// with onRedMsg). Pushes (self): onSetCharState, onBattleStart,
 // onBattlePlayList, onUPP, and at the end onAddMoney / onPlayerLevelUp. All replies are null; results travel as pushes.
 
 import { Injectable } from '@nestjs/common';
 import { RpcException } from '../../gateway/errors';
 import { Rpc } from '../../gateway/rpc.decorator';
 import type { Session } from '../../gateway/session';
+import { FLIGHT_TEXT } from '@mc/shared';
+import { AppearanceService } from '../appearance/appearance.service';
 import { GameDataService } from '../gamedata/gamedata.service';
 import { InstanceNpcService } from '../npcscript/instance-npcs.service';
 import { NpcHookRegistry, type NpcRef } from '../npcscript/npc-hooks.registry';
@@ -22,12 +25,14 @@ export class CombatRpc {
     private readonly hooks: NpcHookRegistry,
     private readonly instances: InstanceNpcService,
     private readonly gameData: GameDataService,
+    private readonly appearance: AppearanceService,
   ) {}
 
   /** Random encounter check, sent by the client every >= 100 px of walking (throttled to 1 s). Fire-and-forget. */
   @Rpc('cbom', { requireCharacter: true })
   async cbom(session: Session, args: unknown[]): Promise<null> {
     if (!Number.isFinite(Number(args[0])) || !Number.isFinite(Number(args[1]))) throw RpcException.invalidArgs('x/y');
+    if (await this.appearance.isFlying(session)) return null; // flying encounter pools (with_cloud) are not ported: none in the air
     await this.encounters.tryRandomEncounter(session);
     return null;
   }
@@ -47,6 +52,10 @@ export class CombatRpc {
     const npcId = Number(args[0]);
     if (!Number.isInteger(npcId) || npcId <= 0) throw RpcException.invalidArgs('npcId');
     const ref = await this.refOf(session, npcId);
+    if (await this.appearance.isFlying(session) && Number(this.gameData.getNpc(ref?.nid ?? npcId)?.layer) !== 3) {
+      session.callback('onRedMsg', FLIGHT_TEXT.GROUND_FIGHT); // Go flight_fight.go: only layer-3 (sky) NPCs can be fought in the air
+      return null;
+    }
     if (ref && (await this.hooks.runHit(session, ref))) return null; // M10 feature fights (dungeon floors, towers)
     await this.npcBattles.hit(session, npcId);
     return null;

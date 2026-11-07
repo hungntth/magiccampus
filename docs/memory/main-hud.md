@@ -10,7 +10,9 @@ Implemented 2026-11-03. Research: `docs/research/2026-11-03_03_MAIN_HUD_PORTRAIT
 - Generated into `client/public/ui/<lib>/<symbol>.png` (MainStage_* only); never hand-edit, regenerate:
   `pnpm --filter @mc/swf-tools swfui -out ../../client/public/ui -xor 1,2,0 -match _embed_css__style_MainStage_ E:/mcgame/frontend/s/6a41a5ba5c0006ab4e0c1321a2b05027.orig`
 - Style names → symbols were matched by name/size (the CSS → symbol mapping lives in compiled ABC closures).
-  Not found as art: `BtnStdRed`, `RightButtonBackground`, `CanvasSkillBar`, VIP button → drawn in CSS (`hud.css`).
+  Not found as art: `BtnStdRed`, `RightButtonBackground`, `CanvasSkillBar` → drawn in CSS (`hud.css`).
+  "Up" and "VIP" are both Flash `BtnLevelUp` 46x22 at (198,0)/(198,30): `MainStage_CharInfo/LevelUp*` (39x19) stretched + a
+  static white label (`PORTRAITCANVAS_U[0]`/`[3]`, no VIP level in the label) — `.hud-label-btn` in `portrait.ts`.
 
 ## Client (`client/src/ui/hud/`)
 - `skin.ts` (loadSkins before the scene, skinImage/skinButton with up/over/down via CSS vars), `portrait.ts`
@@ -59,7 +61,9 @@ Legacy now lives at E:/mcgame. Newer seed dumps:  uses  (imported as the import 
   (`style.css` `.quest-tracker`).
 - `makeDraggable(panel, handle, key)` (`ui/panelBehavior.ts`): with a key the last dropped position is saved in
   localStorage `mc.pos.<key>` and applied when the panel opens (clamped to the current stage). Every window passes its
-  file name as the key; `openActWindow` uses `act.<cls>`; private chat windows are not remembered (several at once).
+  file name as the key; `openActWindow` uses `act.<cls>`; private chat windows are not remembered (several at once). It
+  also assigns an increasing z-index when a window opens or receives a pointer event, so the active full panel (including
+  its internally layered children) is always above the others.
   The quest tracker drags by its "Nhiệm vụ" title row (key `questTracker`).
 
 ## Character select screen (2026-11-04)
@@ -68,7 +72,11 @@ Legacy now lives at E:/mcgame. Newer seed dumps:  uses  (imported as the import 
   (copied from legacy `h5/public/img`), class preview = `ClassInfo.largeImg*` (static PNG, not a sprite), 3 slot cards per
   page with arrows past 3, buttons Vào game / Xóa nhân vật (always disabled, as in Flash) / Tạo nhân vật (< 3 chars) /
   Quay lại (`logout`, back to login on the same socket), "Tạo lại pass" = toast (setDeletePass not ported).
+- Login (`ui/loginScreen.ts`, legacy LoginCanvas): same 900x570 frame, CanvasLogined panel 287x130 at x300/bottom 40,
+  "Vào game" title, ID/Pass `InputBox` fields, "Lưu" remembers the account name (localStorage `mc.loginName`, never the
+  password), Đăng nhập / Đăng ký widened to 90px and centred ("Bắt buộc" force login and proxy not ported).
 - Skins: `client/public/ui/LoginStage_LoginStage/*` extracted with `swfui -match '_embed_css_.*LoginStage_'` into a scratch
   dir, folder copied and its entries appended to `ui/index.json` (swfui rewrites index.json, never point it at public/ui).
 
 - M9 phase G: see `settings.md` (tray Thiết lập / Bản đồ / Trợ giúp, keys P / M / H, chat emotion popup and typed emotion codes).
+- Minimap location strip: no "Đổi kênh" / clock buttons and no "1 - " channel prefix (H5 has one line): "<map> <x>,<y>".

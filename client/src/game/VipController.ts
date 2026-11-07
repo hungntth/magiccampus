@@ -30,6 +30,7 @@ export class VipController {
     const { client } = host;
     this.panel = new VipPanel({
       pm: () => this.pm, rights: () => this.rights, shop: () => this.shop, level: () => this.level(),
+      player: () => ({ name: host.player.name, iconCode: host.player.iconCode }),
       onTab: (tab) => { if (tab === 'shop') this.loadShop(); },
       onBuyCard: (type) => this.buyCard(type),
       onClaim: (id) => this.claim(id),

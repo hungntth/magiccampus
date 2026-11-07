@@ -34,6 +34,8 @@ export interface CatchInput {
   hpMax: number;
   room: number; // free pet slots, counting pets already caught earlier in this battle
   creatureId?: number; // creature template id; listed in EASY_CATCH_MIN_RATE = easy catch
+  /** Extra catch points from buffs (Luyen Thu Don 565 = +4): a creature with `catchable` up to 1 + bonusPoints can be caught. */
+  bonusPoints?: number;
 }
 
 /** Level term of the rate: +min(5, lv - clv) when the owner is at or above the creature, else -2 * min(5, clv - lv). */
@@ -48,7 +50,7 @@ export function catchLevelTerm(ownerLevel: number, creatureLevel: number): numbe
  */
 export function catchRate(i: CatchInput): number {
   const easy = i.creatureId !== undefined ? EASY_CATCH_MIN_RATE[i.creatureId] : undefined;
-  if (i.catchable !== 1 || i.room <= 0 || i.hpMax <= 0) return 0;
+  if (i.catchable < 1 || i.catchable > 1 + Math.max(0, Math.trunc(i.bonusPoints ?? 0)) || i.room <= 0 || i.hpMax <= 0) return 0;
   if (i.creatureLevel > i.ownerLevel + CATCH_LEVEL_MARGIN && easy === undefined) return 0;
   const missing = Math.round((1 - Math.max(0, Math.min(i.hp, i.hpMax)) / i.hpMax) * 65);
   const rate = Math.max(5, Math.min(95, 20 + missing + catchLevelTerm(i.ownerLevel, i.creatureLevel)));

@@ -6,7 +6,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { BLOOD_BAG_TEXT, formatEp, ItemKind, SlotType } from '@mc/shared';
+import { BLOOD_BAG_TEXT, formatEp, ITEM_USE_TEXT, ItemKind, PLAYER_USE_TEXT, SlotType } from '@mc/shared';
 import { addToPool, BLOOD_BAG_ITEMS } from '../combat/blood-bag';
 import { RpcException } from '../../gateway/errors';
 import { ensureBloodBag } from '../character/blood-bag-doc';
@@ -22,31 +22,16 @@ import {
   HP_POTION, healAmount, ITEM_TYPE_POTION, MP_POTION, planRecover, type HealAmount, type RecoverCandidate,
 } from './potion';
 import { push, type Push } from './pushes';
+import type { ItemConsumeCtx, ItemConsumeHandler, ItemUseHook, OrderItemHook, PetItemHook, PetUseHandler } from './use-item.types';
 import { planPageBook, type PageBookPlan } from './bag-pages';
 import { sidOf } from './bag-rules';
 
 export type RecoverKind = 'hp' | 'mp';
 export const ITEM_TYPE_PET_FUNC = 507;
 
-/** Implemented by PetService (registered at startup: PetModule imports this module, not the reverse). */
-export interface PetItemHook {
-  /** Why the life item cannot be used on this pet, or null. */
-  restoreBlocker(characterId: number, petId: number, reqLevel: number): Promise<string | null>;
-  restoreLife(characterId: number, petId: number): Promise<Push[]>;
-}
-/** Implemented by LoopBossService (M9): pushes when `tid` is a loop-boss order item, else null. The item is not consumed. */
-export type OrderItemHook = (characterId: number, templateId: number) => Promise<Push[] | null>;
-/** M10 phase H: a hook claiming a consumable by template (Mật Đạo books). Runs before the level gate; `consume` spends one unit and returns the slot pushes. */
-export interface ItemUseCtx {
-  characterId: number;
-  itemId: number;
-  templateId: number;
-  level: number;
-  reqLevel: number;
-  consume(): Promise<Push[]>;
-}
-/** Pushes when the hook handled the item (it consumes by itself), null to fall through. */
-export type ItemUseHook = (ctx: ItemUseCtx) => Promise<Push[] | null>;
+export type {
+  ItemConsumeCtx, ItemConsumeHandler, ItemUseCtx, ItemUseHook, OrderItemHook, PetItemHook, PetUseCtx, PetUseHandler,
+} from './use-item.types';
 const note = (msg: string): Push => push('onSystemMidMsgOrNote', msg);
 
 @Injectable()
@@ -79,7 +64,19 @@ export class UseItemService {
     this.useHooks.push(hook);
   }
 
-  /** useItem(2, petId, itemId): life restore items (type 507). Spend first, then credit the pet. */
+  private readonly consumeHandlers: ItemConsumeHandler[] = [];
+
+  addConsumeHandler(handler: ItemConsumeHandler): void {
+    this.consumeHandlers.push(handler);
+  }
+
+  private readonly petHandlers: PetUseHandler[] = [];
+
+  addPetHandler(handler: PetUseHandler): void {
+    this.petHandlers.push(handler);
+  }
+
+  /** useItem(2, petId, itemId): life restore items (type 507), then the pet handlers (use_type 2 / 3 items). Spend first, then credit. */
   usePet(characterId: number, petId: number, itemId: number): Promise<Push[]> {
     return withCharLock(characterId, async () => {
       const hook = this.petHook;
@@ -90,7 +87,7 @@ export class UseItemService {
       if (!tpl) throw RpcException.notFound('Không tìm thấy vật phẩm');
       const refill = BLOOD_BAG_ITEMS[item.templateId];
       if (refill) return this.refillBloodBag(characterId, itemId, sidOf(item.slotIndex), refill.petPool, refill.amount);
-      if (Number(tpl.type) !== ITEM_TYPE_PET_FUNC) return [note('Vật phẩm này không dùng được cho pet')];
+      if (Number(tpl.type) !== ITEM_TYPE_PET_FUNC) return this.useOnPet(characterId, petId, item, tpl);
       const why = await hook.restoreBlocker(characterId, petId, Number(tpl.req_level ?? 0));
       if (why) return [note(why)]; // H5: nothing is consumed
       const left = await this.consume(characterId, itemId, 1);
@@ -100,6 +97,33 @@ export class UseItemService {
         ...(await this.slotPushes(characterId, [{ id: itemId, sid: sidOf(item.slotIndex), left }])),
       ];
     });
+  }
+
+  /** Pet target of a non-507 item (client gate PLAYER_S[6]: use_type 2 / 3 only), then the registered pet handlers. */
+  private async useOnPet(characterId: number, petId: number, item: CharacterItem, tpl: Record<string, unknown>): Promise<Push[]> {
+    const useType = Number(tpl.use_type ?? 0);
+    if (useType !== 2 && useType !== 3) return [note(PLAYER_USE_TEXT.NOT_FOR_PET)];
+    const ctx = { ...(await this.consumeCtx(characterId, item, tpl)), petId };
+    for (const handler of this.petHandlers) {
+      const claimed = await handler(ctx);
+      if (claimed) return claimed;
+    }
+    return [note(ITEM_USE_TEXT.CANNOT_USE)];
+  }
+
+  /** Context of a consumable use: the template, the opener and `consume()` (one unit, returns the slot pushes). */
+  private async consumeCtx(characterId: number, item: CharacterItem, tpl: Record<string, unknown>): Promise<ItemConsumeCtx> {
+    const char = await this.chars.findById(characterId, { level: 1, classId: 1 }).lean();
+    const sid = sidOf(item.slotIndex);
+    return {
+      characterId, itemId: item._id, templateId: item.templateId, level: char?.level ?? 1, reqLevel: Number(tpl.req_level ?? 0),
+      tpl, bound: item.isBound, classId: char?.classId ?? 0,
+      consume: async () => {
+        const left = await this.consume(characterId, item._id, 1);
+        if (left === null) throw RpcException.forbidden('Vật phẩm vừa thay đổi, hãy thử lại');
+        return this.slotPushes(characterId, [{ id: item._id, sid, left }]);
+      },
+    };
   }
 
   /** useItem(1, -1, itemId). Equipment goes through the equip path; returns the ordered pushes. */
@@ -148,20 +172,13 @@ export class UseItemService {
     if (!item || item.itemType !== ItemKind.ITEM) throw RpcException.notFound('Không tìm thấy vật phẩm');
     const tpl = await this.gameData.template(29, item.templateId);
     if (!tpl) throw RpcException.notFound('Không tìm thấy vật phẩm');
-    const char = await this.chars.findById(characterId, { level: 1, bagSlotNum: 1, bankSlotNum: 1 }).lean();
+    const char = await this.chars.findById(characterId, { level: 1, classId: 1, bagSlotNum: 1, bankSlotNum: 1 }).lean();
+    const ctx = await this.consumeCtx(characterId, item, tpl);
     for (const hook of this.useHooks) {
-      const sid = sidOf(item.slotIndex);
-      const claimed = await hook({
-        characterId, itemId, templateId: item.templateId, level: char?.level ?? 1, reqLevel: Number(tpl.req_level ?? 0),
-        consume: async () => {
-          const left = await this.consume(characterId, itemId, 1);
-          if (left === null) throw RpcException.forbidden('Vật phẩm vừa thay đổi, hãy thử lại');
-          return this.slotPushes(characterId, [{ id: itemId, sid, left }]);
-        },
-      });
+      const claimed = await hook(ctx);
       if (claimed) return claimed;
     }
-    if ((char?.level ?? 1) < Number(tpl.req_level ?? 0)) return [note('Cấp độ bạn chưa đủ!')];
+    if ((char?.level ?? 1) < Number(tpl.req_level ?? 0)) return [note(ITEM_USE_TEXT.LEVEL)];
     const refill = BLOOD_BAG_ITEMS[item.templateId];
     if (refill) return this.refillBloodBag(characterId, itemId, sidOf(item.slotIndex), refill.charPool, refill.amount);
     if (Number(tpl.type) === ITEM_TYPE_SKILL_BOOK) return this.useSkillBook(characterId, itemId, sidOf(item.slotIndex), String(tpl.name ?? ''));
@@ -170,9 +187,14 @@ export class UseItemService {
     const book = planPageBook(item.templateId, char?.bagSlotNum ?? 1, char?.bankSlotNum ?? 1);
     if (book) return this.usePageBook(characterId, itemId, sidOf(item.slotIndex), book);
     const useType = Number(tpl.use_type ?? 0);
-    if (useType === 4 || useType === 2) return [note('Vật phẩm này bạn không dùng được!')];
+    if (useType === 4) return [note(ITEM_USE_TEXT.CANNOT_USE)]; // legacy: use_type 4 is refused before any template / type handler
+    for (const handler of this.consumeHandlers) {
+      const claimed = await handler(ctx);
+      if (claimed) return claimed;
+    }
+    if (useType === 2) return [note('Vật phẩm này bạn không dùng được!')];
     const heal = healAmount(tpl);
-    if (heal.hp <= 0 && heal.mp <= 0) return [note('Vật phẩm này chưa dùng được')];
+    if (heal.hp <= 0 && heal.mp <= 0) return [note(ITEM_USE_TEXT.CANNOT_USE)];
 
     const st = await this.stats.compute(characterId);
     const hp = Math.min(heal.hp, Math.max(0, st.maxHp - st.doc.currentHp));

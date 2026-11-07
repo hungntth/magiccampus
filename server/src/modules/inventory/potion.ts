@@ -1,5 +1,6 @@
-// Potion / food heal amounts and the full-recover planner (legacy application/item/potion.go).
-// HP/MP potion amounts are hardcoded by template id (the template i1/i2 columns are buff ids for several potions).
+// Potion heal amounts and the full-recover planner (legacy application/item/potion.go).
+// HP/MP potion amounts are hardcoded by template id (the template i1/i2 columns are buff ids for several potions; on foods (502)
+// they are cooking recipe ids, never heal amounts: foods are buff items handled by item-use/food.service.ts).
 
 export const HP_POTION: Readonly<Record<number, number>> = {
   1: 300, 2: 600, 4: 600, 110: 1000, 113: 2000, 321: 3000, 371: 6000, 1975: 9000,
@@ -9,23 +10,19 @@ export const MP_POTION: Readonly<Record<number, number>> = {
 };
 
 export const ITEM_TYPE_POTION = 501;
-export const ITEM_TYPE_FOOD = 502;
 
 export interface HealAmount {
   hp: number;
   mp: number;
 }
 
-/** Heal of one use: potions (501) from the tables, food (502) from i1 / i2; 0/0 means "no heal effect". */
+/** Heal of one use: only potions (501) heal, from the tables; 0/0 means "no heal effect" (foods never heal). */
 export function healAmount(tpl: { id?: unknown; type?: unknown; i1?: unknown; i2?: unknown } | undefined): HealAmount {
   if (!tpl) return { hp: 0, mp: 0 };
   const type = Number(tpl.type);
   if (type === ITEM_TYPE_POTION) {
     const id = Number(tpl.id);
     return { hp: HP_POTION[id] ?? 0, mp: MP_POTION[id] ?? 0 };
-  }
-  if (type === ITEM_TYPE_FOOD) {
-    return { hp: Math.max(0, Math.trunc(Number(tpl.i1 ?? 0)) || 0), mp: Math.max(0, Math.trunc(Number(tpl.i2 ?? 0)) || 0) };
   }
   return { hp: 0, mp: 0 };
 }

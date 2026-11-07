@@ -79,8 +79,9 @@ export class DailyBossService {
       if (!group) continue;
       const info = infos.get(id);
       const main = group.find((g) => g.bossFlag === 1) ?? group[0];
+      const creature = this.gameData.creature(main.cid);
       rows.push({
-        id, name: info?.name || `#${id}`, level: info && info.level > 0 ? info.level : main.level, type: cfg.type, isSuper: cfg.isSuper,
+        id, name: info?.name || `#${id}`, resCode: creature?.resCode ?? '0', level: info && info.level > 0 ? info.level : main.level, type: cfg.type, isSuper: cfg.isSuper,
         wild: BOSS_DAILY_WILD.includes(id), num: cfg.num, step: cfg.step,
       });
     }

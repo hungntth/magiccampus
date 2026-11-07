@@ -24,17 +24,46 @@ export interface ActiveObjectives {
 /**
  * The first ACTIVE quest of the NPC's list decides: its incomplete kill objectives give one enemy each (not multiplied by
  * the count). A quest with nothing left to kill returns null, so the normal dialog opens (the turn-in must not re-fight).
+ * With no list (sub_type empty or "-1") the active quests this NPC gives or takes are tried in order, skipping those with
+ * nothing left to kill (Go questBattleMatchesNPC): NPC 600 Khảo Quan Trung Cấp fights the six Khảo Quan of quest 645.
  */
 export function questBattleTargets(
-  subType: string, active: readonly ActiveObjectives[],
+  subType: string, active: readonly ActiveObjectives[], isQuestNpc: (questId: number) => boolean = () => false,
 ): { questId: number; creatureIds: number[] } | null {
-  for (const questId of parseSubTypeQuests(subType)) {
+  const listed = parseSubTypeQuests(subType);
+  if (listed.length === 0) {
+    for (const quest of active) {
+      if (!isQuestNpc(quest.questId)) continue;
+      const creatureIds = incompleteKillTargets(quest.objectives);
+      if (creatureIds.length > 0) return { questId: quest.questId, creatureIds };
+    }
+    return null;
+  }
+  for (const questId of listed) {
     const quest = active.find((a) => a.questId === questId);
     if (!quest) continue;
     const creatureIds = incompleteKillTargets(quest.objectives);
     return creatureIds.length > 0 ? { questId, creatureIds } : null;
   }
   return null;
+}
+
+/** Owner tuning (2026-11-07): quest-battle enemies of these quests get HP and attack divided (645: the six Khảo Quan). */
+export const QUEST_BATTLE_WEAKEN: Readonly<Record<number, number>> = { 645: 10 };
+
+/** Divides HP, both attacks and both defenses by the quest's QUEST_BATTLE_WEAKEN divisor (floored, at least 1). */
+export function weakenQuestEnemy(
+  f: { hp: number; hpMax: number; attack: number; magicAttack: number; defense: number; magicDefense: number },
+  questId: number,
+): void {
+  const div = QUEST_BATTLE_WEAKEN[questId] ?? 1;
+  if (div <= 1) return;
+  const cut = (v: number): number => Math.max(1, Math.floor(v / div));
+  f.hp = f.hpMax = cut(f.hpMax);
+  f.attack = cut(f.attack);
+  f.magicAttack = cut(f.magicAttack);
+  f.defense = cut(f.defense);
+  f.magicDefense = cut(f.magicDefense);
 }
 
 /** max(1, min_level / 2) when the quest has a level gate (integer division), else the usual spawn-level fallbacks. */

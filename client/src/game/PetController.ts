@@ -319,6 +319,7 @@ export class PetController {
     this.stone.refresh();
     this.soul.refresh();
     this.refreshHud();
+    this.host.bag.petsChanged();
   }
 
   private refreshHud(): void {

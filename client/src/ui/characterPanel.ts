@@ -3,7 +3,7 @@
 // attributes with +/- free-point allocation, step 1 or 10, OK sends changeProperty; combat stats on the right).
 // Pure view: CharacterController owns the data. Drop a bag item here = equip; double-click an equipped slot = unequip.
 
-import { EQUIP_SLOT_COUNT, MW, charElementOf, type BagItem, type CharProperty, type PlayerData } from '@mc/shared';
+import { DRESS_HIDE_TEXT, EQUIP_SLOT_COUNT, MW, charElementOf, type BagItem, type CharProperty, type PlayerData } from '@mc/shared';
 import { CharFigure } from './charFigure';
 import { endDrag, dragging, fillItemCell } from './itemCell';
 import { closeOnEscape, makeDraggable } from './panelBehavior';
@@ -33,11 +33,11 @@ const COMBAT: [string, keyof CharProperty, number][] = [
   ['Thủ ma pháp', 'finalMDefence', 73], ['Chính xác', 'finalHit', 96], ['Né tránh', 'finalDodge', 117],
   ['Tốc độ', 'finalSpeed', 139], ['Bạo kích', 'finalCritical', 160],
 ];
-// Tab strip (tabBtn0/2/3/1/4 x positions); D.hiệu / T.luyện / Thú cưỡi open their own windows.
-type TabKey = 'equip' | 'mw' | 'titles' | 'features' | 'mount';
+// Main tab strip: equipment, magic weapon, star palace, attributes and mount; the last two feature windows remain external.
+type TabKey = 'equip' | 'mw' | 'star' | 'attrs' | 'mount';
 const TABS: [TabKey, string, string][] = [
-  ['equip', 'Tr.bị', 'Trang bị'], ['mw', 'Th.khí', 'Thần khí'], ['titles', 'D.hiệu', 'Danh hiệu'],
-  ['features', 'T.luyện', 'Tu luyện'], ['mount', 'Thú cưỡi', 'Thú cưỡi'],
+  ['equip', 'Tr.bị', 'Trang bị'], ['mw', 'Th.khí', 'Thần khí'], ['star', 'Tinh cung', 'Tinh cung'],
+  ['attrs', 'T.tính', 'Thuộc tính'], ['mount', 'Thú cưỡi', 'Thú cưỡi'],
 ];
 
 export interface CharacterPanelHost {
@@ -49,9 +49,7 @@ export interface CharacterPanelHost {
   onUnequip(item: BagItem): void;
   /** OK button: strings like the Flash client ("" = 0). */
   onAllocate(add: Record<`add${AttrKey}`, string>): void;
-  /** "D.hiệu" tab: toggles the title window. */
-  onTitles(): void;
-  /** "T.luyện" tab: toggles the stat-feature window (train soul, awakening, war sprite, magic crystal). */
+  /** "Tinh cung" tab: opens the existing stat-feature window. */
   onFeatures(): void;
   /** Thần khí tab "Chức năng" button: toggles the magic weapon window. */
   onMagicWeapon(): void;
@@ -59,8 +57,13 @@ export interface CharacterPanelHost {
   onRepairMagicWeapons(): void;
   /** "Thú cưỡi" tab (legacy tabBtn4 -> showMount). */
   onMount(): void;
-  /** "Chi tiết" (legacy showDetailProp): toggles the detail rates window. */
-  onDetail(): void;
+  /** "Tủ đồ" button on the equipment page. */
+  onBag(): void;
+  /** "Ẩn thời trang" checkbox (setDressHide): current flag and the change handler. */
+  dressHidden(): boolean;
+  onDressHide(hide: boolean): void;
+  /** Right-edge tab: toggles the character's secondary-rate detail window. */
+  onDetail(anchor: HTMLElement): void;
   onClose(): void;
 }
 
@@ -71,8 +74,11 @@ export class CharacterPanel {
   private pending: Record<AttrKey, number> = { Strength: 0, Agility: 0, Stamina: 0, Intelligence: 0, Energy: 0 };
   private step10 = false;
   private mode: 'equip' | 'mw' = 'equip';
+  private selectedTab: TabKey = 'equip';
   private tabs = new Map<TabKey, HTMLElement>();
   private mwTools: HTMLElement | null = null;
+  private equipTools: HTMLElement | null = null;
+  private dressHide: HTMLInputElement | null = null;
   private figure: CharFigure | null = null;
   private offs: (() => void)[] = [];
 
@@ -87,9 +93,6 @@ export class CharacterPanel {
     const root = el('div', 'char-panel');
     const header = el('div', 'char-header');
     header.appendChild(el('div', 'char-title', 'Nhân vật'));
-    const detail = el('button', 'char-ok char-detail', 'Chi tiết');
-    detail.onclick = () => this.host.onDetail();
-    header.appendChild(detail);
     root.appendChild(header);
     const x = el('button', 'char-close', '×');
     x.title = 'Đóng';
@@ -104,6 +107,10 @@ export class CharacterPanel {
       this.tabs.set(key, b);
       tabs.appendChild(b);
     }
+    const next = el('button', 'char-next', 'Sau');
+    next.title = 'Chuyển tab tiếp theo';
+    next.onclick = () => this.nextTab();
+    tabs.appendChild(next);
     root.appendChild(tabs);
     const equip = el('div', 'char-equip');
     this.figure = new CharFigure();
@@ -129,9 +136,31 @@ export class CharacterPanel {
     tools.append(spirit, repair, fn);
     equip.appendChild(tools);
     this.mwTools = tools;
+    const equipTools = el('div', 'char-equiptools');
+    const bag = el('button', 'char-ok', 'Tủ đồ');
+    bag.title = 'Mở Tủ đồ';
+    bag.onclick = () => this.host.onBag();
+    const soul = el('button', 'char-ok', 'Hồn khí');
+    soul.title = 'Mở chức năng Hồn khí';
+    soul.onclick = () => this.host.onMagicWeapon();
+    equipTools.append(bag, soul);
+    equip.appendChild(equipTools);
+    this.equipTools = equipTools;
+    const hide = el('label', 'char-dresshide');
+    hide.title = DRESS_HIDE_TEXT.TIP;
+    const hideBox = document.createElement('input');
+    hideBox.type = 'checkbox';
+    hideBox.onchange = () => this.host.onDressHide(hideBox.checked);
+    hide.append(hideBox, document.createTextNode(DRESS_HIDE_TEXT.LABEL));
+    equip.appendChild(hide);
+    this.dressHide = hideBox;
     this.stats = el('div', 'char-stats');
     equip.appendChild(this.stats);
     root.appendChild(equip);
+    const detail = el('button', 'char-detail-toggle', '‹');
+    detail.title = 'Mở / đóng thông tin chi tiết';
+    detail.onclick = () => this.host.onDetail(root);
+    root.appendChild(detail);
     root.ondragover = (e) => {
       if (dragging()?.from === 'bag') e.preventDefault();
     };
@@ -157,30 +186,50 @@ export class CharacterPanel {
     this.slots.clear();
     this.stats = null;
     this.mwTools = null;
+    this.equipTools = null;
+    this.dressHide = null;
     this.figure = null;
     this.tabs.clear();
     this.mode = 'equip';
+    this.selectedTab = 'equip';
     this.resetPending();
   }
 
   private onTab(key: TabKey): void {
-    if (key === 'titles') return this.host.onTitles();
-    if (key === 'features') return this.host.onFeatures();
-    if (key === 'mount') return this.host.onMount();
     if (key === 'mw' && this.host.player().level < MW.UNLOCK_LEVEL) {
       toast('Cần đạt cấp 50 mới có thể trang bị thần khí', true);
       return;
     }
-    this.mode = key;
+    this.selectedTab = key;
+    if (key === 'star') {
+      this.render();
+      return this.host.onFeatures();
+    }
+    if (key === 'mount') {
+      this.render();
+      return this.host.onMount();
+    }
+    this.mode = key === 'attrs' ? 'equip' : key;
     this.render();
+  }
+
+  private nextTab(): void {
+    const current = TABS.findIndex(([key]) => key === this.selectedTab);
+    const next = TABS[(current + 1) % TABS.length][0];
+    this.onTab(next);
   }
 
   render(): void {
     if (!this.root || !this.stats) return;
     const p = this.host.player();
     const eq = this.host.equipped();
-    for (const [key, b] of this.tabs) b.classList.toggle('on', key === this.mode);
+    for (const [key, b] of this.tabs) b.classList.toggle('on', key === this.selectedTab);
     if (this.mwTools) this.mwTools.style.display = this.mode === 'mw' ? '' : 'none';
+    if (this.equipTools) this.equipTools.style.display = this.mode === 'equip' ? '' : 'none';
+    if (this.dressHide) {
+      this.dressHide.checked = this.host.dressHidden();
+      (this.dressHide.parentElement as HTMLElement).style.display = this.mode === 'equip' ? '' : 'none';
+    }
     const spirit = this.mwTools?.querySelector('.char-spirit');
     if (spirit) spirit.textContent = `Thần tu: ${p.property?.spirituality ?? 0}`;
     if (this.figure) {

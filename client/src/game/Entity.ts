@@ -1,11 +1,12 @@
-// A player or NPC on the map. Uses the converted SWF spritesheet when one exists for its resCode
-// (8-direction stand/run animations), otherwise falls back to portrait icon + marker.
-// Linear interpolation along a route; direction/behavior switch automatically while moving.
+// A player or NPC on the map. The sprite is an AvatarView (body / weapon / flyer / mount layers from the converted SWF sheets, 8
+// directions); without a sheet the portrait icon + marker shows instead. Linear interpolation along a route; direction / behavior
+// switch automatically while moving. Flying (M13): the body lifts FLIGHT_HEIGHT px with a tween and the flyer layers show.
 
 import { Assets, Container, Graphics, Sprite, Text, TextStyle, Texture } from 'pixi.js';
-import { decodeResCode } from '@mc/shared';
+import { FLIGHT_HEIGHT, FLIGHT_LIFT_PX_PER_SEC, FLYING_STATE, type FlyingState, type SceneCharacter } from '@mc/shared';
 import { iconUrl } from '../assets';
-import { Behavior, SheetAnim, dirFromDelta, loadSheet } from './SheetAnim';
+import { AvatarView, sheetNameFromResCode } from './AvatarView';
+import { Behavior, dirFromDelta } from './SheetAnim';
 import { CHAR_SELECTED_GLOW } from './GlowFilter';
 import { EntityLabels, type TitleLabel } from './EntityLabels';
 
@@ -38,24 +39,18 @@ const QUEST_MARKERS: Record<number, { text: string; style: TextStyle }> = {
   104: { text: '?', style: markerStyle('#ffd23f') },
 };
 
-const MAX_SHEET_PX = 8192;
-
 export type EntityKind = 'self' | 'player' | 'npc';
 
 // Name colors: players CreatureView 0xFFFF00, NPCs NPCView 13434828 (0xCCFFCC).
 const NAME_COLOR: Record<EntityKind, string> = { self: '#ffff00', player: '#ffff00', npc: '#ccffcc' };
 
-export function sheetNameFromResCode(resCode: string): string | null {
-  if (!resCode || resCode === '0') return null;
-  const d = decodeResCode(resCode);
-  if (!d.path) return null;
-  return d.path.replace(/\.swf$/, '');
-}
+export { sheetNameFromResCode };
 
 export class Entity extends Container {
   private route: { x: number; y: number }[] = [];
   private onArrive: (() => void) | null = null;
-  private anim: SheetAnim | null = null;
+  /** Layered body / weapon / flyer / mount sprite. */
+  readonly avatar: AvatarView;
   private fallback: Container;
   private marker: Graphics;
   private readonly labels: EntityLabels;
@@ -68,10 +63,16 @@ export class Entity extends Container {
   private bubble: Container | null = null;
   private bubbleTimer: ReturnType<typeof setTimeout> | null = null;
   private questMarker: Text | null = null;
+  /** Last QuestState passed to setQuestState (-1 none); the area map picks its NPC icon from it. */
+  questState = -1;
   private leaderFlag: Text | null = null;
-  private hovered = false;
-  private baseRes = '';
   private baseIcon = '';
+  private portraitLoaded = false;
+  /** Flying state (Flash FLYING_STATE_*) and the current body lift in px (0..FLIGHT_HEIGHT). */
+  private flyState: FlyingState = FLYING_STATE.ON_GROUND;
+  private lift = 0;
+  /** Fires on every flying state change (the HUD button of the local player). */
+  onFlyingState: ((state: FlyingState) => void) | null = null;
 
   constructor(
     readonly entityId: number,
@@ -93,6 +94,9 @@ export class Entity extends Container {
     shadow.eventMode = 'none';
     this.addChild(shadow);
 
+    this.avatar = new AvatarView((headY) => this.onBody(headY));
+    this.addChild(this.avatar);
+
     this.fallback = new Container();
     this.marker = new Graphics().circle(0, -22, 16).fill({ color, alpha: 0.9 }).stroke({ color: 0x000000, width: 2 });
     this.fallback.addChild(this.marker);
@@ -110,17 +114,97 @@ export class Entity extends Container {
       this.on('pointerout', () => this.setHover(false));
     }
 
-    this.baseRes = resCode;
     this.baseIcon = iconCode;
-    void this.loadVisual(resCode, iconCode);
+    this.avatar.setBody(resCode, 'class', resCode);
+    if (!sheetNameFromResCode(resCode)) this.onBody(null); // no sheet at all: portrait marker
   }
 
-  /** Mount swap (onMountOn / onMountOff): shows the sprite of `resCode`, or the original one when null. */
-  swapRes(resCode: string | null): void {
-    this.anim?.destroy();
-    this.anim = null;
-    this.fallback.visible = true;
-    void this.loadVisual(resCode ?? this.baseRes, this.baseIcon);
+  /** Full look of a scene row (self / peers / scene re-entry): body, weapon, flyer, mount and the flying flag (no tween). */
+  applyScene(sc: Pick<SceneCharacter, 'resCode' | 'wp' | 'av'>): void {
+    const av = sc.av;
+    this.avatar.setBody(av?.res ?? sc.resCode, av?.body ?? 'class', av?.base ?? sc.resCode);
+    this.avatar.setWeapon(av?.wp ?? sc.wp);
+    this.avatar.setFlyer(av?.flyer, av?.flyerFront);
+    this.avatar.setMount(av?.mount);
+    if (av?.flying) this.beginFlight(true);
+    else this.endFlight(true);
+  }
+
+  private onBody(headY: number | null): void {
+    if (headY === null) {
+      this.fallback.visible = true;
+      if (!this.portraitLoaded) {
+        this.portraitLoaded = true;
+        void this.loadPortrait(this.baseIcon);
+      }
+      return;
+    }
+    this.fallback.visible = false;
+    this.headY = headY;
+    this.layoutMarker();
+  }
+
+  get flyingState(): FlyingState {
+    return this.flyState;
+  }
+
+  /** True while taking off or in the air: moves ignore the hit mask. */
+  get airborne(): boolean {
+    return this.flyState === FLYING_STATE.TAKING_OFF || this.flyState === FLYING_STATE.IN_THE_AIR;
+  }
+
+  /** Straight-line routes: in the air, and while walking to the cell to land on (the start may be off the mask). */
+  get freeFlight(): boolean {
+    return this.airborne || this.flyState === FLYING_STATE.PRE_LANDING;
+  }
+
+  setFlyingState(state: FlyingState): void {
+    if (this.flyState === state) return;
+    this.flyState = state;
+    this.avatar.setAirborne(state !== FLYING_STATE.ON_GROUND);
+    this.onFlyingState?.(state);
+  }
+
+  /** onBeginFlying (tween up) or a scene row of a character already airborne (`instant`). */
+  beginFlight(instant = false): void {
+    if (instant) {
+      this.lift = FLIGHT_HEIGHT;
+      this.setFlyingState(FLYING_STATE.IN_THE_AIR);
+      this.applyLift();
+    } else if (!this.airborne) {
+      this.setFlyingState(FLYING_STATE.TAKING_OFF);
+    }
+  }
+
+  /** onStopFlying (tween down) or an instant landing (`instant`: scene entry on the ground). */
+  endFlight(instant = false): void {
+    if (this.flyState === FLYING_STATE.ON_GROUND) return;
+    if (instant) {
+      this.lift = 0;
+      this.setFlyingState(FLYING_STATE.ON_GROUND);
+      this.applyLift();
+    } else {
+      this.setFlyingState(FLYING_STATE.LANDING);
+    }
+  }
+
+  private applyLift(): void {
+    this.avatar.y = -this.lift;
+    this.labels.y = -this.lift;
+    this.layoutMarker();
+  }
+
+  private tickFlight(dt: number): void {
+    if (this.flyState === FLYING_STATE.TAKING_OFF) {
+      this.lift = Math.min(FLIGHT_HEIGHT, this.lift + FLIGHT_LIFT_PX_PER_SEC * dt);
+      if (this.lift >= FLIGHT_HEIGHT) this.setFlyingState(FLYING_STATE.IN_THE_AIR);
+    } else if (this.flyState === FLYING_STATE.LANDING) {
+      this.lift = Math.max(0, this.lift - FLIGHT_LIFT_PX_PER_SEC * dt);
+      if (this.lift <= 0) this.setFlyingState(FLYING_STATE.ON_GROUND);
+    } else {
+      return;
+    }
+    this.applyLift();
   }
 
   /**
@@ -149,7 +233,7 @@ export class Entity extends Container {
     bubble.addChild(bg, label);
     bubble.eventMode = 'none';
     const above = Math.max(this.questMarker?.height ?? 0, this.leaderFlag?.height ?? 0);
-    bubble.position.set(0, this.headY - above - 2 - (th + 12));
+    bubble.position.set(0, this.headY - this.lift - above - 2 - (th + 12));
     this.addChild(bubble);
     this.bubble = bubble;
     this.bubbleTimer = setTimeout(() => this.clearBubble(), BUBBLE_MS);
@@ -157,6 +241,7 @@ export class Entity extends Container {
 
   /** Quest marker above the head (QuestState 102/103/104); any other value hides it. */
   setQuestState(state: number): void {
+    this.questState = state;
     this.questMarker?.destroy();
     this.questMarker = null;
     const m = QUEST_MARKERS[state];
@@ -183,8 +268,8 @@ export class Entity extends Container {
   }
 
   private layoutMarker(): void {
-    this.questMarker?.position.set(0, this.headY - 2);
-    this.leaderFlag?.position.set(0, this.headY - 2);
+    this.questMarker?.position.set(0, this.headY - this.lift - 2);
+    this.leaderFlag?.position.set(0, this.headY - this.lift - 2);
   }
 
   /** Name / title lines on or off (system setting "Ẩn tên", M9). */
@@ -213,46 +298,14 @@ export class Entity extends Container {
   }
 
   private setHover(on: boolean): void {
-    this.hovered = on;
-    const filters = on ? [CHAR_SELECTED_GLOW] : [];
-    if (this.anim) this.anim.filters = filters;
-    this.fallback.filters = filters;
+    this.avatar.setHover(on);
+    this.fallback.filters = on ? [CHAR_SELECTED_GLOW] : [];
   }
 
   override destroy(options?: Parameters<Container['destroy']>[0]): void {
     if (this.bubbleTimer) clearTimeout(this.bubbleTimer);
     this.bubbleTimer = null;
     super.destroy(options);
-  }
-
-  private async loadVisual(resCode: string, iconCode: string): Promise<void> {
-    const sheetName = sheetNameFromResCode(resCode);
-    let sheet = sheetName ? await loadSheet(sheetName) : null;
-    if (this.destroyed) return;
-    // Mount sheets are one 1600 x 31000 px atlas: over the GPU texture limit it renders as a black quad, so keep the base sprite.
-    if (sheet?.textures.some((t) => Math.max(t.source.height, t.source.width) > MAX_SHEET_PX)) {
-      if (resCode !== this.baseRes) return this.loadVisual(this.baseRes, iconCode);
-      sheet = null;
-    }
-    if (sheet && Object.keys(sheet.data.anims).length > 0) {
-      const anim = new SheetAnim(sheet);
-      const { width, height, meta } = sheet.data;
-      // Feet anchor from the resource's own metrics, like the Flash client's (-midX, -footY);
-      // sheets converted before `meta` existed fall back to the old frame-based guess.
-      const midX = meta?.midX ?? width / 2;
-      const footY = meta?.footY ?? height - 8;
-      anim.position.set(-midX, -footY);
-      this.anim = anim;
-      if (this.hovered) anim.filters = [CHAR_SELECTED_GLOW];
-      this.addChildAt(anim, 1);
-      this.fallback.visible = false;
-      const top = meta?.bodyY ?? meta?.headY ?? 0;
-      this.headY = top - footY - 4;
-      this.layoutMarker();
-      this.applyAnim(true);
-      return;
-    }
-    await this.loadPortrait(iconCode);
   }
 
   private async loadPortrait(iconCode: string): Promise<void> {
@@ -276,10 +329,7 @@ export class Entity extends Container {
   }
 
   private applyAnim(restart = false): void {
-    if (!this.anim) return;
-    if (!this.anim.playDir(this.dir, this.behavior, restart)) {
-      if (!this.anim.playDir(this.dir, Behavior.STAND, restart)) this.anim.play(this.anim.firstLabel, restart);
-    }
+    this.avatar.play(this.dir, this.behavior, restart);
   }
 
   setBehavior(behavior: number): void {
@@ -337,7 +387,8 @@ export class Entity extends Container {
         budget = 0;
       }
     }
-    this.anim?.tick(dtSeconds);
+    this.tickFlight(dtSeconds);
+    this.avatar.tick(dtSeconds);
     this.zIndex = this.y;
   }
 }

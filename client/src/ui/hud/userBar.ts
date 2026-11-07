@@ -11,6 +11,9 @@ import { HOTBAR_DRAG_MIME } from '../skillRow';
 import { div, place, setStates, skinButton, std } from './skin';
 
 const SC = 'MainStage_ShortcutCanvas';
+// btnLock skins (swfui names): "1".."3" = up/over/down, "1320" / "21038" / "31742" = the selected (locked) up/over/down.
+const LOCK_OPEN = { up: `${SC}/1`, over: `${SC}/2`, down: `${SC}/3` };
+const LOCK_CLOSED = { up: `${SC}/1320`, over: `${SC}/21038`, down: `${SC}/31742` };
 const SLOT_LABELS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
 
 interface SlotDrag { st: number; sid: number; from?: number }
@@ -39,9 +42,10 @@ export class UserBar {
     skinButton(std(`${SC}/NextRow`), nums, 4, 29, 'Trang sau', () => bar.turn(1));
 
     this.toggle = skinButton(std(`${SC}/HideShortcuts`), root, 396, 7, HOTBAR_TEXT.TOGGLE.replace(/\r/g, '\n'), () => bar.setVisible(!bar.visible));
-    this.lock = place(div('hud-lock', root, 'Mở'), 0, 30, 22, 16) as HTMLDivElement;
-    this.lock.title = HOTBAR_TEXT.LOCK;
-    this.lock.onclick = () => bar.setLocked(!bar.locked);
+    // Flash AutoBattleCanva (right0 → x374, y1) btnLock x22/y26 20x20: a toggle, selected skins = locked.
+    this.lock = skinButton(LOCK_OPEN, root, 396, 27, HOTBAR_TEXT.LOCK, () => bar.setLocked(!bar.locked));
+    place(this.lock, 396, 27, 20, 20);
+    this.lock.classList.add('hud-lock');
 
     const auto = skinButton({ up: `${SC}/AutoBattleUp`, over: `${SC}/AutoBattleOver`, down: `${SC}/AutoBattleDown` },
       root, 418, 6, 'Nút tự động chiến đấu', () => autoState.set(!autoState.on));
@@ -91,7 +95,7 @@ export class UserBar {
     this.pageLabel.textContent = String(this.bar.page);
     this.container.hidden = !this.bar.visible;
     setStates(this.toggle, std(`${SC}/${this.bar.visible ? 'HideShortcuts' : 'ShowShortcuts'}`));
-    this.lock.textContent = this.bar.locked ? 'Khóa' : 'Mở';
+    setStates(this.lock, this.bar.locked ? LOCK_CLOSED : LOCK_OPEN);
     const slots = this.bar.slots();
     this.cells.forEach((cell, i) => {
       cell.querySelector('.hud-slot-icon')?.remove();

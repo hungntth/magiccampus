@@ -110,3 +110,6 @@ Research: `docs/research/2026-11-04_07_PET_CLIENT_RESEARCH.md`, `..._08_PET_SERV
 
 ## M12 client C4 (forge pet gear tabs, 2026-11-05)
 - The forge window ("Chế tạo" / "Luyện" HUD buttons) has a second tab group "T.bị Pet": Thăng cấp, Đổi màu, Đổi khóa, Tái thiết lập, Thăng hoa, Khắc chế over kind-9 gear in the bag, the pet item page and worn by pets; the pet panel equipment tab repairs gear ("Sửa" tool, "Sửa tất cả"). Sublime state reaches the client as `BagItem.sublime` and shows in the tooltip. See `docs/memory/pet-depth.md` (C4) for contracts.
+
+## Pet-target items (item use D / E, 2026-11-07)
+- `pet/pet-item.service.ts` (+ `pet-item-rules.ts`, pure): grow potions (`PET_GROW_ITEM_EXP`, exp clamped to owner level + 5 through `PetBattleService.grantExp`), Tho Menh Dan 1533 / 1534 (life, cap 10000) and Tinh Hon Chi Thuc 3984 (+1 lowest aptitude below round(template * 1.2), written to `aptRefined`). Plans return a refusal or an `apply` step; the item-use caller consumes the unit in between and holds the character lock. `PetSlotService.bookPlan / applyBook` serve the pet slot book 326. Pet HP / MP and loyalty are not persisted, so HP / MP potions and loyalty potions never change a pet. Wiring: `docs/memory/item-use.md`.

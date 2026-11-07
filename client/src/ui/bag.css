@@ -217,6 +217,22 @@
   text-shadow: 0 0 2px #000, 0 1px 1px #000;
 }
 
+/* Pet grid (bagPets.ts): C = xuất chiến, T = đi theo in the top-left corner; slots past petMaxNum are dimmed. */
+.bag-pet-state {
+  position: absolute;
+  left: 1px;
+  top: 0;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 12px;
+  color: #ffdd55;
+  text-shadow: 0 0 2px #000, 0 1px 1px #000;
+}
+
+.bag-pet-locked {
+  opacity: 0.45;
+}
+
 .bag-lock {
   position: absolute;
   left: 0;

@@ -3,7 +3,8 @@
 import { Application } from 'pixi.js';
 import { GameClient, defaultWsUrl } from './net/client';
 import { showCharSelect } from './ui/charSelect';
-import { showLogin, toast } from './ui/screens';
+import { showLogin } from './ui/loginScreen';
+import { toast } from './ui/screens';
 import { GameScene } from './game/GameScene';
 import { loadSkins } from './ui/hud/skin';
 import { initStage } from './ui/stage';

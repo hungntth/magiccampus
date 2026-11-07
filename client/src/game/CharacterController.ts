@@ -1,6 +1,6 @@
 // Client character state + flows: the "Nhân vật" panel (C key / HUD button), changeProperty (OK button, fire-and-forget),
 // manual level-up (lvUp from level 20, confirm first), stat-refresh onUPP (the player object is merged by QuestController
-// first; this only re-renders). Server text pushes (onSystemMidMsgOrNote, ...) are handled by BagController.
+// first; this only re-renders). Looks on the map (onEquipOn / onEquipOff / onSetRes) are AppearanceController's. Server text pushes (onSystemMidMsgOrNote, ...) are handled by BagController.
 // Must be constructed after QuestController and BagController.
 
 import { AUTO_LEVEL_CAP } from '@mc/shared';
@@ -23,6 +23,8 @@ export interface CharacterHost {
   entityOf(id: number): Entity | undefined;
   /** "Thú cưỡi" button: mount window (owned by ActivityController). */
   onMount(): void;
+  /** Dress hide checkbox (owned by AppearanceController). */
+  dressHide: { get(): boolean; set(hide: boolean, done: () => void): void };
 }
 
 export class CharacterController {
@@ -51,19 +53,26 @@ export class CharacterController {
       onEquip: (item) => bag.actions.equipOn(item),
       onUnequip: (item) => bag.actions.equipOff(item, -1),
       onAllocate: (add) => this.allocate(add),
-      onTitles: () => this.titles.toggle(),
       onFeatures: () => this.features.toggle(),
       onMagicWeapon: () => this.magicWeapon.toggle(),
       onRepairMagicWeapons: () => this.magicWeapon.repairWorn(),
       onMount: () => host.onMount(),
-      onDetail: () => this.detail.toggle('char'),
-      onClose: () => this.panel.close(),
+      onBag: () => bag.toggle(),
+      dressHidden: () => host.dressHide.get(),
+      onDressHide: (hide) => host.dressHide.set(hide, () => this.panel.render()),
+      onDetail: (anchor) => this.toggleCharacterDetail(anchor),
+      onClose: () => {
+        this.detail.close();
+        this.panel.close();
+      },
     });
     bag.onChange = () => {
       this.panel.render();
       this.magicWeapon.refresh();
     };
-    this.offs.push(host.client.on('onUPP', () => this.panel.render()));
+    this.offs.push(
+      host.client.on('onUPP', () => this.panel.render()),
+    );
   }
 
   destroy(): void {
@@ -73,6 +82,7 @@ export class CharacterController {
     this.achievements.destroy();
     this.features.destroy();
     this.magicWeapon.destroy();
+    this.detail.close();
     this.panel.close();
   }
 
@@ -85,6 +95,21 @@ export class CharacterController {
   toggle(): void {
     if (this.panel.isOpen) this.panel.close();
     else this.panel.show();
+  }
+
+  /** Forge window top tab "Thần khí". */
+  openMagicWeapon(): void {
+    if (!this.magicWeapon.isOpen) this.magicWeapon.toggle();
+  }
+
+  private toggleCharacterDetail(anchor: HTMLElement): void {
+    const toggle = anchor.querySelector<HTMLButtonElement>('.char-detail-toggle');
+    const opened = this.detail.toggleAttached(anchor, () => {
+      anchor.classList.remove('detail-open');
+      if (toggle) toggle.textContent = '›';
+    });
+    anchor.classList.toggle('detail-open', opened);
+    if (toggle) toggle.textContent = opened ? '‹' : '›';
   }
 
   /** HUD achievement button / R key. */

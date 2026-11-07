@@ -2,7 +2,7 @@
 
 Plan: `docs/plans/2026-11-04_06_ECONOMY.md` (phases C and D; the implementation notes include the gem chain list). Implemented 2026-11-04.
 Shared `forge.ts` (~320 lines); server `modules/forge/`; client `game/ForgeController.ts` and `ui/forge/*`.
-The forge window "Lò rèn" opens from the HUD "Chế tạo" button (craft tab) or the "Luyện" button (star tab).
+The forge window "Tạo" (top row in Flash order: Trang bị, Cải tạo [Thăng tinh, Khảm nạm, Thăng cấp, Tinh luyện, Phân giải], Ng.liệu, Bảo thạch, Thần khí → opens the Thần khí window, T.bị pet) opens from the HUD "Chế tạo" button (craft tab) or the "Luyện" button (star tab).
 
 ## Equipment instance (`character_items.properties`, `star`)
 - Instance fields: `quality, prefix, element, makerName`, main/sub/bind lines, `holeNum`, gems `t1..t10`, soul `activeProp/activePropNum`.
@@ -16,6 +16,7 @@ The forge window "Lò rèn" opens from the HUD "Chế tạo" button (craft tab) 
 - Recipes are equipment templates with `makable == 1` and `require_item1..3`. Calls: `getMakeRecipes` (H5 helper), `getMakeColor` (preview) and `newMake` (awaited `{flag}`).
   - Rates come from the material ColorCode levels. Recipes 1001+ (jewelry, Lv 66+) use `data_tbl_recipe_plan`; the remainder of its rates is failure.
   - Materials are consumed even on failure. A success rolls quality/prefix, the `EQUIPT_QUALITY` line multipliers, 1–3 holes (40/35/25 %), an element and the maker name.
+- Client craft tab (`ui/forge/craftTab.ts` + `craft.css`, pure CSS, no skin bitmaps) mirrors the Flash layout: kind/type tree (`AUCTION_KINDS` 1–4), recipe list, "Chọn nghề" class dropdown (`CLASS_NAMES`, default = all), Vật phẩm / Nguyên liệu cần / Đặt nguyên liệu cells, "Tự đặt ng.liệu" autofill (selecting a recipe no longer autofills), four quality-rate boxes (0% until getMakeColor confirms; Flash cleanMake), class filter trims weapon/off-hand types in the tree (makeTreeChange2), required cells use `MakeRecipe.materials[].iconCode`, a 2 s progress bar and "Chế".
 - `materialMixOne` / `All(num 2..5, ref, tempBagFlag)`: rate `num × (ColorCode==4 ? 6 : 20)` %. A ColorCode-5 stack is refused (Go burned it). Temp-bag refs are refused.
 - `jewelUpdateOne` / `All`: gem tier upgrade, rate `num × 20` % along the chains. The top tier is refused.
 

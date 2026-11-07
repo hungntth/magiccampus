@@ -148,6 +148,12 @@ export function ownedDresses(state: MountState, rows: readonly MountRow[], now: 
   return out;
 }
 
+/** Expiry (ms) after a mount dress bag: 30 more days on top of what is left; null when the dress is already permanent (1). */
+export function dressBagExpiry(current: number | undefined, now: number, days: number): number | null {
+  if (current === 1) return null;
+  return Math.max(now, current ?? 0) + days * 86_400_000;
+}
+
 type Pct = Pick<MountRow, 'life' | 'phyAttack' | 'magAttack' | 'phyDefense' | 'magDefense'>;
 
 /** Percent bonuses while riding: the evolution row of the rank plus the worn skin (Go applyMountBonus used the rounded percents). */

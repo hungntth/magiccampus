@@ -16,6 +16,7 @@ import type { ShopPanel } from '../ui/shopPanel';
 import { BagActions } from './bagActions';
 import type { DragPayload } from '../ui/itemCell';
 import { ItemFuncs } from './ItemFuncs';
+import { MultiItemController } from './MultiItemController';
 
 export interface BagHost {
   client: GameClient;
@@ -34,6 +35,8 @@ export class BagController {
   readonly funcs: ItemFuncs;
   /** Payment preference (radios in the bag wallet, the NPC shop and the mall). */
   readonly payment: PaymentControl;
+  /** Choose-one gift box window (itemMultitoSel push). */
+  private readonly multi: MultiItemController;
   /** Called after any item change (the character panel re-renders its equipment grid). */
   onChange: (() => void) | null = null;
   /** Set by TradeController: while the trade panel is open a bag double-click is routed here (true = handled). */
@@ -50,6 +53,7 @@ export class BagController {
     this.payment = new PaymentControl(host.client, () => host.player);
     this.funcs = new ItemFuncs(host.client, (tid) => this.countOf(tid));
     this.actions.funcHook = (item) => this.funcs.handle(item);
+    this.multi = new MultiItemController(host.client, () => host.player, this, (text) => this.announce(text, true));
     this.panel = new BagPanel({
       onPickPayment: (type) => void this.payment.select(type),
       items: () => this.items.values(),
@@ -104,6 +108,7 @@ export class BagController {
 
   destroy(): void {
     for (const off of this.offs) off();
+    this.multi.destroy();
     this.host.shop.onBuy = null;
     this.host.shop.payment = null;
     this.host.shop.onRepairTool = null;
@@ -204,6 +209,11 @@ export class BagController {
   subscribe(fn: () => void): () => void {
     this.listeners.add(fn);
     return () => this.listeners.delete(fn);
+  }
+
+  /** The pet list changed (PetController): redraws the bag window's pet grid. */
+  petsChanged(): void {
+    this.panel.render();
   }
 
   private changed(): void {

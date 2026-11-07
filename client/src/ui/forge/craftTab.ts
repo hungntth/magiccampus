@@ -1,62 +1,90 @@
-// Forge tab "Chế tạo" (legacy EquiptFuncPanel tab 0): recipe list (makable equipment from getMakeRecipes), three material
-// slots filled from the bag (click a slot to cycle the candidate stacks, bag double-click fills the matching slot), the
-// getMakeColor rates preview and newMake (awaited; Flash shows a 2 s progress bar first).
+// Forge tab "Chế tạo" (legacy EquiptFuncPanel tab 0): kind/type tree, recipe list filtered by the "Chọn nghề" class
+// dropdown, the product + required + placed material cells, "Tự đặt ng.liệu" autofill, the getMakeColor rates row and
+// newMake behind the 2 s progress bar. Bag double-click fills the matching slot, clicking a placed slot cycles stacks.
 
 import type { BagItem, GetMakeColorReply, MakeRecipe, MaterialRefs, NewMakeReply } from '@mc/shared';
-import { SlotType } from '@mc/shared';
-import { NAME_COLORS } from '../itemCell';
+import { AUCTION_KINDS, CLASS_NAMES, SlotType } from '@mc/shared';
+import { itemTypeName } from '../itemTypeNames';
 import { toast } from '../screens';
 import { el } from '../shopCell';
 import { forgeCell } from './forgeCell';
 import type { ForgeHost, ForgeTab, ForgeTabView } from './forgeTypes';
+import './craft.css';
 
 const PROGRESS_MS = 2000;
-const BUCKETS = ['Lục', 'Lam', 'Tím', 'Cam'];
+const SLOTS = [1, 2, 3];
+const KINDS = AUCTION_KINDS.slice(0, 4); // Vũ khí, Trợ thủ, Trang bị, Trang sức
 
 class CraftView implements ForgeTabView {
   private recipes: MakeRecipe[] = [];
+  private readonly open = new Set<number>();
+  private type: number | null = null;
+  private classId = 0; // 0 = "Chọn nghề" (every class)
   private selected: MakeRecipe | null = null;
   private chosen = new Map<number, number | null>(); // material slot -> bag item id
-  private query = '';
-  private mine = true;
   private busy = false;
   private disposed = false;
   private previewSeq = 0;
-  private readonly list = el('div', 'forge-list');
-  private readonly detail = el('div', 'forge-detail');
+  private readonly tree = el('div', 'craft-tree');
+  private readonly list = el('div', 'craft-list');
+  private readonly product = el('div', 'craft-cells');
+  private readonly need = el('div', 'craft-cells');
+  private readonly put = el('div', 'craft-cells');
+  private readonly auto = el('button', 'craft-auto', 'Tự đặt ng.liệu');
+  private readonly rates = [0, 1, 2, 3].map(() => el('div', 'craft-rate', '0%'));
+  private readonly bar = el('div', 'craft-bar');
+  private readonly fill = el('div', 'craft-bar-fill');
+  private readonly barText = el('span', 'craft-bar-text');
+  private readonly go = el('button', 'craft-go', 'Chế');
 
   constructor(private readonly host: ForgeHost, body: HTMLElement) {
-    const filter = el('div', 'forge-filter');
-    const search = el('input', 'forge-search');
-    search.placeholder = 'Tìm trang bị...';
-    search.oninput = () => {
-      this.query = search.value.trim().toLowerCase();
+    const sel = el('select', 'craft-class');
+    sel.append(new Option('Chọn nghề', '0'), ...Object.entries(CLASS_NAMES).map(([id, name]) => new Option(name, id)));
+    sel.onchange = () => {
+      this.classId = Number(sel.value);
+      if (this.type !== null && !KINDS.some((k) => this.types(k).includes(this.type ?? -1))) this.type = null;
+      this.renderTree();
       this.renderList();
     };
-    const label = el('label', 'forge-check');
-    const box = el('input', '');
-    box.type = 'checkbox';
-    box.checked = this.mine;
-    box.onchange = () => {
-      this.mine = box.checked;
-      this.renderList();
-    };
-    label.append(box, ' Nghề của tôi');
-    filter.append(search, label);
-    body.append(filter, this.list, this.detail);
-    this.detail.appendChild(el('div', 'forge-hint', 'Đang tải công thức...'));
+    const mid = el('div', 'craft-mid');
+    mid.append(this.list, sel);
+    const right = el('div', 'craft-box craft-right');
+    right.append(el('div', 'craft-label', 'Vật phẩm'), this.product, el('div', 'craft-label', 'Nguyên liệu cần'), this.need,
+      el('div', 'craft-label', 'Đặt nguyên liệu'), this.put, this.auto);
+    this.auto.onclick = () => this.autofill();
+    const top = el('div', 'craft-top');
+    top.append(this.tree, mid, right);
+
+    const rateLabel = el('div', 'craft-rate-label', 'Tỷ lệ phẩm chất');
+    rateLabel.title = 'Tỷ lệ ra phẩm chất Lục / Lam / Tím / Cam';
+    const rateRow = el('div', 'craft-rate-row');
+    rateRow.append(rateLabel, ...this.rates);
+    this.bar.append(this.fill, this.barText);
+    this.go.onclick = () => this.selected && void this.make(this.selected);
+    const actRow = el('div', 'craft-act-row');
+    actRow.append(this.bar, this.go);
+    const bottom = el('div', 'craft-box craft-bottom');
+    bottom.append(rateRow, actRow);
+
+    const root = el('div', 'craft');
+    root.append(top, bottom);
+    body.appendChild(root);
+    this.renderTree();
+    this.renderList();
+    this.renderDetail();
     void this.load();
   }
 
   private async load(): Promise<void> {
+    this.list.replaceChildren(el('div', 'craft-empty', 'Đang tải...'));
     try {
       this.recipes = await this.host.client.call<MakeRecipe[]>('getMakeRecipes');
     } catch (e) {
       toast((e as Error).message, true);
     }
     if (this.disposed) return;
+    this.renderTree();
     this.renderList();
-    this.renderDetail();
   }
 
   dispose(): void {
@@ -64,32 +92,63 @@ class CraftView implements ForgeTabView {
   }
 
   refresh(): void {
-    if (this.selected) this.renderDetail();
+    this.renderDetail();
   }
 
   accept(item: BagItem): boolean {
-    const r = this.selected;
-    const m = r?.materials.find((x) => x.tid === item.tid && item.slotType === SlotType.BAG && item.stackNum >= x.num);
-    if (!r || !m) return false;
+    const m = this.selected?.materials.find((x) => x.tid === item.tid && item.slotType === SlotType.BAG && item.stackNum >= x.num);
+    if (!m) return false;
     this.chosen.set(m.slot, item.id);
     this.renderDetail();
     return true;
   }
 
-  private visible(): MakeRecipe[] {
-    const cls = `|${this.host.player().classId}|`;
-    return this.recipes.filter((r) => (!this.mine || !r.reqClass || r.reqClass.includes(cls))
-      && (!this.query || r.name.toLowerCase().includes(this.query)));
+  /** Weapon / off-hand types the chosen class can make (Flash makeTreeChange2); armour and jewellery stay whole. */
+  private types(k: (typeof KINDS)[number]): readonly number[] {
+    if (!this.classId || k.kind > 2) return k.types;
+    const cls = `|${this.classId}|`;
+    return k.types.filter((t) => this.recipes.some((r) => r.type === t && r.reqClass.includes(cls)));
+  }
+
+  private renderTree(): void {
+    const rows: HTMLElement[] = [];
+    for (const k of KINDS) {
+      const isOpen = this.open.has(k.kind);
+      const head = el('div', 'craft-node craft-kind');
+      head.append(el('span', `craft-toggle${isOpen ? ' open' : ''}`), el('span', 'craft-ico-kind'), k.name);
+      head.onclick = () => {
+        if (isOpen) this.open.delete(k.kind);
+        else this.open.add(k.kind);
+        this.renderTree();
+      };
+      rows.push(head);
+      if (!isOpen) continue;
+      for (const t of this.types(k)) {
+        const leaf = el('div', `craft-node craft-type${t === this.type ? ' selected' : ''}`);
+        leaf.append(el('span', 'craft-ico-type'), itemTypeName(t));
+        leaf.onclick = () => {
+          this.type = t;
+          this.renderTree();
+          this.renderList();
+        };
+        rows.push(leaf);
+      }
+    }
+    this.tree.replaceChildren(...rows);
   }
 
   private renderList(): void {
-    const rows = this.visible();
-    this.list.replaceChildren(...(rows.length === 0 ? [el('div', 'forge-hint', 'Không có công thức phù hợp.')] : rows.map((r) => {
-      const row = el('div', 'forge-row', `Cấp ${r.reqLevel}  ${r.name}`);
-      if (r.tid === this.selected?.tid) row.classList.add('selected');
+    if (this.type === null) return void this.list.replaceChildren();
+    const cls = `|${this.classId}|`;
+    const rows = this.recipes
+      .filter((r) => r.type === this.type && (!this.classId || !r.reqClass || r.reqClass.includes(cls)))
+      .sort((a, b) => a.reqLevel - b.reqLevel || a.tid - b.tid);
+    this.list.replaceChildren(...rows.map((r) => {
+      const row = el('div', `craft-row${r.tid === this.selected?.tid ? ' selected' : ''}`, r.name);
+      row.title = `Cấp ${r.reqLevel}  ${r.name}`;
       row.onclick = () => this.select(r);
       return row;
-    })));
+    }));
   }
 
   private select(r: MakeRecipe): void {
@@ -109,55 +168,73 @@ class CraftView implements ForgeTabView {
       .sort((a, b) => a.color - b.color || a.sid - b.sid);
   }
 
-  /** Keeps valid choices, fills empty ones with the first candidate. */
-  private autofill(r: MakeRecipe): void {
-    const byId = new Map(this.host.items().map((i) => [i.id, i]));
-    for (const m of r.materials) {
-      const cur = this.chosen.get(m.slot);
-      const it = cur == null ? undefined : byId.get(cur);
-      if (it && it.tid === m.tid && it.stackNum >= m.num) continue;
-      this.chosen.set(m.slot, this.candidates(m.slot)[0]?.id ?? null);
+  /** "Tự đặt ng.liệu": fills every empty slot with its first candidate. */
+  private autofill(): void {
+    for (const m of this.selected?.materials ?? []) {
+      if (!this.chosen.get(m.slot)) this.chosen.set(m.slot, this.candidates(m.slot)[0]?.id ?? null);
     }
+    this.renderDetail();
   }
 
   private cycle(slot: number): void {
     const cands = this.candidates(slot);
-    const cur = this.chosen.get(slot);
-    const i = cands.findIndex((c) => c.id === cur);
-    const nextItem = cands[(i + 1) % Math.max(1, cands.length)];
-    if (nextItem) this.chosen.set(slot, nextItem.id);
+    const i = cands.findIndex((c) => c.id === this.chosen.get(slot));
+    this.chosen.set(slot, cands[i + 1]?.id ?? null); // past the last candidate the slot is emptied again
     this.renderDetail();
   }
 
   private renderDetail(): void {
     const r = this.selected;
-    if (!r) {
-      this.detail.replaceChildren(el('div', 'forge-hint', 'Chọn một trang bị ở danh sách để chế tạo.'));
-      return;
+    const items = this.host.items();
+    const byId = new Map(items.map((i) => [i.id, i]));
+    // Drop choices the bag no longer backs (used up, moved, split below the requirement).
+    for (const [slot, id] of this.chosen) {
+      const m = r?.materials.find((x) => x.slot === slot);
+      const it = id == null ? undefined : byId.get(id);
+      if (!m || !it || it.tid !== m.tid || it.stackNum < m.num || it.slotType !== SlotType.BAG) this.chosen.set(slot, null);
     }
-    this.autofill(r);
-    const items = new Map(this.host.items().map((i) => [i.id, i]));
-    const slots = el('div', 'forge-slots');
-    for (const m of r.materials) {
-      const it = items.get(this.chosen.get(m.slot) ?? -1);
-      const have = this.host.items().filter((i) => i.tid === m.tid && i.slotType === SlotType.BAG).reduce((n, i) => n + i.stackNum, 0);
-      const cell = forgeCell({
-        iconCode: it?.iconCode ?? '0', name: m.name, color: it?.color ?? 0,
-        count: `${it?.stackNum ?? have}/${m.num}`, lacking: !it,
-        title: `${m.name} x${m.num}${it ? ` (cấp ${it.color + 1})` : ' (thiếu)'}\nNhấp để đổi nguyên liệu`,
-      }, 'forge-cell forge-slot');
-      if (!it) cell.classList.add('empty');
-      cell.onclick = () => this.cycle(m.slot);
-      const box = el('div', 'forge-slot-box');
-      box.append(cell, el('div', 'forge-slot-name', m.name));
-      slots.appendChild(box);
+    this.product.replaceChildren(r
+      ? forgeCell({ iconCode: r.iconCode, name: r.name, color: r.color, title: `${r.name}\nCấp ${r.reqLevel}` }, 'forge-cell craft-cell')
+      : el('div', 'forge-cell craft-cell'));
+    const need: HTMLElement[] = [];
+    const put: HTMLElement[] = [];
+    for (const slot of SLOTS) {
+      const m = r?.materials.find((x) => x.slot === slot);
+      if (!m) {
+        need.push(el('div', 'forge-cell craft-cell'));
+        put.push(el('div', 'forge-cell craft-cell'));
+        continue;
+      }
+      const have = items.filter((i) => i.tid === m.tid && i.slotType === SlotType.BAG).reduce((n, i) => n + i.stackNum, 0);
+      // Flash makeRequire: the material icon with the unit count only when more than one is needed.
+      const req = forgeCell({ iconCode: m.iconCode, name: m.name, color: 0, count: m.num > 1 ? String(m.num) : undefined,
+        lacking: have < m.num, title: `${m.name} x${m.num}\nTrong túi: ${have}` }, 'forge-cell craft-cell');
+      if (m.iconCode === '0') req.appendChild(el('span', 'craft-cell-name', m.name));
+      need.push(req);
+      const it = byId.get(this.chosen.get(slot) ?? -1);
+      const placed = it
+        ? forgeCell({ iconCode: it.iconCode, name: m.name, color: it.color, count: String(it.stackNum),
+          title: `${m.name} (cấp ${it.color + 1})\nNhấp để đổi nguyên liệu` }, 'forge-cell craft-cell')
+        : el('div', 'forge-cell craft-cell');
+      if (!it) placed.title = `Đặt ${m.name} x${m.num}\nNhấp để chọn từ túi`;
+      placed.classList.add('craft-slot');
+      placed.onclick = () => this.cycle(slot);
+      put.push(placed);
     }
-    const rates = el('div', 'forge-rates', 'Đặt đủ nguyên liệu để xem tỷ lệ.');
-    const go = el('button', 'shop-btn forge-go', this.busy ? 'Đang chế tạo...' : 'Chế tạo');
-    go.disabled = this.busy || r.materials.some((m) => !this.chosen.get(m.slot));
-    go.onclick = () => void this.make(r);
-    this.detail.replaceChildren(el('div', 'forge-title', `${r.name}  (cấp ${r.reqLevel})`), slots, rates, go);
-    void this.preview(r, rates);
+    this.need.replaceChildren(...need);
+    this.put.replaceChildren(...put);
+    this.auto.disabled = !r || this.busy;
+    this.go.disabled = !r || this.busy || r.materials.some((m) => !this.chosen.get(m.slot));
+    this.bar.classList.toggle('running', this.busy);
+    this.barText.textContent = this.busy ? 'Đang chế tạo...' : '';
+    if (r && this.refs(r)) void this.preview(r);
+    else this.zeroRates();
+  }
+
+  /** Flash cleanMake: every rate box reads 0% until getMakeColor confirms the placed materials. */
+  private zeroRates(): void {
+    this.previewSeq++;
+    for (const box of this.rates) box.textContent = '0%';
   }
 
   private refs(r: MakeRecipe): MaterialRefs | null {
@@ -170,7 +247,7 @@ class CraftView implements ForgeTabView {
     return refs;
   }
 
-  private async preview(r: MakeRecipe, out: HTMLElement): Promise<void> {
+  private async preview(r: MakeRecipe): Promise<void> {
     const refs = this.refs(r);
     if (!refs) return;
     const seq = ++this.previewSeq;
@@ -180,20 +257,16 @@ class CraftView implements ForgeTabView {
     } catch {
       return;
     }
-    if (this.disposed || seq !== this.previewSeq || !out.isConnected) return;
+    if (this.disposed || seq !== this.previewSeq) return;
     if (!reply.canMake || !reply.colorPerList) {
-      out.textContent = reply.flag === 1 ? 'Nguyên liệu cấp 6 chỉ dùng cho trang bị cấp 61 trở lên!' : 'Không thể chế tạo với nguyên liệu này.';
+      this.zeroRates();
+      if (!this.busy) this.barText.textContent = reply.flag === 1 ? 'Nguyên liệu cấp 6 chỉ dùng cho trang bị cấp 61+' : 'Không thể chế tạo';
       return;
     }
-    const per = [reply.colorPerList.makePer1, reply.colorPerList.makePer2, reply.colorPerList.makePer3, reply.colorPerList.makePer4];
-    const total = per.reduce((a, b) => a + b, 0);
-    const parts = per.map((p, i) => {
-      const s = el('span', 'forge-rate', `${BUCKETS[i]} ${p}%`);
-      s.style.color = NAME_COLORS[i + 2];
-      return s;
+    const p = reply.colorPerList;
+    [p.makePer1, p.makePer2, p.makePer3, p.makePer4].forEach((v, i) => {
+      this.rates[i].textContent = `${v}%`;
     });
-    const fail = Math.max(0, 100 - total);
-    out.replaceChildren(...parts, el('span', 'forge-rate fail', `Thất bại ${fail}%`));
   }
 
   private async make(r: MakeRecipe): Promise<void> {
@@ -215,4 +288,6 @@ class CraftView implements ForgeTabView {
   }
 }
 
-export const craftTab: ForgeTab = { id: 'craft', label: 'Chế tạo', build: (host, body) => new CraftView(host, body) };
+export const craftTab: ForgeTab = {
+  id: 'craft', label: 'Trang bị', group: 'equip', build: (host, body) => new CraftView(host, body),
+};

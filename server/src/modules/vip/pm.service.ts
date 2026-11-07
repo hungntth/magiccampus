@@ -133,7 +133,7 @@ export class PmService {
       const progress = nextProgress(doc.process[String(right.id)], this.state.configOf(right.id), right.type, now);
       if (!progress) throw RpcException.forbidden(MSG_ALREADY);
       const patch: Record<string, unknown> = { [`process.${right.id}`]: progress };
-      if (reward.kind === 'transform') patch.transform = { resCode: reward.resCode, expiresAt: nextDayStartMs(now) };
+      if (reward.kind === 'transform') patch.transform = { resCode: reward.resCode, expiresAt: nextDayStartMs(now), pm: true };
       if (!(await this.state.update(cid, doc.rev, patch))) continue; // moved concurrently: re-read and retry
       await this.rewards.apply(session, reward);
       if (reward.kind === 'transform') this.scenes.broadcast(session.mapId, 'onSetRes', [{ id: cid, res: reward.resCode }], session);

@@ -21,10 +21,17 @@ export interface ForgeTabView {
   dispose(): void;
 }
 
+/** Flash EquiptFuncPanel top row (tabBtnA0..A5): Trang bị, Cải tạo, Ng.liệu, Bảo thạch, Thần khí, T.bị pet. */
+export const FORGE_GROUPS = [
+  { id: 'equip', label: 'Trang bị' }, { id: 'modify', label: 'Cải tạo' }, { id: 'mix', label: 'Ng.liệu' },
+  { id: 'jewel', label: 'Bảo thạch' }, { id: 'mw', label: 'Thần khí' }, { id: 'pet', label: 'T.bị pet' },
+] as const;
+export type ForgeGroup = (typeof FORGE_GROUPS)[number]['id'];
+
 export interface ForgeTab {
   id: string;
   label: string;
-  /** Tab group: "pet" tabs show behind the "T.bị Pet" switch of the tab row; absent = the equipment group. */
-  group?: "pet";
+  /** Top-row tab of the Flash "Tạo" window this tab sits under; a group with several tabs shows them as a sub-row. */
+  group?: ForgeGroup;
   build(host: ForgeHost, body: HTMLElement): ForgeTabView;
 }

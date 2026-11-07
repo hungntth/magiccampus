@@ -4,6 +4,7 @@
 import { BOSS_DAILY_TOTAL, type BossDailyData, type BossDailyRow } from '@mc/shared';
 import { askConfirm } from './confirmDialog';
 import { button, el, openActWindow, type ActWindow } from './actWindow';
+import { animateCreatureModel } from './petTip';
 
 export interface BossDailyHost {
   data(): BossDailyData | null;
@@ -16,12 +17,15 @@ export interface BossDailyHost {
 const TABS: readonly [string, number, number][] = [
   ['Tất cả', 0, 999], ['Lv0~49', 0, 49], ['50~79', 50, 79], ['80~99', 80, 99], ['100~119', 100, 119], ['120~139', 120, 139], ['140~150', 140, 150], ['151~170', 151, 170],
 ];
+const PAGE_SIZE = 6;
 
 const hours = (ms: number): string => `${Math.floor(ms / 3_600_000)}h${Math.floor((ms % 3_600_000) / 60_000)}m`;
 
 export class BossDailyPanel {
   private win: ActWindow | null = null;
   private tab = 0;
+  private page = 0;
+  private animStops: (() => void)[] = [];
 
   constructor(private readonly host: BossDailyHost) {}
 
@@ -35,12 +39,14 @@ export class BossDailyPanel {
   }
 
   close(): void {
+    this.stopAnimations();
     this.win?.dispose();
     this.win = null;
   }
 
   render(): void {
     if (!this.win) return;
+    this.stopAnimations();
     const data = this.host.data();
     const body = this.win.body;
     if (!data) {
@@ -51,6 +57,7 @@ export class BossDailyPanel {
     TABS.forEach(([label], i) => {
       const b = button(label, () => {
         this.tab = i;
+        this.page = 0;
         this.render();
       }, `act-btn${i === this.tab ? ' on' : ''}`);
       b.dataset.tab = String(i);
@@ -59,11 +66,20 @@ export class BossDailyPanel {
     const remaining = attemptsLeft(data);
     const head = el('act-row');
     head.append(el('act-gold ds-left', `Số lần còn lại：${remaining}`), el('act-muted', 'Khiêu chiến hôm nay'));
-    const list = el('ds-list');
     const [, min, max] = TABS[this.tab];
-    for (const b of (data.bosses ?? []).filter((r) => r.level >= min && r.level <= max)) list.appendChild(this.row(b, data));
+    const bosses = (data.bosses ?? []).filter((r) => r.level >= min && r.level <= max);
+    const pages = Math.max(1, Math.ceil(bosses.length / PAGE_SIZE));
+    this.page = Math.min(this.page, pages - 1);
+    const list = el('ds-list');
+    for (const b of bosses.slice(this.page * PAGE_SIZE, (this.page + 1) * PAGE_SIZE)) list.appendChild(this.row(b, data));
     if (!list.hasChildNodes()) list.appendChild(el('act-muted', 'Không có ma thú trong khoảng cấp này'));
-    body.replaceChildren(tabs, head, list);
+    const pager = el('ds-pager');
+    pager.append(
+      button('‹', () => { this.page--; this.render(); }, 'ds-page', this.page === 0),
+      el('ds-page-count', `${this.page + 1} / ${pages}`),
+      button('›', () => { this.page++; this.render(); }, 'ds-page', this.page >= pages - 1),
+    );
+    body.replaceChildren(tabs, head, list, pager);
   }
 
   private row(b: BossDailyRow, data: BossDailyData): HTMLElement {
@@ -82,7 +98,12 @@ export class BossDailyPanel {
     }
     const row = el(`ds-row${blocked ? ' off' : ''}`);
     row.dataset.boss = String(b.id);
-    const info = el('');
+    const creature = document.createElement('canvas');
+    creature.className = 'ds-creature';
+    creature.width = 158;
+    creature.height = 136;
+    this.animStops.push(animateCreatureModel(creature, b.resCode, 1.04, true));
+    const info = el('ds-info');
     info.append(el('n', `${b.name}${b.isSuper ? ' ★' : ''}${b.wild ? ' (hoang dã)' : ''}`), el('s', `Lv ${b.level} · ${state}`));
     const actions = el('ds-actions');
     const fight = button('Khiêu chiến', () => askConfirm('Xác nhận khiêu chiến?', () => this.host.onBattle(b.id)), 'act-btn', blocked);
@@ -90,8 +111,13 @@ export class BossDailyPanel {
     const finish = button('Hoàn thành nhanh', () => this.host.onFinish(b.id), 'act-btn', !done);
     finish.dataset.act = 'finish';
     actions.append(fight, finish);
-    row.append(info, actions);
+    row.append(creature, info, actions);
     return row;
+  }
+
+  private stopAnimations(): void {
+    for (const stop of this.animStops) stop();
+    this.animStops = [];
   }
 }
 

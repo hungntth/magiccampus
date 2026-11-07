@@ -1,10 +1,9 @@
-// Converts a bitmap-based SWF timeline into an atlas PNG + JSON animation description.
+// Converts a bitmap-based SWF timeline into paged WebP atlases + JSON animation description (see atlas.ts).
 // Nested DefineSprite instances are flattened per frame (sprite frame = parent frame mod length).
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { goJSON } from '../gojson.js';
-import { encodeRGBA } from '../png.js';
 import { resourceMetrics } from '../swf/abc.js';
 import { decodeBitmap, newImage, type Image } from '../swf/images.js';
 import { IDENTITY, mul, type Matrix } from '../swf/matrix.js';
@@ -12,6 +11,10 @@ import { u16, tagsOf, type SwfFile } from '../swf/reader.js';
 import { parseShape, type ShapeInfo } from '../swf/shape.js';
 import { BITMAP_TAGS, SHAPE_TAGS, Tag } from '../swf/tags.js';
 import { walkTimeline, type Placed, type Timeline } from '../swf/timeline.js';
+import { packPages, trim, writePages } from './atlas.js';
+
+/** Atlas page height cap: keeps every page under WebGL's MAX_TEXTURE_SIZE on low-end GPUs. */
+const MAX_PAGE_H = 4096;
 
 export interface Obj {
   i: number;
@@ -28,12 +31,16 @@ export interface Result {
   anims: number;
   frames: number;
   skipped: number;
+  /** Widest page / summed page heights. */
   width: number;
   height: number;
+  pages: number;
 }
 
 class Converter {
   readonly bitmaps = new Map<number, Image>();
+  /** Crop origin of each trimmed bitmap, folded into the placement matrices. */
+  readonly offsets = new Map<number, { ox: number; oy: number }>();
   readonly shapes = new Map<number, ShapeInfo>();
   readonly sprites = new Map<number, Timeline>();
   readonly imageIndex = new Map<number, number>();
@@ -67,7 +74,9 @@ class Converter {
           }
           // Bitmap fill matrices map 20 units per pixel; scale them back to pixels.
           const fm = fill.matrix;
-          const f = mul(m, { a: fm.a / 20, b: fm.b / 20, c: fm.c / 20, d: fm.d / 20, tx: fm.tx, ty: fm.ty });
+          const o = this.offsets.get(fill.bitmapId);
+          let f = mul(m, { a: fm.a / 20, b: fm.b / 20, c: fm.c / 20, d: fm.d / 20, tx: fm.tx, ty: fm.ty });
+          if (o) f = mul(f, { a: 1, b: 0, c: 0, d: 1, tx: o.ox, ty: o.oy });
           out.push({ i: this.useImage(fill.bitmapId), m: [r3(f.a), r3(f.b), r3(f.c), r3(f.d), r3(f.tx), r3(f.ty)] });
         }
         continue;
@@ -84,7 +93,7 @@ class Converter {
   }
 }
 
-export function convert(f: SwfFile, outDir: string, name: string, maxW: number): Result {
+export async function convert(f: SwfFile, outDir: string, name: string, maxW: number): Promise<Result> {
   const c = new Converter();
   let jpegTables: Uint8Array = new Uint8Array();
   for (const t of f.tags) {
@@ -108,6 +117,12 @@ export function convert(f: SwfFile, outDir: string, name: string, maxW: number):
     }
   }
 
+  for (const [id, img] of c.bitmaps) {
+    const t = trim(img);
+    c.bitmaps.set(id, t.img);
+    if (t.ox || t.oy) c.offsets.set(id, { ox: t.ox, oy: t.oy });
+  }
+
   const anims = new Map<string, Frame[]>();
   const order: string[] = [];
   let current = '';
@@ -129,9 +144,13 @@ export function convert(f: SwfFile, outDir: string, name: string, maxW: number):
   }
   if (c.ordered.length === 0) throw new Error('no bitmap content');
 
-  const { atlas, rects } = pack(c.ordered, c.bitmaps, maxW);
+  const { pages, rects } = packPages(
+    c.ordered.map((id) => c.bitmaps.get(id)!),
+    maxW,
+    MAX_PAGE_H,
+  );
   mkdirSync(outDir, { recursive: true });
-  writeFileSync(join(outDir, `${name}.png`), encodeRGBA(atlas));
+  const files = await writePages(outDir, name, pages);
 
   // Empty frames keep "objs": null and image rects keep sorted keys, like the Go output.
   const sheet = {
@@ -140,6 +159,7 @@ export function convert(f: SwfFile, outDir: string, name: string, maxW: number):
     height: f.height,
     ox: f.xMin,
     oy: f.yMin,
+    pages: files,
     images: rects.map((r) => new Map(Object.entries(r))),
     anims: new Map([...anims].map(([k, list]) => [k, list.map((fr) => ({ d: fr.d, objs: fr.objs.length ? fr.objs : null }))])),
     order,
@@ -152,8 +172,9 @@ export function convert(f: SwfFile, outDir: string, name: string, maxW: number):
     anims: anims.size,
     frames,
     skipped: c.skipped,
-    width: atlas.width,
-    height: atlas.height,
+    width: Math.max(...pages.map((p) => p.width)),
+    height: pages.reduce((h, p) => h + p.height, 0),
+    pages: pages.length,
   };
 }
 
@@ -179,7 +200,7 @@ interface PackRect {
   h: number;
 }
 
-// Shelf packer: tallest first, rows up to maxW wide, 1px padding.
+// Single-page shelf packer used by swfanim (anim.ts): tallest first, rows up to maxW wide, 1px padding.
 export function pack(ids: number[], bitmaps: Map<number, Image>, maxW: number): { atlas: Image; rects: PackRect[] } {
   const items = ids.map((id, idx) => {
     const b = bitmaps.get(id)!;

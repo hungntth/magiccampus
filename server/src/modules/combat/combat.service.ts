@@ -32,6 +32,7 @@ import { SpectateService } from './spectate.service';
 import { missingCommands, playerSlot, selectRoster, type RosterCandidate } from './roster';
 import { NpcSkillCatalog } from './npc-skill-catalog';
 import { resolveRound, type RoundOutcome } from './round';
+import { WeaponLookService } from '../inventory/weapon-look.service';
 
 @Injectable()
 export class CombatService implements OnModuleInit {
@@ -54,6 +55,7 @@ export class CombatService implements OnModuleInit {
     private readonly pvp: PvpService,
     private readonly spectate: SpectateService,
     private readonly npcSkills: NpcSkillCatalog,
+    private readonly weapons: WeaponLookService,
   ) {}
 
   onModuleInit(): void {
@@ -112,7 +114,7 @@ export class CombatService implements OnModuleInit {
     const fighters = new Map<number, Fighter>();
     picks.forEach((p, i) => {
       const cid = p.s.characterId!;
-      const f = playerFighter(playerSlot(i), p.st, this.characters.resCode(p.st.doc.classId, p.st.doc.gender));
+      const f = playerFighter(playerSlot(i), p.st, this.characters.resCode(p.st.doc.classId, p.st.doc.gender), this.weapons.cached(cid));
       if (ctx?.atkMul && ctx.atkMul !== 1) {
         f.attack = Math.round(f.attack * ctx.atkMul); // M10 I: world boss cheer scales the character, not the pet
         f.magicAttack = Math.round(f.magicAttack * ctx.atkMul);

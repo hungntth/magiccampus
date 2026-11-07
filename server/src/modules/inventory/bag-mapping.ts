@@ -68,7 +68,8 @@ export function toBagItem(doc: CharacterItem, tpl: Row | undefined): BagItem {
     iconCode: tpl?.icon_code ? String(tpl.icon_code) : '0',
     info: String(tpl?.info || tpl?.description || ''),
     sellPrice: sellUnit(tpl),
-    ...(doc.itemType === ItemKind.EQUIP ? {} : { tplKind: Number(tpl?.kind ?? 0) || 0 }),
+    ...(doc.itemType === ItemKind.EQUIP ? {} : { tplKind: Number(tpl?.kind ?? 0) || 0, useType: Number(tpl?.use_type ?? 0) || 0 }),
+    ...(doc.itemType !== ItemKind.EQUIP && tpl?.req_class ? { reqClass: String(tpl.req_class) } : {}),
     ...(doc.itemType !== ItemKind.EQUIP && Number(tpl?.type) === 507
       ? { tplPropType: Number(tpl?.prop_type ?? 0) || 0, tplPropNum: Number(tpl?.propl_num ?? 0) || 0 }
       : {}),

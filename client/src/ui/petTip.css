@@ -1,0 +1,122 @@
+/* Pet hover tooltip (petTip.ts, Flash TipCre 259 x 328): absolute layout inside the shared .item-tip box, which drops its
+   fixed width and padding for it. The Flash skin art (CanvasTipCre) is not in the dump: framed boxes are drawn in CSS. */
+
+.item-tip:has(.pet-tip) {
+  width: auto;
+  padding: 0;
+}
+
+.pet-tip {
+  position: relative;
+  width: 259px;
+  height: 328px;
+  font-size: 12px;
+  line-height: 15px;
+  color: #fff;
+}
+
+/* Left info and table frames, model frame, skill frame (where the skin draws its boxes). */
+.pet-tip::before,
+.pet-tip::after {
+  content: '';
+  position: absolute;
+  border: 1px solid rgba(120, 190, 215, 0.45);
+  border-radius: 4px;
+  background: rgba(20, 50, 70, 0.35);
+  pointer-events: none;
+}
+
+.pet-tip::before { left: 4px; top: 60px; width: 160px; height: 218px; }
+.pet-tip::after { left: 168px; top: 60px; width: 86px; height: 218px; }
+
+.pt-text {
+  position: absolute;
+  white-space: nowrap;
+}
+
+.pt-icon {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  border: 1px solid #5d7f8c;
+  border-radius: 4px;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: rgba(10, 30, 44, 0.9);
+}
+
+.pt-icon img { width: 100%; height: 100%; object-fit: contain; }
+
+.pt-name { width: 170px; overflow: hidden; text-overflow: ellipsis; font-weight: bold; font-size: 13px; }
+.pt-lock { color: #3cff00; }
+.pt-cap { color: #9fd6e8; }
+.pt-tight { font-size: 11px; letter-spacing: -0.3px; }
+.pt-head { color: #9fd6e8; text-align: center; }
+.pt-num { text-align: center; }
+.pt-small { font-size: 9px; text-align: center; color: #ffefbb; }
+.pt-bad { color: #ff0000; }
+.pt-good { color: #00ff00; }
+
+.pt-stars {
+  position: absolute;
+  display: flex;
+  gap: 1px;
+}
+
+.pt-star {
+  width: 10px;
+  height: 10px;
+  clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  background: #4a5560;
+}
+
+.pt-star.lit { background: #ffd23f; }
+
+.pt-model {
+  position: absolute;
+  left: 168px;
+  top: 14px;
+  width: 90px;
+  height: 150px;
+  pointer-events: none;
+}
+
+/* Flash puts the 100 x 103 pentagon at x 152 over the table edge; here it is scaled into the right frame. */
+.pt-radar {
+  position: absolute;
+  left: 170px;
+  top: 188px;
+  width: 82px;
+  height: 85px;
+  overflow: visible;
+}
+
+.pt-radar text { fill: #ffffff; font-size: 8px; }
+
+.pt-tab {
+  width: 15px;
+  height: 15px;
+  line-height: 15px;
+  text-align: center;
+  font-size: 10px;
+  border: 1px solid #5d7f8c;
+  border-radius: 3px;
+  background: #16384a;
+  color: #c8c8c8;
+}
+
+.pt-tab.on { background: #2a7f98; color: #fff; }
+
+.pt-skill {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #2c6f82;
+  border-radius: 3px;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, rgba(10, 40, 58, 0.9), rgba(4, 22, 34, 0.9));
+  overflow: hidden;
+}
+
+.pt-skill img { width: 100%; height: 100%; object-fit: contain; }
+.pt-skill.locked { background: repeating-linear-gradient(45deg, #1b2a33 0 4px, #24363f 4px 8px); }

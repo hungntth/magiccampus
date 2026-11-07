@@ -53,6 +53,7 @@ export interface BattleParticipant {
   bossFlag: number;
   classId?: number; // characters only: the client picks the same sheet as on the map
   gender?: number;
+  wp?: string; // characters only: weapon art in hand (as SceneCharacter.wp), absent / '0' = none
   // type 39 (pet) only: the owner's character id, the creature template, and the look codes (strings, see pet.ts)
   cid?: number;
   tid?: number;

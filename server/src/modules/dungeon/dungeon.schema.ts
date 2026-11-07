@@ -8,7 +8,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 export interface DungeonMorph {
   res: string;
   until: number;
-  prev: { resCode: string; expiresAt: number } | null;
+  prev: { resCode: string; expiresAt: number; pm?: boolean } | null;
 }
 
 export interface DungeonRun {

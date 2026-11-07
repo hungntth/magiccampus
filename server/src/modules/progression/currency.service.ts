@@ -6,7 +6,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import type { Currencies, CurrencyKey } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
-import type { Session } from '../../gateway/session';
+import type { PushSink } from '../rewards/push-sink';
 import { Character } from '../character/character.schema';
 import { creditPipeline, currencyPath, parseAmount, spendOp } from './currency-rules';
 
@@ -44,7 +44,7 @@ export class CurrencyService {
   }
 
   /** onUPP {currencies} to the session (the full small map, so the client's Object.assign keeps every key). */
-  async push(session: Session): Promise<Currencies> {
+  async push(session: PushSink): Promise<Currencies> {
     const currencies = await this.balances(session.characterId!);
     session.callback('onUPP', { currencies });
     return currencies;

@@ -34,7 +34,7 @@ if (isMainThread) {
 } else {
   const { cache, out } = workerData as WorkerInit;
   parentPort!.on('message', ({ i, job }: { i: number; job: Entry }) => {
-    parentPort!.postMessage({ i, result: convertOne(job, cache, out) });
+    void convertOne(job, cache, out).then((result) => parentPort!.postMessage({ i, result }));
   });
 }
 
@@ -117,11 +117,11 @@ function runPool(jobs: Entry[], size: number, init: WorkerInit): Promise<Entry[]
   });
 }
 
-function convertOne(e: Entry, cache: string, out: string): Entry {
+async function convertOne(e: Entry, cache: string, out: string): Promise<Entry> {
   try {
     const f = parse(readFileSync(join(cache, e.md5)));
     const rel = e.name ? e.name.replace(/^resource\//, '').replace(/\.swf$/, '') : e.md5;
-    const res = convert(f, join(out, dirname(rel)), basename(rel), 2048);
+    const res = await convert(f, join(out, dirname(rel)), basename(rel), 2048);
     return {
       ...e,
       sheet: rel.replaceAll('\\', '/'),

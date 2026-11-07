@@ -1,0 +1,245 @@
+/* Area map window (ui/worldMap/localMapPanel.ts, legacy MapPanel 430 wide): CSS-drawn frame, icons and player marker. */
+.lm-win {
+  position: absolute;
+  z-index: 46;
+  left: calc(50% - 215px);
+  top: 12%;
+  width: 430px;
+  box-sizing: border-box;
+  padding: 36px 13px 13px;
+  border: 2px solid #8fd6e0;
+  border-radius: 12px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(120, 220, 230, 0.25), transparent 60%),
+    linear-gradient(180deg, #2b7c8c 0%, #18596a 35%, #0f4152 100%);
+  box-shadow: 0 0 0 2px #0a2c38, inset 0 0 0 2px #1f6b7b, inset 0 0 0 3px rgba(190, 245, 250, 0.35), 0 8px 22px rgba(0, 0, 0, 0.6);
+  font: 12px Tahoma, Verdana, Arial, sans-serif;
+  color: #fff;
+  user-select: none;
+}
+
+/* corner studs */
+.lm-win::before,
+.lm-win::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  width: 9px;
+  height: 9px;
+  border: 1px solid #0a2c38;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff 0%, #9fe6ee 45%, #2a8a9a 100%);
+}
+
+.lm-win::before { left: 6px; }
+.lm-win::after { right: 34px; }
+
+.lm-head {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 30px;
+  cursor: move;
+}
+
+.lm-title {
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 190px;
+  padding: 3px 20px 4px;
+  border: 1px solid #b9eef4;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #4fb3c2 0%, #1f7f91 50%, #16687a 51%, #2a90a2 100%);
+  box-shadow: 0 0 0 1px #0a2c38, inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  text-align: center;
+  font-size: 15px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  color: #fff6c8;
+  text-shadow: 0 0 2px #3a2500, 1px 1px 0 #3a2500;
+  white-space: nowrap;
+}
+
+.lm-close {
+  position: absolute;
+  z-index: 1;
+  top: 4px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 2px solid #ffd7d7;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ff8080, #c41818 70%, #7a0808 100%);
+  box-shadow: 0 0 0 1px #4a0000;
+  color: #fff;
+  font: bold 16px/16px Arial, sans-serif;
+  cursor: pointer;
+}
+
+.lm-close:hover { filter: brightness(1.2); }
+
+.lm-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 22px;
+  margin-bottom: 4px;
+}
+
+.lm-check {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  text-shadow: 0 0 2px #000;
+}
+
+.lm-check input {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  accent-color: #e8a020;
+  cursor: pointer;
+}
+
+.lm-world {
+  margin-left: auto;
+  width: 71px;
+  height: 19px;
+  padding: 0;
+  border: 1px solid #ffe2a8;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #ffb24a 0%, #f07a12 50%, #d85c00 51%, #f08a20 100%);
+  box-shadow: 0 0 0 1px #5a2a00, inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  color: #fff;
+  font: bold 12px Tahoma, Verdana, Arial, sans-serif;
+  text-shadow: 0 0 2px #6a2a00, 1px 1px 0 #6a2a00;
+  cursor: pointer;
+}
+
+.lm-world:hover { filter: brightness(1.12); }
+
+.lm-view {
+  position: relative;
+  width: 400px;
+  overflow: hidden;
+  border: 1px solid #0a2c38;
+  box-shadow: 0 0 0 1px #6fc4d0;
+  background: #0a2430;
+  cursor: pointer;
+}
+
+.lm-img {
+  display: block;
+}
+
+.lm-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.lm-npc,
+.lm-gate,
+.lm-me {
+  position: absolute;
+  pointer-events: auto;
+}
+
+/* NPC icons: a 16 px badge centred on the NPC (MapCanvas CanvasMap* styles). */
+.lm-npc {
+  width: 16px;
+  height: 13px;
+  margin: -14px 0 0 -8px;
+  border: 1px solid #5a3a00;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #fff5a0 0%, #f0c020 100%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  font: bold 10px/13px Arial, sans-serif;
+  text-align: center;
+  color: #5a3a00;
+}
+
+.lm-npc::after { content: '•••'; letter-spacing: -1px; }
+.lm-npc.q-take::after { content: '!'; }
+.lm-npc.q-doing { filter: grayscale(1); }
+.lm-npc.q-doing::after,
+.lm-npc.q-done::after { content: '?'; }
+.lm-npc.trade { background: linear-gradient(180deg, #c8f5a0 0%, #50b020 100%); border-color: #1f4a00; color: #1f4a00; }
+.lm-npc.trade::after { content: '$'; }
+.lm-npc.mail { background: linear-gradient(180deg, #d8ecff 0%, #5c9ae0 100%); border-color: #0f2d5a; color: #0f2d5a; }
+.lm-npc.mail::after { content: '✉'; }
+.lm-npc.heal { background: linear-gradient(180deg, #ffd8d8 0%, #e05050 100%); border-color: #5a0000; color: #fff; }
+.lm-npc.heal::after { content: '+'; }
+.lm-npc.send { background: linear-gradient(180deg, #e8d8ff 0%, #9050e0 100%); border-color: #2a0f5a; color: #fff; }
+.lm-npc.send::after { content: '»'; }
+.lm-npc.battle { background: linear-gradient(180deg, #ffd0a0 0%, #d06010 100%); border-color: #4a1a00; color: #fff; }
+.lm-npc.battle::after { content: '⚔'; }
+
+/* Transport gate (CanvasMapSend): door-shaped marker. */
+.lm-gate {
+  width: 11px;
+  height: 15px;
+  margin: -15px 0 0 -6px;
+  border: 1px solid #4a1a00;
+  border-radius: 6px 6px 1px 1px;
+  background: linear-gradient(180deg, #ffe680 0%, #f09a18 55%, #b05a00 100%);
+  box-shadow: 0 0 4px #ffd040;
+}
+
+.lm-gate::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 4px;
+  width: 3px;
+  height: 9px;
+  border-radius: 2px 2px 0 0;
+  background: #6a2a00;
+}
+
+.lm-npc:hover,
+.lm-gate:hover { filter: brightness(1.25); transform: scale(1.2); }
+
+/* Player marker: blinking green figure. */
+.lm-me {
+  width: 10px;
+  height: 10px;
+  margin: -14px 0 0 -5px;
+  border: 1px solid #0a3a10;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #fff 0%, #6aff6a 45%, #10a020 100%);
+  pointer-events: auto;
+  animation: lm-blink 1s ease-in-out infinite;
+}
+
+.lm-me::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 10px;
+  width: 8px;
+  height: 7px;
+  border: 1px solid #0a3a10;
+  border-radius: 4px 4px 1px 1px;
+  background: linear-gradient(180deg, #6aff6a, #10a020);
+}
+
+.lm-tip {
+  position: absolute;
+  padding: 1px 5px;
+  border: 1px solid #8fd6e0;
+  border-radius: 3px;
+  background: rgba(8, 36, 46, 0.9);
+  font-size: 11px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+@keyframes lm-blink {
+  50% { opacity: 0.45; }
+}

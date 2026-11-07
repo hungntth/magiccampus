@@ -79,3 +79,12 @@ test('easy catch 625 skips the level gate and has a minimum rate of 60', () => {
   assert.equal(catchClientBlocker(0, 6, 86, 80, 625), null);
   assert.equal(catchClientBlocker(0, 6, 86, 80), CATCH_TOO_HIGH);
 });
+
+test('catch bonus points (Luyen Thu Don 565) raise the catchable ceiling of the base gate', () => {
+  assert.equal(catchRate({ ...base, catchable: 3 }), 0);
+  assert.equal(catchRate({ ...base, catchable: 3, bonusPoints: 4 }), 16); // 1 + 4 >= 3: same rate formula
+  assert.equal(catchRate({ ...base, catchable: 5, bonusPoints: 4 }), 16);
+  assert.equal(catchRate({ ...base, catchable: 6, bonusPoints: 4 }), 0);
+  assert.equal(catchRate({ ...base, catchable: 0, bonusPoints: 4 }), 0);
+  assert.equal(catchRate({ ...base, catchable: 2, bonusPoints: -3 }), 0); // a negative bonus never lowers the gate
+});

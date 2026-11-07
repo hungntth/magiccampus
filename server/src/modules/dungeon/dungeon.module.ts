@@ -37,6 +37,7 @@ import { LietDiemHooks } from './lietdiem/lietdiem.hooks';
 import { LucTienHooks } from './luctien/luctien.hooks';
 import { LucTienItems } from './luctien/luctien-items.service';
 import { LucTienQuiz } from './luctien/luctien-quiz.service';
+import { AppearanceModule } from '../appearance/appearance.module';
 import { MeHuyenCurseService } from './mehuyen/mehuyen-curse.service';
 import { MeHuyenHooks } from './mehuyen/mehuyen.hooks';
 import { QuyHutMauHooks } from './quyhutmau/quyhutmau.hooks';
@@ -50,7 +51,7 @@ import { TheGioiSoMaze } from './thegioiso/thegioiso-maze.service';
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: CharacterDungeon.name, schema: CharacterDungeonSchema }]),
-    ActivityEventsModule, BuffModule, CharacterModule, CombatModule, GameDataModule, InventoryModule, NpcScriptModule, PartyModule, QuestModule, RewardsModule,
+    ActivityEventsModule, AppearanceModule, BuffModule, CharacterModule, CombatModule, GameDataModule, InventoryModule, NpcScriptModule, PartyModule, QuestModule, RewardsModule,
     SceneModule, StatsModule, VipCoreModule,
   ],
   providers: [

@@ -11,18 +11,59 @@ const MAP_TYPE_TILE = 0;
 const MAP_TYPE_NORMAL = 1;
 const MAP_TYPE_SINGLE = 2;
 
+/** Tile grid of a map: cell size, row step, counts and the map-pixel origin of a cell. */
+class MapGrid {
+  readonly cellW: number;
+  readonly cellH = 100;
+
+  constructor(private readonly info: MapInfo) {
+    this.cellW = info.type === MAP_TYPE_TILE ? 200 : 100;
+  }
+
+  get rowHeight(): number {
+    return this.info.type === MAP_TYPE_TILE ? this.cellH / 2 : this.cellH;
+  }
+
+  get cols(): number {
+    return Math.ceil(this.info.width / this.cellW) + (this.info.type === MAP_TYPE_TILE ? 1 : 0);
+  }
+
+  get rows(): number {
+    return Math.ceil(this.info.height / this.rowHeight);
+  }
+
+  origin(col: number, row: number): { x: number; y: number } {
+    if (this.info.type !== MAP_TYPE_TILE) return { x: col * this.cellW, y: row * this.cellH };
+    const x = row % 2 === 0 ? col * this.cellW - this.cellW / 2 : col * this.cellW;
+    return { x, y: (row * this.cellH) / 2 };
+  }
+}
+
+export interface MapCell {
+  url: string;
+  x: number;
+  y: number;
+}
+
+/** Every background image of a map with its map-pixel origin (the area map draws them scaled down). */
+export function mapCells(info: MapInfo): MapCell[] {
+  if (info.type === MAP_TYPE_SINGLE) return [{ url: mapTileUrl(info.resCode, 0, 0), x: 0, y: 0 }];
+  const grid = new MapGrid(info);
+  const out: MapCell[] = [];
+  for (let r = 0; r < grid.rows; r++) {
+    for (let c = 0; c < grid.cols; c++) out.push({ url: mapTileUrl(info.resCode, c, r), ...grid.origin(c, r) });
+  }
+  return out;
+}
+
 export class MapLayer extends Container {
   private readonly loaded = new Set<string>();
   private readonly failed = new Set<string>();
-  private cellW = 100;
-  private cellH = 100;
+  private readonly grid: MapGrid;
 
   constructor(readonly info: MapInfo) {
     super();
-    if (info.type === MAP_TYPE_TILE) {
-      this.cellW = 200;
-      this.cellH = 100;
-    }
+    this.grid = new MapGrid(info);
   }
 
   async loadInitial(): Promise<void> {
@@ -33,35 +74,18 @@ export class MapLayer extends Container {
 
   updateVisible(viewX: number, viewY: number, viewW: number, viewH: number): void {
     if (this.info.type === MAP_TYPE_SINGLE) return;
+    const g = this.grid;
     const margin = 1;
-    const c0 = Math.max(0, Math.floor(viewX / this.cellW) - margin);
-    const r0 = Math.max(0, Math.floor(viewY / this.rowHeight) - margin);
-    const c1 = Math.min(this.cols - 1, Math.ceil((viewX + viewW) / this.cellW) + margin);
-    const r1 = Math.min(this.rows - 1, Math.ceil((viewY + viewH) / this.rowHeight) + margin);
+    const c0 = Math.max(0, Math.floor(viewX / g.cellW) - margin);
+    const r0 = Math.max(0, Math.floor(viewY / g.rowHeight) - margin);
+    const c1 = Math.min(g.cols - 1, Math.ceil((viewX + viewW) / g.cellW) + margin);
+    const r1 = Math.min(g.rows - 1, Math.ceil((viewY + viewH) / g.rowHeight) + margin);
     for (let r = r0; r <= r1; r++) {
       for (let c = c0; c <= c1; c++) {
-        const { x, y } = this.cellOrigin(c, r);
+        const { x, y } = g.origin(c, r);
         void this.loadCell(c, r, x, y);
       }
     }
-  }
-
-  private get cols(): number {
-    return Math.ceil(this.info.width / this.cellW) + (this.info.type === MAP_TYPE_TILE ? 1 : 0);
-  }
-
-  private get rows(): number {
-    return Math.ceil(this.info.height / this.rowHeight);
-  }
-
-  private get rowHeight(): number {
-    return this.info.type === MAP_TYPE_TILE ? this.cellH / 2 : this.cellH;
-  }
-
-  private cellOrigin(col: number, row: number): { x: number; y: number } {
-    if (this.info.type === MAP_TYPE_NORMAL) return { x: col * this.cellW, y: row * this.cellH };
-    const x = row % 2 === 0 ? col * this.cellW - this.cellW / 2 : col * this.cellW;
-    return { x, y: (row * this.cellH) / 2 };
   }
 
   private async loadCell(col: number, row: number, x: number, y: number): Promise<void> {

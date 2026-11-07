@@ -35,6 +35,7 @@ Plan: `docs/plans/2026-11-03_02_QUEST_CORE.md`. Implemented 2026-11-03. Builds o
 ## Client
 - `game/QuestController.ts`: quest map, push handlers, `initQuestManager` after each scene load, take/finish/cancel
   throttled 1100 ms, chat lines ("Nhận nhiệm vụ: …", "Hoàn thành nhiệm vụ: …", "Nhận được N Exp, M Tiền", level-up), HUD refresh.
+  The Q shortcut / SystemBar task icon opens `ui/questLogPanel.ts`: active, available (empty until a global offer catalog is sent), and loop tabs; selected active quests show live requirements and rewards.
 - `ui/questPanel.ts` (Nhận / Xong / Bỏ / Đóng; "Xong" only at the finish NPC, "Bỏ" disabled for type 1, "Hệ thống" from the
   tracker), `ui/questTracker.ts` (right side, "[Tân Thủ]" / "[Chính]" / "[Phụ]" prefixes, "Tìm <NPC>" when 104 → walk+talk
   on the same map, else toast with the map name), `ui/npcDialog.ts` quest rows, `Entity.setQuestState` text markers

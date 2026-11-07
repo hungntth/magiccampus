@@ -15,7 +15,11 @@ import { CharacterStatsService } from '../stats/character-stats.service';
 import type { Fighter } from './battle.types';
 import { CombatService } from './combat.service';
 import { creatureFighter } from './fighters';
-import { QUEST_BATTLE_NPC_TYPES, questBattleLevel, questBattleTargets } from './quest-battle';
+import { ENEMY_PET_SLOTS } from './mechanics/summon';
+import { QUEST_BATTLE_NPC_TYPES, questBattleLevel, questBattleTargets, weakenQuestEnemy } from './quest-battle';
+
+/** Go MaxEnemySlots: the front row, then the back row (quest 645 fights six Khảo Quan). */
+const QUEST_ENEMY_SLOTS: readonly number[] = [...BATTLE_ENEMY_SLOTS, ...ENEMY_PET_SLOTS];
 
 interface Pick {
   questId: number;
@@ -38,7 +42,12 @@ export class QuestBattleService {
   private async pick(session: Session, npc: Row): Promise<Pick | null> {
     const cid = session.characterId!;
     const ctx = await this.quests.loadCtx(cid);
-    const plain = questBattleTargets(String(npc.sub_type ?? ''), [...ctx.active.values()]);
+    const npcId = Number(npc.id);
+    const isQuestNpc = (questId: number): boolean => {
+      const q = this.gameData.getQuest(questId);
+      return !!q && (q.startNpc === npcId || q.finishNpc === npcId);
+    };
+    const plain = questBattleTargets(String(npc.sub_type ?? ''), [...ctx.active.values()], isQuestNpc);
     if (plain) return { ...plain, bossLevel: 0, boss: false };
     const spec = await this.bosses.present(cid, session.mapId, Number(npc.id));
     const row = spec && ctx.active.get(spec.questId);
@@ -58,11 +67,12 @@ export class QuestBattleService {
     const enemies: Fighter[] = [];
     for (const creatureId of pick.creatureIds) {
       const tpl = this.gameData.creature(creatureId);
-      const slot = BATTLE_ENEMY_SLOTS[enemies.length];
+      const slot = QUEST_ENEMY_SLOTS[enemies.length];
       if (!tpl || slot === undefined) continue;
       const f = creatureFighter(slot, tpl, pick.bossLevel || questBattleLevel(minLevel, tpl.useLevel, mapLevel));
       if (pick.boss) f.bossFlag = 1;
       if (pick.bossLevel > 0) f.hp = f.hpMax = Math.max(1, Math.floor(f.hpMax / lifeDivisor(pick.questId)));
+      weakenQuestEnemy(f, pick.questId);
       enemies.push(f);
     }
     if (enemies.length === 0) return false;

@@ -10,6 +10,7 @@ import type {
 import type { GameClient } from '../net/client';
 import type { ChatBox } from '../ui/chat';
 import { QuestPanel } from '../ui/questPanel';
+import { QuestLogPanel } from '../ui/questLogPanel';
 import { QuestTracker } from '../ui/questTracker';
 import { toast } from '../ui/screens';
 import type { Entity } from './Entity';
@@ -32,6 +33,7 @@ export interface QuestHost {
 export class QuestController {
   private readonly quests = new Map<number, ChaQuest>();
   private readonly panel = new QuestPanel();
+  private readonly log: QuestLogPanel;
   private readonly tracker: QuestTracker;
   readonly loops: LoopController; // loop quests (M8 phase C): states, push messages, take / cancel / repair
   private readonly lastCall = new Map<string, number>();
@@ -40,6 +42,7 @@ export class QuestController {
 
   constructor(private readonly host: QuestHost, ui: HTMLElement) {
     this.tracker = new QuestTracker(ui, (q) => this.openFromTracker(q), (q) => this.find(q), (q) => this.progressOf(q));
+    this.log = new QuestLogPanel({ quests: () => this.quests.values(), progress: (q) => this.progressOf(q), onOpen: (q) => this.openFromTracker(q) });
     const c = host.client;
     this.loops = new LoopController({ client: c, chat: host.chat, quests: () => this.quests.values() });
     this.offs.push(
@@ -62,6 +65,7 @@ export class QuestController {
   destroy(): void {
     for (const off of this.offs) off();
     this.panel.close();
+    this.log.close();
     this.tracker.destroy();
     this.loops.destroy();
   }
@@ -70,12 +74,18 @@ export class QuestController {
     this.panel.close();
   }
 
+  /** Bottom SystemBar task icon / Q: opens the active quest manager. */
+  toggleLog(): void {
+    this.log.toggle();
+  }
+
   async load(): Promise<void> {
     const res = await this.host.client.call<InitQuestManagerReply>('initQuestManager');
     this.quests.clear();
     for (const q of Object.values(res.q)) this.quests.set(q.qid, q);
     this.loops.load(res.l);
     this.tracker.render(this.quests.values());
+    this.log.refresh();
   }
 
   /** Quest row clicked in the NPC dialog. */
@@ -172,6 +182,7 @@ export class QuestController {
     this.quests.set(q.qid, q);
     this.host.player.qn = this.quests.size;
     this.tracker.render(this.quests.values());
+    this.log.refresh();
     if (isNew) this.host.chat.system(`Nhận nhiệm vụ: ${q.data.name}`);
     if (this.panel.questId === q.qid) this.refreshSoon();
   }
@@ -185,6 +196,7 @@ export class QuestController {
     this.quests.delete(r.qid);
     this.host.player.qn = r.qn;
     this.tracker.render(this.quests.values());
+    this.log.refresh();
     if (this.panel.questId === r.qid) this.panel.close();
     if (q) this.host.chat.system(`Đã hủy nhiệm vụ: ${q.data.name}`);
   }
