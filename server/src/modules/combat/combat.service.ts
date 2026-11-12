@@ -258,7 +258,7 @@ export class CombatService implements OnModuleInit {
     if (!battle || !member || session.battleId !== battle.id) return;
     session.battleId = null;
     if (battle.ended) return void this.manager.detach(battle, member.cid);
-    if (battle.pvp) return this.pvp.onLeave(battle, member); // the leaver loses
+    if (battle.pvp && !battle.ctx) return this.pvp.onLeave(battle, member); // duel: the leaver loses (system PvP continues like a group battle)
     const others = [...battle.members.values()].filter((m) => m.cid !== member.cid && !m.left);
     if (others.length === 0) {
       await this.settleService.settle(battle, BattleResult.FLED);

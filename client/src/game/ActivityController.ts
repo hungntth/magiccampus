@@ -12,6 +12,7 @@ import { ActivityStrip } from '../ui/hud/activityStrip';
 import { AstrologyController } from './AstrologyController';
 import { FurnaceController } from './FurnaceController';
 import { PrsController } from './PrsController';
+import { ThreePvpController } from './ThreePvpController';
 import { DailySystemsController } from './DailySystemsController';
 import { StoreSystemsController } from './StoreSystemsController';
 import { TowerController } from './TowerController';
@@ -56,6 +57,7 @@ export class ActivityController {
   private readonly astrology: AstrologyController;
   private readonly furnace: FurnaceController;
   private readonly prs: PrsController;
+  private readonly threePvp: ThreePvpController;
   private readonly offs: (() => void)[] = [];
   private catalog: DiaryEntry[] = [];
   private diary: DiaryData | null = null;
@@ -83,6 +85,7 @@ export class ActivityController {
     this.astrology = new AstrologyController({ client, player });
     this.furnace = new FurnaceController({ client, player });
     this.prs = new PrsController({ client, player, bagCount: host.bagCount });
+    this.threePvp = new ThreePvpController(client, player);
     this.stores = new StoreSystemsController({ client, player, bagCount: host.bagCount });
     this.strip.setList(player.startedActList ?? {});
     this.daily = new DailyActPanel({
@@ -132,6 +135,7 @@ export class ActivityController {
     this.astrology.destroy();
     this.furnace.destroy();
     this.prs.destroy();
+    this.threePvp.destroy();
   }
 
   /** Strip icon dispatch (phase D ids: 21 wish tree, 24 magic array, 25 festival, 49 daily boss). */
@@ -155,6 +159,7 @@ export class ActivityController {
     else if (id === ActivityId.ASTROLOGIC) this.astrology.toggle();
     else if (id === ActivityId.MYSTERY_FURNACE) this.furnace.toggle();
     else if (id === ActivityId.PET_REAL_SOUL) this.prs.toggle();
+    else if (id === ActivityId.THREE_PVP) this.threePvp.openFromStrip();
     else this.openDaily();
   }
 

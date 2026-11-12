@@ -1,0 +1,35 @@
+/* Headline strip above the chat log (M14 G) and the private chat header. */
+.hud-chat-headline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  padding: 2px 6px;
+  box-sizing: border-box;
+  background: rgba(60, 0, 0, 0.7);
+  border: 1px solid #e8c46a;
+  border-radius: 4px;
+  color: #ffd84a;
+  font: 12px Tahoma, Verdana, Arial, sans-serif;
+  word-break: break-word;
+  text-shadow: 0 0 2px #000;
+}
+
+.hud-chat-headline .who {
+  color: #f90;
+}
+
+.pchat-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px;
+  font-size: 12px;
+  color: #cfe;
+}
+
+.pchat-info img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}

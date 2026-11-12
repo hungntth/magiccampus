@@ -9,6 +9,7 @@ import { GameDataModule } from '../gamedata/gamedata.module';
 import { PartyModule } from '../party/party.module';
 import { StatsModule } from '../stats/stats.module';
 import { PkRpc } from './pk.rpc';
+import { PkStubRpc } from './pk-stub.rpc';
 import { PkService } from './pk.service';
 
 @Module({
@@ -16,7 +17,7 @@ import { PkService } from './pk.service';
     MongooseModule.forFeature([{ name: Character.name, schema: CharacterSchema }]),
     CharacterModule, CombatModule, GameDataModule, PartyModule, StatsModule,
   ],
-  providers: [PkService, PkRpc],
+  providers: [PkService, PkRpc, PkStubRpc],
   exports: [PkService],
 })
 export class PkModule {}

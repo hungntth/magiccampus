@@ -1,0 +1,299 @@
+/* M14 D: marriage manager window, text dialog, IM couple header and couple rank table. Navy / gold like the IM window. */
+.marriage-panel {
+  position: absolute;
+  left: 140px;
+  top: 60px;
+  z-index: 46;
+  width: 380px;
+  box-sizing: border-box;
+  padding: 6px;
+  background: linear-gradient(180deg, #1d4a72 0%, #0e2a45 100%);
+  border: 2px solid #e8c46a;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+  font-family: Tahoma, Verdana, Arial, sans-serif;
+  font-size: 12px;
+  color: #fff;
+  pointer-events: auto;
+}
+
+.marriage-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px 4px;
+  border-bottom: 1px solid #4f86b3;
+}
+
+.marriage-title {
+  font-weight: 700;
+  color: #ffe9a8;
+}
+
+.marriage-close {
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.marriage-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 6px 0 4px;
+}
+
+.marriage-tab {
+  flex: 1;
+  padding: 3px 0;
+  border: 1px solid #4f86b3;
+  border-radius: 4px;
+  background: #153a5c;
+  color: #cfe3f5;
+  font: inherit;
+  cursor: pointer;
+}
+
+.marriage-tab.active {
+  background: #2f6da3;
+  border-color: #e8c46a;
+  color: #fff;
+}
+
+.marriage-body {
+  height: 250px;
+  overflow-y: auto;
+  padding: 2px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+}
+
+.marriage-empty {
+  padding: 12px;
+  color: #8da3b8;
+  text-align: center;
+}
+
+.marriage-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  color: #8da3b8;
+  cursor: pointer;
+}
+
+.marriage-row.online {
+  color: #fff;
+}
+
+.marriage-row:hover {
+  background: #2a5f8f;
+}
+
+.marriage-row.selected {
+  background: #2f6da3;
+  outline: 1px solid #e8c46a;
+}
+
+.marriage-dot {
+  font-size: 9px;
+  color: #6b7a88;
+}
+
+.marriage-row.online .marriage-dot {
+  color: #5fe36a;
+}
+
+.marriage-name {
+  min-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.marriage-sub {
+  flex: 1;
+  color: #bcd6ec;
+  font-size: 11px;
+  text-align: right;
+}
+
+.marriage-detail {
+  margin: 0 6px 4px;
+  padding: 4px 6px;
+  border-left: 2px solid #e8c46a;
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffe9a8;
+  word-break: break-word;
+}
+
+.marriage-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 26px;
+  margin-top: 4px;
+}
+
+.marriage-card {
+  margin: 4px 2px;
+  padding: 5px 7px;
+  border: 1px solid #4f86b3;
+  border-radius: 4px;
+  background: #153a5c;
+}
+
+.marriage-card-head {
+  font-weight: 700;
+  color: #ffe9a8;
+}
+
+.marriage-card-text {
+  margin: 2px 0;
+  word-break: break-word;
+}
+
+.marriage-card-date,
+.marriage-card-state {
+  color: #9db6cc;
+  font-size: 11px;
+}
+
+.marriage-card-row {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.marriage-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.marriage-text-dialog {
+  width: 260px;
+}
+
+.marriage-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 6px;
+  resize: none;
+  font: inherit;
+  color: #fff;
+  background: #081a2c;
+  border: 1px solid #4f86b3;
+  border-radius: 4px;
+}
+
+/* IM window couple header */
+.friend-couple {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 0;
+  padding: 3px 6px;
+  border: 1px solid #4f86b3;
+  border-radius: 4px;
+  background: #153a5c;
+}
+
+.friend-couple-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #ffb3c9;
+}
+
+/* Couple rank tab of the ranking window */
+.rank-couple-head,
+.rank-couple-row {
+  display: flex;
+  gap: 4px;
+}
+
+.rank-couple-head span,
+.rank-couple-row span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rank-couple-head span:first-child,
+.rank-couple-row span:first-child {
+  flex: 0 0 34px;
+}
+
+.rank-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 4px;
+}
+
+.friend-couple[hidden] {
+  display: none;
+}
+
+.rank-couple-head span:nth-child(4),
+.rank-couple-row span:nth-child(4) {
+  flex: 0 0 64px;
+}
+
+/* M14 E: wedding hall booking window. */
+.wedding-panel {
+  width: 420px;
+}
+
+.wedding-tier {
+  margin: 6px 2px 4px;
+  color: #ffe9a8;
+  font-weight: 700;
+}
+
+.wedding-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 2px 6px;
+  border-bottom: 1px solid #4f86b3;
+}
+
+.wedding-line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wedding-label {
+  width: 150px;
+  color: #cfe3f5;
+}
+
+.wedding-num {
+  width: 44px;
+  padding: 1px 2px;
+  background: #0e2a45;
+  border: 1px solid #4f86b3;
+  color: #fff;
+  font: inherit;
+}
+
+.wedding-hint {
+  color: #8fb3d4;
+}
+
+.wedding-row {
+  flex-wrap: wrap;
+}
+
+.wedding-row .marriage-sub {
+  flex: 1 1 100%;
+}

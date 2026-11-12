@@ -2,14 +2,18 @@
 // filtered by tab, channel picker "Hiện tại↑", input, "Gửi" and the emotion popup (M9). `/w <name> <text>` whispers, an emotion code
 // (`/laugh`) is sent as chat, other `/cmd` go to onCommand.
 
-import { ChatChannel, ChatLimits, emotionOf, type SayPush, type WisperPush } from '@mc/shared';
+import { ChatChannel, ChatLimits, HEADLINE, HEADLINE_TEXT, emotionOf, isBanLiftCommand, plainLength, type SayPush, type WisperPush } from '@mc/shared';
 import { div, notReady } from './hud/skin';
 import { toggleEmojiPopup } from './emojiPopup';
+import { askConfirm } from './confirmDialog';
+import { HeadlineStrip } from './chatHeadline';
+import './chatHeadline.css';
 
 const MAX_LINES = 100;
 const MIN_H = 140;
 const MAX_H = 500;
 const H_STEP = 20;
+const PLACEHOLDER = 'Enter để chat, /w <tên> <nội dung> nhắn riêng, /gm <nội dung> gửi GM';
 
 type Kind = 'local' | 'world' | 'team' | 'guild' | 'whisper' | 'system' | 'notice' | 'event';
 const TABS: { label: string; kinds: Kind[] | null }[] = [
@@ -29,6 +33,7 @@ const SEND_CHANNELS: { label: string; id: number | null }[] = [
   { label: 'Thế giới', id: ChatChannel.WORLD },
   { label: 'Bang', id: ChatChannel.GUILD },
   { label: 'Nhóm', id: ChatChannel.TEAM },
+  { label: 'Đầu bảng', id: ChatChannel.HEADLINE },
 ];
 const CHANNEL_LABEL: Record<number, { label: string; kind: Kind }> = {
   [ChatChannel.LOCAL]: { label: 'Hiện tại', kind: 'local' },
@@ -41,6 +46,8 @@ export interface ChatHandlers {
   onSend(channelId: number, msg: string): void;
   onWhisper(targetName: string, text: string): void;
   onCommand(cmd: string, args: string[]): void;
+  /** `/gm <text>`: chatGM(text, 0, ''). */
+  onGM(text: string): void;
 }
 
 export class ChatBox {
@@ -51,6 +58,7 @@ export class ChatBox {
   private readonly rail: HTMLElement;
   private readonly railFill: HTMLElement;
   private readonly tip: HTMLElement;
+  private readonly headline: HeadlineStrip;
   private readonly lines: { kind: Kind; el: HTMLElement }[] = [];
   private tab = 0;
   private sendChannel = 0;
@@ -68,6 +76,7 @@ export class ChatBox {
     this.railFill = div('hud-chat-rail-fill', this.rail);
     this.rail.onscroll = () => (this.log.scrollTop = this.rail.scrollTop);
     this.log.onscroll = () => (this.rail.scrollTop = this.log.scrollTop);
+    this.headline = new HeadlineStrip(this.root);
     this.tip = div('hud-chat-tip', this.root);
     this.tip.hidden = true;
     document.addEventListener('pointerdown', (e) => {
@@ -105,6 +114,8 @@ export class ChatBox {
         if (c.id === null) return notReady();
         this.sendChannel = i;
         this.updateChannelBtn();
+        this.input.maxLength = c.id === ChatChannel.HEADLINE ? HEADLINE.maxChars : ChatLimits.MAX_MSG_LEN;
+        this.input.placeholder = c.id === ChatChannel.HEADLINE ? `Đầu bảng: tối đa ${HEADLINE.maxChars} ký tự, tốn 1 Loa Lớn Siêu Cấp` : PLACEHOLDER;
       };
     });
     this.channelBtn.onclick = () => (menu.hidden = !menu.hidden);
@@ -112,7 +123,7 @@ export class ChatBox {
     const form = document.createElement('form');
     this.input = document.createElement('input');
     this.input.maxLength = ChatLimits.MAX_MSG_LEN;
-    this.input.placeholder = 'Enter để chat, /w <tên> <nội dung> để nhắn riêng';
+    this.input.placeholder = PLACEHOLDER;
     form.appendChild(this.input);
     bar.appendChild(form);
     form.onsubmit = (e) => {
@@ -146,6 +157,7 @@ export class ChatBox {
   }
 
   push(msg: SayPush): void {
+    if (msg.channelId === ChatChannel.HEADLINE) return this.headline.show(msg.name, msg.msg); // not in the log tabs
     const ch = CHANNEL_LABEL[msg.channelId] ?? CHANNEL_LABEL[ChatChannel.LOCAL];
     const line = div(`line ${ch.kind}`);
     line.append(`[${ch.label}]`, this.who(msg.name), `:${msg.msg}`);
@@ -215,14 +227,26 @@ export class ChatBox {
       this.handlers.onWhisper(whisper[1], whisper[2]);
       return;
     }
-    if (text.startsWith('/') && !emotionOf(text)) {
+    const gm = /^\/gm(?:\s+([\s\S]+))?$/i.exec(text);
+    if (gm) {
+      if (gm[1]) this.handlers.onGM(gm[1].trim());
+      else this.system('Dùng: /gm <nội dung>');
+      return;
+    }
+    if (text.startsWith('/') && !emotionOf(text) && !isBanLiftCommand(text)) {
       const [cmd, ...args] = text.slice(1).split(/\s+/);
       if (cmd.toLowerCase() === 'w') this.system('Dùng: /w <tên> <nội dung>');
       else this.handlers.onCommand(cmd.toLowerCase(), args);
       return;
     }
-    const id = SEND_CHANNELS[this.sendChannel].id;
+    const id = isBanLiftCommand(text) ? ChatChannel.LOCAL : SEND_CHANNELS[this.sendChannel].id; // /huycam goes to say unchanged
+    if (id === ChatChannel.HEADLINE) return this.sendHeadline(text);
     if (id !== null) this.handlers.onSend(id, text);
+  }
+
+  private sendHeadline(text: string): void {
+    if (plainLength(text) > HEADLINE.maxChars) return this.system(HEADLINE_TEXT.TOO_LONG);
+    askConfirm(HEADLINE_TEXT.CONFIRM, () => this.handlers.onSend(ChatChannel.HEADLINE, text), () => this.prefill(text));
   }
 
   private updateChannelBtn(): void {

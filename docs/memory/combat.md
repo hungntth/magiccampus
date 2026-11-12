@@ -166,3 +166,11 @@ PvP battles reuse BattleManager with two player sides; see `pk.md`.
   Seed prop 41 rows are NOT life steal (Chiến Phách, Niết Bàn, …): life steal uses pseudo prop 941.
 - Tests `mechanics/fairy-battle-rules.test.ts` (7, real rows). Live ws smoke (scratchpad `g2_smoke.mjs`): casts at rounds 1 / 2 / 4 / 6, nothing
   on empty slots, Thánh Ca rHp tick. Classification table: research `2026-11-12_02_FAIRY_PRS_RESEARCH.md` § "G2 fairy battle skills".
+
+
+## M14 phase H: system PvP (2026-11-12)
+- `PvpService.startSystem(sideA, sideB, ctx)` generalises the duel to up to 5 characters + pets per side (`begin`): attackers at slots 10..14 (pets 15..19, side `player`), targets at 0 2 1 4 3 (pets +5, side `enemy`, `guest: true` view). A duel is the one-entry case. `ctx` tags the battle (`source: 'threepvp'`, `key`, `restoreAll`).
+- `pvp-rules.ts`: `SYSTEM_SLOTS`, `systemBoard`, `aliveCharacters`, `restoreFull`. `BattleContext.restoreAll` makes `settlePvp` revive everyone at full HP / MP; the living characters per side are captured first in `ctx.alive` (the scorer needs them).
+- `BattleSettleService.settlePvp` now calls `hooks.runEnd(battle)` (tagged battles; `onAnyEnd` hooks such as the intimacy tick already check `battle.pvp`).
+- Disconnect: a duel (no ctx) still ends with the leaver losing; a tagged system battle uses the group-battle path (the leaver drops out with a queued leave command, the side loses when nobody is alive).
+- Used only by `modules/threepvp/` (see `threepvp.md`).

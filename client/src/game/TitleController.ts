@@ -3,7 +3,7 @@
 // The title buff row (long-buff key 0) is pushed by the server (upLongBuff / delBuff) and drawn by the buff bar.
 
 import {
-  titleLabel, type PlayerData, type SceneCharacter, type SetActTitleResult, type SetTitleResult, type TitleAdded,
+  BROTHER, titleLabel, type BrotherTitleUpdate, type PlayerData, type SceneCharacter, type SetActTitleResult, type SetTitleResult, type TitleAdded,
   type TitleBroadcast, type TitleList, type TitleView,
 } from '@mc/shared';
 import type { GameClient } from '../net/client';
@@ -22,6 +22,8 @@ export interface TitleHost {
 interface Plate {
   tv: TitleView | null;
   atv: TitleView | null;
+  /** Sworn-brotherhood suffix: title 153 reads "<name>-<broT>" (Flash CharactorView.setTitle). */
+  broT?: string;
 }
 
 export class TitleController {
@@ -46,6 +48,7 @@ export class TitleController {
         host.player.cts = String(cts ?? '');
         this.panel.render();
       }),
+      c.on('onBrotherTitleUpdate', (d) => this.onBrother(d as BrotherTitleUpdate)),
       c.on('onScenePlayerLeft', (id) => this.plates.delete(Number(id))),
     );
   }
@@ -66,15 +69,28 @@ export class TitleController {
   }
 
   /** Scene payload (self or a peer): draws the nameplates from `tv` / `atv`. */
-  apply(entity: Entity, sc: Pick<SceneCharacter, 'id' | 'tv' | 'atv'>): void {
-    this.plates.set(sc.id, { tv: sc.tv ?? null, atv: sc.atv ?? null });
+  apply(entity: Entity, sc: Pick<SceneCharacter, 'id' | 'tv' | 'atv' | 'broT'>): void {
+    this.plates.set(sc.id, { tv: sc.tv ?? null, atv: sc.atv ?? null, ...(sc.broT ? { broT: sc.broT } : {}) });
     this.draw(entity, sc.id);
     if (sc.id === this.host.player.id) this.syncSelf();
   }
 
   private draw(entity: Entity | undefined, cid: number): void {
     const p = this.plates.get(cid);
-    entity?.setTitles(p?.tv ? titleLabel(p.tv) : null, p?.atv ? titleLabel(p.atv) : null);
+    entity?.setTitles(p?.tv ? titleLabel(this.brotherView(p.tv, p.broT)) : null, p?.atv ? titleLabel(p.atv) : null);
+  }
+
+  private brotherView(tv: TitleView, broT: string | undefined): TitleView {
+    return tv.id === BROTHER.titleId && broT ? { ...tv, n: `${tv.n}-${broT}` } : tv;
+  }
+
+  /** onBrotherTitleUpdate: the group suffix of a character (in this scene); redraws its nameplate. */
+  private onBrother(d: BrotherTitleUpdate): void {
+    const plate = this.plates.get(d.cid) ?? { tv: null, atv: null };
+    if (d.tname) plate.broT = d.tname;
+    else delete plate.broT;
+    this.plates.set(d.cid, plate);
+    this.draw(this.host.entityOf(d.cid), d.cid);
   }
 
   private syncSelf(): void {

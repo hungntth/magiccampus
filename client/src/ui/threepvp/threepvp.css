@@ -1,0 +1,40 @@
+/* Chiến Trường Dũng Sĩ (3v3) windows: room list / ranking / room panel and the result popup. Navy / gold like .mail-panel. */
+.pvp3-panel { position: absolute; left: 150px; top: 50px; z-index: 46; width: 600px; box-sizing: border-box; padding: 6px;
+  background: linear-gradient(180deg, #1d4a72 0%, #0e2a45 100%); border: 2px solid #e8c46a; border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55); font-family: Tahoma, Verdana, Arial, sans-serif; font-size: 12px; color: #fff; pointer-events: auto; }
+.pvp3-header { display: flex; align-items: center; justify-content: space-between; padding: 0 4px 4px; border-bottom: 1px solid #4f86b3; }
+.pvp3-title { font-weight: 700; color: #ffe9a8; }
+.pvp3-point { color: #cfe3f5; margin-left: 12px; font-weight: 400; }
+.pvp3-close { border: 0; background: transparent; color: #fff; font-size: 16px; line-height: 1; cursor: pointer; }
+.pvp3-tabs { display: flex; gap: 4px; margin: 6px 0 4px; }
+.pvp3-tab { padding: 3px 12px; border: 1px solid #4f86b3; border-radius: 4px 4px 0 0; background: #17395a; color: #cfe3f5; cursor: pointer; }
+.pvp3-tab.active { background: #2b6aa0; color: #fff; border-color: #e8c46a; }
+.pvp3-body { min-height: 330px; max-height: 400px; overflow-y: auto; background: rgba(0, 0, 0, 0.25); border-radius: 4px; padding: 6px; }
+.pvp3-tools { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.pvp3-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.pvp3-card { border: 1px solid #4f86b3; border-radius: 4px; padding: 4px 6px; background: rgba(23, 57, 90, 0.7); }
+.pvp3-card.full { opacity: 0.6; }
+.pvp3-card-head { display: flex; justify-content: space-between; margin-bottom: 3px; color: #ffe9a8; font-weight: 700; }
+.pvp3-seat { display: flex; justify-content: space-between; height: 18px; align-items: center; color: #e6f1fb; }
+.pvp3-seat.empty { color: #7d9bb8; }
+.pvp3-seat .leader { color: #ffd24a; margin-right: 4px; }
+.pvp3-ready { color: #7be37b; font-weight: 700; }
+.pvp3-btn { padding: 3px 12px; border: 1px solid #e8c46a; border-radius: 4px; background: #2b6aa0; color: #fff; cursor: pointer; }
+.pvp3-btn:hover { background: #3a80bd; }
+.pvp3-btn.warn { background: #8a3a2a; }
+.pvp3-btn[disabled] { opacity: 0.5; cursor: default; }
+.pvp3-input { width: 70px; padding: 2px 4px; background: #0b1f33; border: 1px solid #4f86b3; color: #fff; border-radius: 3px; }
+.pvp3-input.narrow { width: 44px; }
+.pvp3-room-seats { display: flex; flex-direction: column; gap: 6px; }
+.pvp3-room-seats .pvp3-seat { height: 30px; padding: 0 8px; border: 1px solid #4f86b3; border-radius: 4px; background: rgba(23, 57, 90, 0.7); font-size: 13px; }
+.pvp3-rank-row { display: grid; grid-template-columns: 50px 1fr 90px; padding: 3px 4px; border-bottom: 1px solid rgba(79, 134, 179, 0.25); }
+.pvp3-rank-row.head { color: #cfe3f5; font-weight: 700; }
+.pvp3-empty { color: #9db8d0; text-align: center; padding: 30px 0; }
+.pvp3-status { margin-top: 6px; color: #ffd24a; }
+.pvp3-result { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); z-index: 90; min-width: 240px; padding: 14px 18px; text-align: center;
+  background: linear-gradient(180deg, #1d4a72 0%, #0e2a45 100%); border: 2px solid #e8c46a; border-radius: 8px; color: #fff;
+  font-family: Tahoma, Verdana, Arial, sans-serif; font-size: 13px; pointer-events: auto; }
+.pvp3-result .big { font-size: 16px; font-weight: 700; color: #ffe9a8; margin-bottom: 8px; }
+.pvp3-result .win { color: #7be37b; }
+.pvp3-result .lose { color: #ff9c8a; }
+.pvp3-result button { margin-top: 10px; }

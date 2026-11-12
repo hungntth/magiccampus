@@ -122,7 +122,7 @@ export class CharacterController {
   }
 
   /** Scene payload of self or a peer: draws its title nameplates. */
-  applyTitles(entity: Entity, sc: Pick<SceneCharacter, 'id' | 'tv' | 'atv'>): void {
+  applyTitles(entity: Entity, sc: Pick<SceneCharacter, 'id' | 'tv' | 'atv' | 'broT'>): void {
     this.titles.apply(entity, sc);
   }
 

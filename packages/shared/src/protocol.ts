@@ -21,6 +21,9 @@ import type { VipLogin } from './vip.js';
 import type { OfflineLogin } from './offline.js';
 import type { MountLogin } from './mount.js';
 import type { PrsLogin } from './prs.js';
+import type { MentorLogin } from './mentor.js';
+import type { BrotherLogin } from './brotherhood.js';
+import type { CoupleState } from './marriage.js';
 import type { StarsData } from './zodiac.js';
 import type { TBag } from './tempBag.js';
 
@@ -75,7 +78,7 @@ export interface ClassInfo {
   largeImgFemale: string;
 }
 
-export interface PlayerData extends PetLoginInfo, Partial<PetBoostLoginInfo>, Partial<PPVELoginInfo>, Partial<PetEvolutionLoginInfo>, Partial<PetSoulLogin>, Partial<AwakenLogin>, Partial<ActivityLogin>, Partial<VipLogin>, Partial<OfflineLogin>, Partial<MountLogin>, Partial<PrsLogin> {
+export interface PlayerData extends PetLoginInfo, Partial<PetBoostLoginInfo>, Partial<PPVELoginInfo>, Partial<PetEvolutionLoginInfo>, Partial<PetSoulLogin>, Partial<AwakenLogin>, Partial<ActivityLogin>, Partial<VipLogin>, Partial<OfflineLogin>, Partial<MountLogin>, Partial<PrsLogin>, Partial<MentorLogin>, Partial<BrotherLogin>, Partial<CoupleState> {
   id: number;
   name: string;
   classId: number;
@@ -182,6 +185,8 @@ export interface SceneCharacter {
   pmLevel?: number;
   /** Equipped Chân Hồn Thần Thú form (data_tbl_prs_show id, Flash Charactor.prsUseId); absent = none. */
   prsUseId?: number;
+  /** Sworn-brotherhood title suffix (M14 C, Flash Charactor.broT); shown as "<title>-<broT>" while title 153 is active. */
+  broT?: string;
 }
 
 export interface SceneNpc {
@@ -429,7 +434,7 @@ export type PlayerUpdate = Partial<
     PlayerData,
     | 'level' | 'exp' | 'money' | 'moneyBind' | 'gold' | 'goldBind' | 'exPoint' | 'attrPoints' | 'currentHp' | 'currentMp'
     | 'maxHp' | 'maxMp' | 'attStrength' | 'attAgility' | 'attStamina' | 'attIntelligence' | 'attEnergy' | 'property' | 'petMaxNum' | 'bagSlotNum'
-    | 'bankSlotNum' | 'selectedMoneyType' | 'selectedGoldType' | 'name' | 'currencies' | 'pmLevel' | 'expSkill' | 'cl' | 'ep'
+    | 'bankSlotNum' | 'selectedMoneyType' | 'selectedGoldType' | 'name' | 'currencies' | 'pmLevel' | 'expSkill' | 'cl' | 'ep' | 'tl' | 'tp'
   >
 > & {
   /** Guild shop purchases (M11 phase E): the member's normal / donate contribution after the spend (Go onUPP{guildContrib, donateContrib}). */

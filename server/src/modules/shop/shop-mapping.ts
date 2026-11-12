@@ -47,8 +47,8 @@ function type1Prices(slot: ShopRow, tpl: ShopRow | undefined): ShopPrice[] {
 
 /** Price lines of a slot: shop type 2 uses p_type/p_num pairs (ShopSlot.as:353-597), else the type-1 rule. */
 export function slotPrices(slot: ShopRow, tpl: ShopRow | undefined, shopType: number): ShopPrice[] {
-  if (shopType === 2 && num(slot.p_type1) > 0) {
-    const out: ShopPrice[] = [{ currency: ShopCurrency.SPECIAL, cost: num(slot.p_num1), pType: num(slot.p_type1) }];
+  if (shopType === 2 && (num(slot.p_type1) > 0 || num(slot.p_type2) > 0)) {
+    const out: ShopPrice[] = num(slot.p_type1) > 0 ? [{ currency: ShopCurrency.SPECIAL, cost: num(slot.p_num1), pType: num(slot.p_type1) }] : [];
     if (num(slot.p_type2) > 0 && num(slot.p_num2) >= 0) {
       out.push({ currency: ShopCurrency.SPECIAL, cost: num(slot.p_num2), pType: num(slot.p_type2) });
     }

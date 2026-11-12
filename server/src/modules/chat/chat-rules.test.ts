@@ -12,7 +12,8 @@ describe('routeChannel', () => {
     assert.equal(routeChannel(ChatChannel.GUILD), 'guild');
   });
   it('refuses area, headline, rumour, whisper and unknown ids', () => {
-    for (const id of [4, 5, 6, 9, 99, -1, 7]) assert.equal(routeChannel(id), 'unsupported');
+    for (const id of [4, 5, 9, 99, -1, 7]) assert.equal(routeChannel(id), 'unsupported');
+    assert.equal(routeChannel(6), 'headline');
   });
 });
 

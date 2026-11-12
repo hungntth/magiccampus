@@ -18,6 +18,7 @@ import { PartyService } from '../party/party.service';
 import { PetFollowService } from '../pet/pet-follow.service';
 import { PmStateService } from '../vip/pm-state.service';
 import { AppearanceService } from '../appearance/appearance.service';
+import { BrotherhoodStore } from '../brotherhood/brotherhood.store';
 import { portalDataOf } from './portal-data';
 import { resolveGate } from './portal.rules';
 import { SceneTransportService } from './scene-transport.service';
@@ -43,6 +44,7 @@ export class SceneRpc implements OnModuleInit {
     private readonly hooks: SceneHooks,
     private readonly instances: InstanceNpcService,
     private readonly appearance: AppearanceService,
+    private readonly brothers: BrotherhoodStore,
   ) {}
 
   onModuleInit(): void {
@@ -80,7 +82,7 @@ export class SceneRpc implements OnModuleInit {
     for (const peer of this.scenes.members(session.mapId)) {
       if (peer === session || peer.characterId === null) continue;
       const doc = await this.characters.getById(peer.characterId).catch(() => null);
-      if (doc) out[String(doc._id)] = await this.appearance.decorate(await this.vip.decorate(await this.petFollow.decorate(this.party.decorate(this.characters.toSceneCharacter(doc)))), session.mapId, false);
+      if (doc) out[String(doc._id)] = await this.appearance.decorate(await this.vip.decorate(await this.brothers.decorate(await this.petFollow.decorate(this.party.decorate(this.characters.toSceneCharacter(doc))))), session.mapId, false);
     }
     return out;
   }

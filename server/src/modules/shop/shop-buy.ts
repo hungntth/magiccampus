@@ -1,7 +1,7 @@
 // Pure buy rules of the NPC shop: which currency / unit price a slot charges and which colour the bought item gets.
 // Legacy: application/shop/service.go:90-305, purchase_guard.go, resolve.go.
 
-import { GUILD_PRICE_NAMES, GuildPriceType, type MoneyKey } from '@mc/shared';
+import { GUILD_PRICE_NAMES, GuildPriceType, THREE_PVP, type CurrencyKey, type MoneyKey } from '@mc/shared';
 import type { ShopRow } from './shop-mapping';
 
 export interface Price {
@@ -17,6 +17,18 @@ export interface ContribPrice {
   currencyName: string;
   bound: false;
 }
+
+/** Price paid with a special currency balance (M14 H: price type 7 = Huy Chương Dũng Sĩ, currency 225), per unit; not bound. */
+export interface PointPrice {
+  points: { key: CurrencyKey; unit: number };
+  currencyName: string;
+  bound: false;
+}
+
+/** p_type -> special currency (shop price types that read Character.currencies). */
+export const POINT_PRICE_TYPES: Readonly<Record<number, { key: CurrencyKey; name: string }>> = {
+  [THREE_PVP.SHOP_PRICE_TYPE]: { key: 'threePvpPnt', name: 'Huy Chương Dũng Sĩ' },
+};
 
 export const CURRENCY_NAMES: Record<MoneyKey, string> = {
   moneyBind: 'Bạc khóa',
@@ -49,13 +61,25 @@ export function contribPrice(slot: ShopRow): ContribPrice | { error: string } {
   return { contrib: out, currencyName: [...new Set(names)].join(' + '), bound: false };
 }
 
+/** The special-currency price of a slot (p_type1 / p_type2 in POINT_PRICE_TYPES), or null. */
+export function pointPrice(slot: ShopRow): PointPrice | null {
+  for (const n of [1, 2]) {
+    const kind = POINT_PRICE_TYPES[num(slot['p_type' + n])];
+    const unit = num(slot['p_num' + n]);
+    if (kind && unit > 0) return { points: { key: kind.key, unit }, currencyName: kind.name, bound: false };
+  }
+  return null;
+}
+
 /** Slot price first, template price when the slot has none; gt = 1 forces the unbound currency. Special types 20 / 21 are guild contribution. */
 export function resolvePrice(
   slot: ShopRow,
   tpl: ShopRow | undefined,
   selectedMoney: MoneyKey,
   selectedGold: MoneyKey,
-): Price | ContribPrice | { error: string } {
+): Price | ContribPrice | PointPrice | { error: string } {
+  const points = pointPrice(slot);
+  if (points) return points;
   if (num(slot.p_type1) > 0) return contribPrice(slot);
   let gold = num(slot.gold);
   let money = num(slot.money);

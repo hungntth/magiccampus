@@ -28,6 +28,10 @@ export const PK_NOTES = {
   SELECT_TARGET: 'Chọn người chơi muốn PK (Esc để hủy)',
 } as const;
 
+/** The six duel-invite RPCs (no Flash caller) are registered as stubs that refuse with this note (documentation list + text). */
+export const PK_STUB_RPCS = ['pkInvite', 'pkInviteResp', 'pkReady', 'pkAction', 'pkSurrender', 'pkLeave'] as const;
+export const PK_STUB_NOTE = 'Chức năng chưa mở';
+
 /** `uif(key, value, petFlag)`: the interface-setting RPC. Only `apvp` is persisted in H5. */
 export type UifKey = 'apvp';
 

@@ -45,6 +45,7 @@ import { GuildController } from './GuildController';
 import { TradeController } from './TradeController';
 import { AuctionController } from './AuctionController';
 import { MailController } from './MailController';
+import { RoomController } from './RoomController';
 import { TempBagController } from './TempBagController';
 import { NpcPanels } from './NpcPanels';
 import type { ChatBox } from '../ui/chat';
@@ -87,6 +88,7 @@ export class GameScene {
   private readonly forge: ForgeController;
   private readonly trade: TradeController;
   private readonly mail: MailController;
+  private readonly room: RoomController;
   private readonly tempBag: TempBagController;
   private readonly auction: AuctionController;
   private readonly character: CharacterController;
@@ -123,12 +125,12 @@ export class GameScene {
     });
     this.chat = this.social.chat;
     this.friends = new FriendController({
-      client,
+      client, chat: this.chat, player,
       whisper: (name) => this.social.whisperTo(name),
       privateChat: (id, name) => this.social.openPrivate(id, name),
       invite: (id) => this.party.invite(id),
     });
-    this.party = new PartyController({ client, player, ui, chat: this.chat, entityOf, locked: () => this.battle.locked });
+    this.party = new PartyController({ client, player, ui, chat: this.chat, entityOf, locked: () => this.battle.locked, openRecruit: () => this.room.open() });
     this.panels = new NpcPanels({
       client, npc: (id) => this.npcs.get(id), npcIcon: (id) => this.npcs.icon(id), self: () => this.self, playerLevel: () => player.level,
       quest: () => this.quest, bag: () => this.bag,
@@ -178,6 +180,7 @@ export class GameScene {
     this.worldBoss = new WorldBossController(client, player.id, this.chat);
     this.trade = new TradeController({ client, player, bag: this.bag });
     this.mail = new MailController({ client, player, bagItems: () => this.bag.listTabs(), pets: () => this.pet.pets() });
+    this.room = new RoomController({ client, player, chat: this.chat });
     this.tempBag = new TempBagController({ client, player, bag: this.bag, chat: this.chat });
     this.auction = new AuctionController({ client, player, bagItems: () => this.bag.listTabs(), pets: () => this.pet.pets() });
     this.appearance = new AppearanceController({
@@ -243,7 +246,7 @@ export class GameScene {
     for (const off of this.offs) off();
     const { social, party, friends, guild, trade, quest, bag, character, pet, petLayer, battle, hud } = this;
     for (const c of [social, party, friends, guild, trade, quest, bag, character, pet, petLayer, battle, hud, this.bosses, this.scripts, this.instanceNpcs]) c.destroy();
-    for (const c of [this.fairyLayer, this.appearance, this.mail, this.tempBag, this.auction, this.mall, this.forge, this.ranking, this.activity, this.dungeons, this.maze, this.quiz, this.worldBoss]) c.destroy();
+    for (const c of [this.fairyLayer, this.appearance, this.mail, this.room, this.tempBag, this.auction, this.mall, this.forge, this.ranking, this.activity, this.dungeons, this.maze, this.quiz, this.worldBoss]) c.destroy();
     this.panels.destroy();
     this.npcs.clear();
     this.app.ticker.stop();

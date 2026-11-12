@@ -1,0 +1,122 @@
+/* M14 B: Sư đồ tab body and the teacher / student request prompts. Navy / gold like the rest of the IM window. */
+/* The shared list element grows only while the Sư đồ body is inside it. */
+.friend-list:has(> .mentor-body) {
+  height: 340px;
+}
+
+/* The tab has no add-by-name box: honour [hidden] against the flex display of the base rule. */
+.friend-add-row[hidden] {
+  display: none;
+}
+
+.mentor-block {
+  margin: 0 0 6px;
+  padding: 4px 6px;
+  border: 1px solid #4f86b3;
+  border-radius: 4px;
+  background: #153a5c;
+}
+
+.mentor-head {
+  margin-bottom: 3px;
+  font-weight: 700;
+  color: #ffe9a8;
+}
+
+.mentor-line {
+  padding: 1px 0;
+}
+
+.mentor-none {
+  color: #9db6cc;
+}
+
+.mentor-gate {
+  color: #9db6cc;
+  font-size: 11px;
+}
+
+.mentor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.mentor-name {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 4px;
+}
+
+.mentor-row {
+  display: flex;
+  gap: 6px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.mentor-row:hover {
+  background: #1e4d78;
+}
+
+.mentor-row.selected {
+  background: #2f6da3;
+}
+
+.mentor-row-head {
+  cursor: default;
+  color: #cfe3f5;
+  border-bottom: 1px solid #4f86b3;
+}
+
+.mentor-row-head:hover {
+  background: none;
+}
+
+.mentor-col-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mentor-col {
+  width: 64px;
+  text-align: right;
+}
+
+.mentor-warn-stack {
+  position: absolute;
+  right: 16px;
+  top: 90px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.mentor-warn {
+  pointer-events: auto;
+  width: 230px;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  background: linear-gradient(180deg, #1d4a72 0%, #0e2a45 100%);
+  border: 2px solid #e8c46a;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+  font-family: Tahoma, Verdana, Arial, sans-serif;
+  font-size: 12px;
+  color: #fff;
+}
+
+.mentor-warn-text {
+  margin-bottom: 5px;
+}
+
+.mentor-warn-row {
+  display: flex;
+  gap: 6px;
+}

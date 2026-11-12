@@ -3,7 +3,7 @@
 
 import { ChatChannel, ChatLimits } from '@mc/shared';
 
-export type ChatRoute = 'local' | 'world' | 'team' | 'guild' | 'unsupported';
+export type ChatRoute = 'local' | 'world' | 'team' | 'guild' | 'headline' | 'unsupported';
 
 export function routeChannel(channelId: number): ChatRoute {
   switch (channelId) {
@@ -11,6 +11,7 @@ export function routeChannel(channelId: number): ChatRoute {
     case ChatChannel.WORLD: return 'world';
     case ChatChannel.TEAM: return 'team';
     case ChatChannel.GUILD: return 'guild';
+    case ChatChannel.HEADLINE: return 'headline';
     default: return 'unsupported';
   }
 }

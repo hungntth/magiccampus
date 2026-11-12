@@ -22,6 +22,9 @@ import { BuffModule } from './modules/buff/buff.module';
 import { CombatModule } from './modules/combat/combat.module';
 import { SkillModule } from './modules/skill/skill.module';
 import { SocialModule } from './modules/social/social.module';
+import { MentorModule } from './modules/mentor/mentor.module';
+import { BrotherhoodModule } from './modules/brotherhood/brotherhood.module';
+import { MarriageModule } from './modules/marriage/marriage.module';
 import { PartyModule } from './modules/party/party.module';
 import { TradeModule } from './modules/trade/trade.module';
 import { PetModule } from './modules/pet/pet.module';
@@ -29,6 +32,7 @@ import { ForgeModule } from './modules/forge/forge.module';
 import { TransportModule } from './modules/transport/transport.module';
 import { GuildModule } from './modules/guild/guild.module';
 import { PkModule } from './modules/pk/pk.module';
+import { ThreePvpModule } from './modules/threepvp/threepvp.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { ProgressionModule } from './modules/progression/progression.module';
 import { TitleModule } from './modules/title/title.module';
@@ -90,6 +94,9 @@ import { MonsterHeartModule } from './modules/monsterheart/monsterheart.module';
     SceneModule,
     ChatModule,
     SocialModule,
+    MentorModule,
+    BrotherhoodModule,
+    MarriageModule,
     PartyModule,
     TradeModule,
     AssetsModule,
@@ -106,6 +113,7 @@ import { MonsterHeartModule } from './modules/monsterheart/monsterheart.module';
     TransportModule,
     GuildModule,
     PkModule,
+    ThreePvpModule,
     SettingsModule,
     TitleModule,
     ProgressionModule,

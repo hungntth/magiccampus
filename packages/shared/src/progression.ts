@@ -28,6 +28,8 @@ export const CURRENCY_IDS = {
   decoSilver: 216,
   // M13 Ma Tam: Tam Tinh Thach (Go currency 232, client key mhjingshi), protects a failed heart fusion
   mhjingshi: 232,
+  // M14 Chien Truong Dung Si: Huy Chuong Dung Si (Go currency 225, shop price type 7)
+  threePvpPnt: 225,
 } as const;
 
 export type CurrencyKey = keyof typeof CURRENCY_IDS;

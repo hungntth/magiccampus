@@ -48,3 +48,5 @@ VIP is in `vip.md`; loop quests are in `loop-quest.md`.
 Gift codes, nine boss, consume/recharge/guild-war events, quiz and maze, marriage, pet arena, pet PVE tower, dress gacha and runes, farm and estate, life skills,
 boss loot, schedule/world boss (`data_tbl_schedule_boss` is now imported), the tutorial step engine.
 Quiet the new RPCs after the user confirms.
+
+- M14 H: icon 22 (Chiến Trường Dũng Sĩ, type 3) joined `ACTIVITY_PORTED_IDS`; `ThreePvpState.stripEntry` adds the flag-2 entry to the login list while the event fights and `updateActivityState {id 22}` is broadcast on every phase change (`threepvp.md`).

@@ -7,6 +7,7 @@ import { RpcException } from '../../gateway/errors';
 import { FeastService } from '../feast/feast.service';
 import { FeatureStoreService } from '../progression/feature-store.service';
 import { QuizState } from '../quiz/quiz-state.service';
+import { ThreePvpState } from '../threepvp/threepvp-state';
 import { WbState } from '../worldboss/wb-state.service';
 import { ActivityDataService } from './activity-data.service';
 import { DiaryEvents } from './diary-events.service';
@@ -25,6 +26,7 @@ export class ActivityService {
     private readonly feast: FeastService,
     private readonly quiz: QuizState,
     private readonly worldBoss: WbState,
+    private readonly threePvp: ThreePvpState,
   ) {}
 
   async loginFields(characterId: number): Promise<Partial<PlayerData>> {
@@ -36,6 +38,8 @@ export class ActivityService {
     const quiz = this.quiz.stripEntry(startedActList[String(ActivityId.QUIZ)]?.sortType ?? ActivityId.QUIZ);
     if (quiz) startedActList[String(ActivityId.QUIZ)] = quiz; // icon 16 (type 3): registering / running
     startedActList[String(ActivityId.WORLD_BOSS)] = this.worldBoss.stripEntry(startedActList[String(ActivityId.WORLD_BOSS)]?.sortType ?? ActivityId.WORLD_BOSS); // icon 15 (type 3): lobby / running, hidden otherwise
+    const arena = this.threePvp.stripEntry(startedActList[String(ActivityId.THREE_PVP)]?.sortType ?? ActivityId.THREE_PVP);
+    if (arena) startedActList[String(ActivityId.THREE_PVP)] = arena; // icon 22 (type 3): the 3v3 event is fighting
     const fields: ActivityLogin = {
       startedActList,
       guideFlag: await this.guideLog(characterId),

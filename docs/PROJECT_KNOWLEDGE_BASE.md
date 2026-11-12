@@ -24,7 +24,7 @@ Legacy (Go/Flash) knowledge: `D:\mcgame\docs\PROJECT_KNOWLEDGE_BASE.md`.
 - [Quests](memory/quest.md) — newbie/main quest chain: take/finish/cancel/initQuestManager, NPC markers, tracker, exp/level-up, quest_pre import.
 - [Main HUD](memory/main-hud.md) — legacy MainLayer HUD from extracted Flex skins: portraits, minimap strip + checkNetDelay, chat tabs, menu/shortcut bars.
 - [Chat](memory/chat.md) — legacy channel ids, say/onSay, world chat Loa rule, team channel, CSS chat box, PopupText speech bubble.
-- [Social](memory/social.md) — whisper/p2pWisper, player menu, showChaInfo, friends and blacklist (relationships, initViewImC).
+- [Social](memory/social.md) — whisper/p2pWisper, player menu, showChaInfo, friends, blacklist, enemies, friend request prompt, intimacy (relationships, initViewImC, useIntimacyItem; M14 A).
 - [Party and group battle](memory/party.md) — PartyBook invites/leave/AFK, follower lock and trail, map follow, group battle roster/readiness/reward split.
 - [Economy](memory/economy.md) — bank and bag pages (sid map, page books), repair, payment radios, mall, transport scrolls, rename card.
 - [Forge](memory/forge.md) — equipment instance properties, crafting, material/gem mixing, star, sockets/gems, refine two-step, tier upgrade, resolve.
@@ -65,3 +65,7 @@ Legacy (Go/Flash) knowledge: `D:\mcgame\docs\PROJECT_KNOWLEDGE_BASE.md`.
 - [Boss towers (M10)](memory/boss-towers.md) — nine boss, corridor, trials (VDRL), flop pass; character_towers state.
 - [World boss (M10)](memory/world-boss.md) — world boss event, schedule-boss respawn, boss loot.
 - [Item use effects](memory/item-use.md) — useItem dispatcher + ItemUseRegistry, award bags, money chests / kim phieu / mystery key, description-bag parser, currency / stone / pet bags, choose-one gift boxes, buff foods, rule potions, pet-target items, useMultiItem, exp / encounter books, attribute reset, mount dress bags, gacha boxes (phases A-G, complete).
+- [3v3 Chiến Trường Dũng Sĩ (M14)](memory/threepvp.md) — Friday arena on map 73: rooms, matching on system PvP, points / medals / titles, shop 85 price type 7, NPC 1860, GM window.
+- [Mentor / Sư đồ (M14 B)](memory/mentor.md) — mentor_links + rank row, find / accept / report / upgrade / delete RPCs, NPC 49 menu (hub instance NPC) and quest 692 qualification, IM tab.
+- [Sworn brotherhood / Kết bái (M14 C)](memory/brotherhood.md) — brotherhoods + members, ceremonies (swear / join / disband), title 153 + broT suffix, NPC 1637 menu, IM tab.
+- [Marriage / Kết hôn (M14 D + E)](memory/marriage.md) — marriages + seek board + proposals, couple rows / skills, `onInitCouple`, couple rank, divorce card, Cupid / Nguyệt Lão NPC marriage, IM header + manager window; wedding hall (booking, scheduler, vows / rings, invitations, red envelope).

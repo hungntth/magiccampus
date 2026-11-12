@@ -24,3 +24,8 @@ client `game/PkController.ts`.
   - The 30-round cap is a draw.
   - The target's result is mirrored, unverified against Flash.
 - Not ported: honor, wanted rewards and penalties, PvP rooms, cross-server, the `pkInvite` family (no client caller).
+
+
+## M14 phase H additions (2026-11-12)
+- The six duel-invite RPCs (`pkInvite`, `pkInviteResp`, `pkReady`, `pkAction`, `pkSurrender`, `pkLeave`) are registered in `modules/pk/pk-stub.rpc.ts` and refuse with "Chức năng chưa mở" (no Flash caller, no handler for their pushes; `PK_STUB_RPCS` / `PK_STUB_NOTE` in shared `pk.ts`).
+- `PVPStartClient` is refused on map 73 ("Không thể khiêu chiến tại Chiến Trường Dũng Sĩ, hệ thống sẽ tự sắp xếp đối thủ."). The 3v3 arena is described in `threepvp.md`.

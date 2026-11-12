@@ -12,7 +12,8 @@ import { GameDataService, type Row } from '../gamedata/gamedata.service';
 import { GUILD_SHOP_TEXT, GuildShopService } from '../guild/guild-shop.service';
 import { maxStack } from '../inventory/bag-rules';
 import { InventoryService } from '../inventory/inventory.service';
-import { boughtColor, resolvePrice, type ContribPrice, type Price } from './shop-buy';
+import { CurrencyService } from '../progression/currency.service';
+import { boughtColor, resolvePrice, type ContribPrice, type PointPrice, type Price } from './shop-buy';
 import { SLOT_TYPE_EQUIP, isVisibleSlot, toShopSlotView } from './shop-mapping';
 
 const MAX_AMOUNT = 99999;
@@ -52,6 +53,7 @@ export class ShopService {
     private readonly characters: CharacterService,
     private readonly inventory: InventoryService,
     private readonly guildShop: GuildShopService,
+    private readonly currencies: CurrencyService,
   ) {}
 
   /** null when the shop id is unknown. */
@@ -100,7 +102,7 @@ export class ShopService {
   }
 
   /** Shared buy pipeline of NPC and mall shops: capacity check -> conditional charge -> add to the bag (refund on failure). */
-  async settle(characterId: number, slot: Row, tpl: Row, equip: boolean, price: Price | ContribPrice, amount: number): Promise<BuyResult> {
+  async settle(characterId: number, slot: Row, tpl: Row, equip: boolean, price: Price | ContribPrice | PointPrice, amount: number): Promise<BuyResult> {
     const spec = {
       templateId: Number(slot.item_id),
       itemType: equip ? ItemKind.EQUIP : ItemKind.ITEM,
@@ -110,7 +112,9 @@ export class ShopService {
       maxStack: maxStack(tpl),
     };
     if (!(await this.inventory.canFit(characterId, spec))) throw RpcException.invalidArgs('Túi đồ đã đầy');
-    const charge = 'contrib' in price ? await this.chargeContrib(characterId, price, amount) : await this.chargeMoney(characterId, price, amount);
+    const charge = 'contrib' in price ? await this.chargeContrib(characterId, price, amount)
+      : 'points' in price ? await this.chargePoints(characterId, price, amount)
+        : await this.chargeMoney(characterId, price, amount);
     let changed: BagItem[];
     try {
       changed = await this.inventory.add(characterId, spec, equip ? Number(tpl.endure_max ?? 0) || 0 : 0);
@@ -129,6 +133,17 @@ export class ShopService {
     return {
       update: { [price.key]: total }, cost,
       refund: async () => void (await this.characters.addMoney(characterId, price.key, cost)),
+    };
+  }
+
+  /** M14 H: price type 7 pays Huy Chương Dũng Sĩ (Character.currencies), one conditional spend. */
+  private async chargePoints(characterId: number, price: PointPrice, amount: number): Promise<Charge> {
+    const cost = price.points.unit * amount;
+    const left = await this.currencies.spend(characterId, price.points.key, cost);
+    if (left === null) throw RpcException.invalidArgs(`Không đủ ${price.currencyName}`);
+    return {
+      update: { currencies: { [price.points.key]: left } }, cost,
+      refund: async () => void (await this.currencies.credit(characterId, price.points.key, cost)),
     };
   }
 

@@ -23,7 +23,7 @@ import { BattleHooks } from './battle-hooks';
 import type { Battle, BattleMember, Fighter } from './battle.types';
 import { charExp, expRateOfBuffs, petExp, type ExpRate } from './exp-rate';
 import { expReward, moneyReward } from './rewards';
-import { applyPvpVitals } from './pvp-rules';
+import { aliveCharacters, applyPvpVitals, restoreFull } from './pvp-rules';
 import { aboveBossGap } from './boss-loot';
 import { isSurvivor, petSettlements, splitReward } from './roster';
 
@@ -100,11 +100,16 @@ export class BattleSettleService {
    */
   private async settlePvp(battle: Battle): Promise<void> {
     applyPvpVitals(battle.fighters.values(), battle.result);
+    if (battle.ctx?.restoreAll) {
+      battle.ctx.alive = { a: aliveCharacters(battle.fighters.values(), 'player'), b: aliveCharacters(battle.fighters.values(), 'enemy') };
+      restoreFull(battle.fighters.values()); // M14 H: system PvP leaves everyone full
+    }
     for (const m of battle.members.values()) {
       const f = battle.fighters.get(m.slot);
       if (m.left || !f) continue;
       await this.chars.updateOne({ _id: m.cid }, { $set: { currentHp: f.hp, currentMp: Math.max(0, f.mp) } });
     }
+    await this.hooks.runEnd(battle); // M14 H: the 3v3 scorer (tagged battles; the any-end hooks skip PvP)
   }
 
   /** Pet exp (survivor owners of a win) and life drain (every pet participant). A failure is logged and never blocks the rest. */

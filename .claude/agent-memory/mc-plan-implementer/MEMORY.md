@@ -39,3 +39,9 @@
 - [M13 fairy (G, server half)](m13_fairy.md) — fairy module wiring, look/stat/G2 hooks, Go fail replies, smoke + level-80 bag trap
 - [M13 fairy client (G)](m13_fairy_client.md) — FairyController/ui/fairy/FairyLayer wiring, client tests via server tsx, send/render order, duplicate-agent lesson
 - [M13 fairy G2 (battle skills)](m13_fairy_g2.md) — loadPets preload hook, CRLF combat files, prop 41 trap, live battle smoke
+- [M14 social A](m14_social_a.md) — relationship service API, intimacy throttle timing, non-watch server for smoke, bag page 2 trap
+- [M14 Track 2 (F/G/H)](m14_track2.md) — rooms ad on party, chat ban/headline wiring, 3v3 arena, spare-port smoke recipe, CRLF edit traps
+- [M14 mentor B](m14_mentor_b.md) — mentor wiring, NPC 49 on missing map 100 (instance NPC), Windows pkill trap, relogin kicks
+- [M14 brotherhood C](m14_brotherhood_c.md) — core module split vs Scene cycle, broT via TitleController, TitleService.revoke, smoke + browser traps
+- [M14 marriage core (D)](m14_marriage_d.md) — marriage module wiring, wedding-hall (E) extension points, snapshot listener, smoke + browser traps
+- [M14 wedding hall (E)](m14_wedding_e.md) — wedding-* lock order, sweep + scheduler, instance NPC 852, smoke/browser traps

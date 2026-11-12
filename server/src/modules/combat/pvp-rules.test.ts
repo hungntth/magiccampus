@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { BattleAction, BattleBehavior, BattleResult, PK_SLOTS } from '@mc/shared';
 import type { Fighter, PlayerCommand } from './battle.types';
-import { applyPvpVitals, endStepFor, leaveResult, loserSide, pvpBoard, viewResult } from './pvp-rules';
+import { aliveCharacters, applyPvpVitals, endStepFor, leaveResult, loserSide, pvpBoard, restoreFull, systemBoard, viewResult } from './pvp-rules';
 import { missingCommands } from './roster';
 import { resolveRound } from './round';
 
@@ -154,5 +154,45 @@ describe('endStepFor', () => {
   it('PvP has no report and flips the result for the target only', () => {
     assert.deepEqual(endStepFor(true, 'player', marker, report), marker);
     assert.deepEqual(endStepFor(true, 'enemy', marker, report), { ...marker, result: BattleResult.LOSE });
+  });
+});
+
+describe('systemBoard (M14 H)', () => {
+  it('a duel is the one-entry case: attacker 10 (pet 15), target 0 (pet 5)', () => {
+    const board = systemBoard([{ character: mk(1), pet: pet(1) }], [{ character: mk(2), pet: pet(2) }]);
+    assert.deepEqual([...board.keys()].sort((x, y) => x - y), [0, 5, 10, 15]);
+    assert.equal(board.get(10)?.refId, 1);
+    assert.equal(board.get(0)?.refId, 2);
+  });
+
+  it('three a side: attackers 10 11 12 (pets 15 16 17), targets 0 2 1 (pets 5 7 6), sides set', () => {
+    const a = [1, 2, 3].map((id) => ({ character: mk(id), pet: pet(id) }));
+    const t = [4, 5, 6].map((id) => ({ character: mk(id), pet: pet(id) }));
+    const board = systemBoard(a, t);
+    assert.equal(board.size, 12);
+    assert.deepEqual([10, 11, 12].map((s) => board.get(s)?.refId), [1, 2, 3]);
+    assert.deepEqual([15, 16, 17].map((s) => board.get(s)?.kind), ['pet', 'pet', 'pet']);
+    assert.deepEqual([0, 2, 1].map((s) => board.get(s)?.refId), [4, 5, 6]);
+    assert.deepEqual([5, 7, 6].map((s) => board.get(s)?.side), ['enemy', 'enemy', 'enemy']);
+    assert.equal(board.get(12)?.side, 'player');
+  });
+
+  it('pets are optional and a side can be smaller than the other', () => {
+    const board = systemBoard([{ character: mk(1) }, { character: mk(2) }], [{ character: mk(3) }]);
+    assert.deepEqual([...board.keys()].sort((x, y) => x - y), [0, 10, 11]);
+  });
+
+  it('aliveCharacters counts living characters of one side only; restoreFull revives everyone', () => {
+    const board = systemBoard([{ character: mk(1, { hp: 0, alive: false }), pet: pet(1) }, { character: mk(2) }], [{ character: mk(3) }]);
+    assert.equal(aliveCharacters(board.values(), 'player'), 1);
+    assert.equal(aliveCharacters(board.values(), 'enemy'), 1);
+    for (const f of board.values()) f.hp = 1;
+    restoreFull(board.values());
+    assert.ok([...board.values()].every((f) => f.hp === f.hpMax && f.alive));
+  });
+
+  it('a missing-command check waits for every living character of both sides', () => {
+    const board = systemBoard([{ character: mk(1) }, { character: mk(2) }], [{ character: mk(3) }]);
+    assert.deepEqual(missingCommands(board.values(), new Set([10]), new Set()).sort(), [0, 11]);
   });
 });

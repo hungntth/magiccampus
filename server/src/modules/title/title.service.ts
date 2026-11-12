@@ -126,6 +126,36 @@ export class TitleService {
     return { added, changed: true, first: next.first };
   }
 
+  /**
+   * Takes an owned title away (M14 brotherhood leave / disband). An active title is cleared first (online owner: buff row off,
+   * stat refresh, map `onTitleUpdate` tid 0); an online owner then gets `onAddTitle {f: 5, t, ct}` (list refresh, no toast).
+   * Returns false when the character did not own it. Do not call inside the character's own lock.
+   */
+  revoke(characterId: number, titleId: number): Promise<boolean> {
+    return withCharLock(characterId, async () => {
+      const removed = await this.titles.findOneAndDelete({ characterId, titleId }).lean();
+      if (!removed) return false;
+      const doc = await this.chars.findById(characterId, { titleId: 1, actTitleId: 1 }).lean();
+      const wasActive = doc?.titleId === titleId;
+      const wasAct = doc?.actTitleId === titleId;
+      if (wasActive || wasAct) {
+        await this.chars.updateOne({ _id: characterId }, { $set: { ...(wasActive ? { titleId: 0 } : {}), ...(wasAct ? { actTitleId: 0 } : {}) } });
+      }
+      const online = this.scenes.findByCharacter(characterId);
+      if (online) {
+        if (wasActive) online.callback('delBuff', 0);
+        if (wasActive || wasAct) await this.pushStats(online);
+        if (wasActive) this.broadcast(online, 'onTitleUpdate', 0);
+        if (wasAct) this.broadcast(online, 'onActTitleUpdate', 0);
+        const lists = titleListStrings(titleLists(await this.owned(characterId), this.tpl, Date.now()));
+        const push: TitleAdded = { f: 5, t: titleId, ct: lists.ct };
+        online.callback('onAddTitle', push);
+        if (wasAct || isSpecialTitle(this.tpl(titleId))) online.callback('onAddActTitle', lists.cts);
+      }
+      return true;
+    });
+  }
+
   /** setTitle(id | -1): own the title (or clear), persist, push the buff row + stats, broadcast onTitleUpdate. */
   setTitle(session: Session, id: number): Promise<SetTitleResult> {
     const cid = session.characterId!;

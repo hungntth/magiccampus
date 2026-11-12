@@ -4,7 +4,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { parseSafeAreas, PK_NOTES } from '@mc/shared';
+import { parseSafeAreas, PK_NOTES, THREE_PVP, THREE_PVP_TEXT } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
 import { SceneManager } from '../../gateway/scene.manager';
 import type { Session } from '../../gateway/session';
@@ -48,6 +48,7 @@ export class PkService implements OnModuleInit {
   async start(session: Session, targetCid: number): Promise<void> {
     const aCid = session.characterId!;
     if (targetCid === aCid) throw RpcException.invalidArgs('targetCid');
+    if (session.mapId === THREE_PVP.MAP_ID) throw RpcException.forbidden(THREE_PVP_TEXT.MANUAL_PVP); // M14 H: the arena pairs opponents itself
     const target = this.scenes.findByCharacter(targetCid);
     if (!target || !target.hasCharacter) throw RpcException.forbidden(PK_NOTES.OFFLINE);
     const [aSt, tSt] = await Promise.all([this.stats.compute(aCid), this.stats.compute(targetCid)]);

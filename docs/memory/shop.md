@@ -57,3 +57,5 @@ Plan: `docs/plans/2026-11-04_14_MAIL_AUCTION_BAGS.md` (phase E notes). Legacy: `
 
 ### Deferred
 Limit-time shop engine (M16), credit point sources for shops 3-6, 8, 9, `buyItemClient` as the NumPanel TYPE_BUY path (the H5 shop panel still calls `buyAmountItemClient`). All new RPCs are NOT quiet: quiet them only after the user confirms.
+
+- M14 H: `shop-buy.ts` `resolvePrice` returns a `PointPrice` for p_type 7 (Huy Chương Dũng Sĩ = currency 225 `threePvpPnt`, slot 4354 of shop 85, NPC 1520 on map 9); `ShopService.chargePoints` is one conditional `CurrencyService.spend` (refund = credit), the push is `onUPP {currencies}`. `slotPrices` now also lists a type-2 slot whose only price is `p_type2`. See `threepvp.md`.

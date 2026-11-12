@@ -18,11 +18,12 @@ import { TitleModule } from '../title/title.module';
 import { VipCoreModule } from '../vip/vip-core.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { AppearanceModule } from '../appearance/appearance.module';
+import { BrotherhoodCoreModule } from '../brotherhood/brotherhood-core.module';
 
 @Module({
   imports: [
     CharacterModule, GameDataModule, QuestModule, BuffModule, PartyModule, TradeModule, PetModule, TitleModule, VipCoreModule, NpcScriptModule,
-    InventoryModule, AppearanceModule,
+    InventoryModule, AppearanceModule, BrotherhoodCoreModule,
   ],
   providers: [SceneRpc, SceneTransportService, SceneHooks, UnstuckRpc],
   exports: [SceneTransportService, SceneHooks],

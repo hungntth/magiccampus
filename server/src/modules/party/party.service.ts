@@ -45,6 +45,13 @@ export class PartyService implements OnModuleInit {
     private readonly perms: PermissionService,
   ) {}
 
+  /** M14 F: RoomService listens to every leave / kick / disconnect result to send the recruit-room pushes. */
+  private readonly leaveHooks: ((r: LeaveResult) => void)[] = [];
+
+  onLeave(hook: (r: LeaveResult) => void): void {
+    this.leaveHooks.push(hook);
+  }
+
   onModuleInit(): void {
     const gone = (s: Session): Promise<void> => this.onGone(s);
     this.gateway.onDisconnect(gone);
@@ -236,15 +243,16 @@ export class PartyService implements OnModuleInit {
     else session.callback('onGroupCantJoin', session.characterId, code);
   }
 
-  /** A joiner on another map than the leader starts AFK: free to walk over, then unGroupAFK(true) within 300 px. */
-  private afterJoin(party: Party, joinerCid: number): void {
+  /** Public for RoomService. A joiner on another map than the leader starts AFK: free to walk over, then unGroupAFK(true) within 300 px. */
+  afterJoin(party: Party, joinerCid: number): void {
     const joiner = this.scenes.findByCharacter(joinerCid);
     const leader = this.scenes.findByCharacter(party.leaderId);
     if (joiner && leader && joiner.mapId !== leader.mapId) this.parties.setAfk(joinerCid, true);
   }
 
-  private async afterLeave(r: LeaveResult): Promise<void> {
+  async afterLeave(r: LeaveResult): Promise<void> {
     if (r.kind === 'none') return;
+    for (const hook of this.leaveHooks) hook(r);
     if (r.kind === 'left') {
       const members = await this.members(r.party);
       const leaver = await this.memberInfo(r.leaverId, SOLO);
@@ -298,7 +306,7 @@ export class PartyService implements OnModuleInit {
   }
 
   /** Map broadcast of a character's current party flags (leader flag over the entity). */
-  private announce(cid: number): void {
+  announce(cid: number): void {
     const s = this.scenes.findByCharacter(cid);
     if (!s || !s.mapId) return;
     const flag: GroupFlagPush = { cid, ...this.parties.flagsOf(cid) };

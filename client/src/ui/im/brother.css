@@ -1,0 +1,43 @@
+/* M14 C: Kết bái tab body (group title, shortcut buttons, brothers) and the title input dialog. Navy / gold like the IM window. */
+.friend-list:has(> .brother-body) {
+  height: 260px;
+}
+
+/* The tab has no add-by-name box: honour [hidden] against the flex display of the base rule. */
+.friend-add-row[hidden] {
+  display: none;
+}
+
+.brother-block {
+  margin: 0 0 6px;
+  padding: 4px 6px;
+  border: 1px solid #4f86b3;
+  border-radius: 4px;
+  background: #153a5c;
+}
+
+.brother-head {
+  margin-bottom: 3px;
+  font-weight: 700;
+  color: #ffe9a8;
+}
+
+.brother-line {
+  padding: 1px 0;
+}
+
+.brother-none {
+  color: #9db6cc;
+}
+
+.brother-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.brother-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

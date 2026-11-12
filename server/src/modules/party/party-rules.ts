@@ -2,7 +2,7 @@
 // injectable clock, leave / kick / leader transfer / disband, AFK, follower selection and the mList linked list.
 // PartyManager (party.manager.ts) is the injectable instance; everything here is unit-tested in party-rules.test.ts.
 
-import { GroupCantJoinCode, PartyLimits, type GroupMember, type MList, type MListNode } from '@mc/shared';
+import { GroupCantJoinCode, PartyLimits, type GroupMember, type MList, type MListNode, type RoomAd } from '@mc/shared';
 
 export interface Party {
   id: number;
@@ -10,6 +10,8 @@ export interface Party {
   /** Leader first. */
   members: number[];
   afk: Set<number>;
+  /** M14 F: set while the party is advertised on the recruit board; such a party survives with one member. */
+  room?: RoomAd;
 }
 
 export type Fail<R extends string> = { ok: false; reason: R; code?: number };
@@ -31,6 +33,7 @@ export type KickResult = { ok: true; result: LeaveResult } | Fail<'notLeader' | 
 export type GiveLeaderResult =
   | { ok: true; party: Party; oldLeaderId: number; wasAfk: boolean }
   | Fail<'notLeader' | 'self' | 'notMember'>;
+export type JoinResult = { ok: true; party: Party } | Fail<'gone' | 'inGroup' | 'full'>;
 export type AfkResult = { ok: true; party: Party } | Fail<'noParty' | 'leader'>;
 
 export interface PartyFlags {
@@ -64,6 +67,29 @@ export class PartyBook {
   partyOf(cid: number): Party | undefined {
     const id = this.byMember.get(cid);
     return id === undefined ? undefined : this.parties.get(id);
+  }
+
+  partyById(id: number): Party | undefined {
+    return this.parties.get(id);
+  }
+
+  allParties(): Party[] {
+    return [...this.parties.values()];
+  }
+
+  /** M14 F: a one-member party for a recruit room (null when the character already has a party). */
+  createSolo(leaderId: number): Party | null {
+    return this.partyOf(leaderId) ? null : this.create(leaderId);
+  }
+
+  /** M14 F: the leader approved a recruit-room applicant; no invite or request needed. */
+  addToParty(partyId: number, cid: number): JoinResult {
+    const party = this.parties.get(partyId);
+    if (!party) return { ok: false, reason: 'gone' };
+    if (this.partyOf(cid)) return { ok: false, reason: 'inGroup', code: GroupCantJoinCode.IN_GROUP };
+    if (party.members.length >= PartyLimits.MAX_MEMBERS) return { ok: false, reason: 'full', code: GroupCantJoinCode.FULL };
+    this.add(party, cid);
+    return { ok: true, party };
   }
 
   isLeader(cid: number): boolean {
@@ -179,7 +205,8 @@ export class PartyBook {
     party.members = party.members.filter((m) => m !== cid);
     party.afk.delete(cid);
     this.byMember.delete(cid);
-    if (party.members.length <= 1) {
+    // A room (recruit ad) survives with one member and dissolves only when empty.
+    if (party.members.length === 0 || (party.members.length <= 1 && !party.room)) {
       for (const m of party.members) this.byMember.delete(m);
       this.parties.delete(party.id);
       this.dropRequestsFor(party.id);

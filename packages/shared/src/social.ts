@@ -1,5 +1,5 @@
-// Social wire contract (multiplayer phase A): chat channels (legacy ids), onSay / onWisper / onP2pWisper pushes,
-// chat limits, the whitelisted showChaInfo view and friends/blacklist relationships (party.ts, trade.ts are separate).
+// Social wire contract (multiplayer phase A, M14 A): chat channels (legacy ids), onSay / onWisper / onP2pWisper pushes, chat limits,
+// the whitelisted showChaInfo view, relationships (friend / black / enemy / couple / tutor / brother) and intimacy (party.ts, trade.ts separate).
 
 import type { BagItem } from './inventory.js';
 import type { CharProperty } from './character.js';
@@ -80,12 +80,26 @@ export interface ChaInfo {
   guild?: string;
 }
 
-/** Relationship wire types (GamePredef.RELATIONSHIP_TYPE); enemy / couple / tutor / brother (3..6) are not ported. */
-export const RelationType = { FRIEND: 1, BLACK: 2 } as const;
+/** Relationship wire types (GamePredef.RELATIONSHIP_TYPE). Couple / tutor / brother rows are written only by their features. */
+export const RelationType = { FRIEND: 1, BLACK: 2, ENEMY: 3, COUPLE: 4, TUTOR: 5, BROTHER: 6 } as const;
 export type RelationTypeId = (typeof RelationType)[keyof typeof RelationType];
 
-/** Caps per type (GamePredef.RELATIONSHIP_SIZE): friends 120, blacklist 30. */
-export const RelationLimits = { FRIEND: 120, BLACK: 30 } as const;
+/** Caps per type (GamePredef.RELATIONSHIP_SIZE): friends 120, blacklist 30, enemies 100. Couple / tutor / brother are uncapped. */
+export const RelationLimits = { FRIEND: 120, BLACK: 30, ENEMY: 100 } as const;
+
+/** Types `addRelationByName` accepts (Go: only 1..3). */
+export const ADDABLE_RELATION_TYPES: readonly RelationTypeId[] = [RelationType.FRIEND, RelationType.BLACK, RelationType.ENEMY];
+
+/** Rows that make the other player a "friend" of the owner (friend tab, couple, tutor, brother); enemy and black do not. */
+export const BOND_RELATION_TYPES: readonly RelationTypeId[] = [
+  RelationType.FRIEND, RelationType.COUPLE, RelationType.TUTOR, RelationType.BROTHER,
+];
+
+/** Rows owned by their feature (marriage / mentor / brotherhood): `delRelationship` refuses them. */
+export const MANAGED_RELATION_TYPES: readonly RelationTypeId[] = [RelationType.COUPLE, RelationType.TUTOR, RelationType.BROTHER];
+
+export const isBondRelation = (type: number): boolean => BOND_RELATION_TYPES.some((t) => t === type);
+export const isManagedRelation = (type: number): boolean => MANAGED_RELATION_TYPES.some((t) => t === type);
 
 /** One list row. `id` is the relationship row id (used by delRelationship), `cid` the other character; `data` only when online. */
 export interface RelationEntry {
@@ -96,11 +110,82 @@ export interface RelationEntry {
   classId: number;
   iconCode: string;
   type: RelationTypeId;
+  /** Intimacy (điểm thân mật) of this direction; 0 for rows without one. */
+  intimacy: number;
   data?: { online: true };
 }
 
-/** Push `onInitViewImC` (reply to the fire-and-forget initViewImC): snapshot of both lists, newest first. */
+/** Push `onInitViewImC` (reply to the fire-and-forget initViewImC): snapshot of every list, newest first. */
 export interface InitViewImC {
   friend: RelationEntry[];
   black: RelationEntry[];
+  enemy: RelationEntry[];
+  couple: RelationEntry[];
+  tutor: RelationEntry[];
+  brother: RelationEntry[];
+}
+
+/** Snapshot key of each wire type. */
+export const RELATION_LIST_KEY = {
+  [RelationType.FRIEND]: 'friend',
+  [RelationType.BLACK]: 'black',
+  [RelationType.ENEMY]: 'enemy',
+  [RelationType.COUPLE]: 'couple',
+  [RelationType.TUTOR]: 'tutor',
+  [RelationType.BROTHER]: 'brother',
+} as const satisfies Record<RelationTypeId, keyof InitViewImC>;
+
+/** Push `onBeFriendOfOther` to the target of a friend add: `id` mirrors `otherId` (the requester). */
+export interface BeFriendOfOther {
+  id: number;
+  otherId: number;
+  name: string;
+  /** The target already holds a friend / couple / tutor / brother row toward the requester: show a note, no prompt. */
+  alreadyFriend: boolean;
+}
+
+/** `refuseToAddFriend` argument (the refuser is the session character; `selfName` is ignored by the server). */
+export interface RefuseToAddFriendArg {
+  targetId: number;
+  selfName: string;
+}
+
+/** Push `onRefusedToAddFriend` to the requester. */
+export interface RefusedToAddFriend {
+  id: number;
+  name: string;
+}
+
+/** Push `onSetClose(otherId, otherName, num)` is positional: num > 0 new total, num < 0 a drop by -num, 0 reset. */
+export type SetClosePush = [otherId: number, otherName: string, num: number];
+
+/** Intimacy gift items (template id -> points per unit), `useIntimacyItem(targetName, qty, templateId)`. */
+export const INTIMACY_ITEMS: Readonly<Record<number, number>> = { 32: 660, 1302: 60, 1303: 60, 1315: 660 };
+export const INTIMACY_ITEM_MAX_QTY = 9999;
+
+/** Points per unit of an intimacy item, or null for any other template. */
+export function intimacyItemAmount(templateId: number): number | null {
+  return Object.prototype.hasOwnProperty.call(INTIMACY_ITEMS, templateId) ? INTIMACY_ITEMS[templateId] : null;
+}
+
+/** Team intimacy: +6 per player at most once per 55 s (won team battle and the 60 s online-party tick share the throttle). */
+export const TEAM_INTIMACY = { gain: 6, intervalMs: 55_000, tickMs: 60_000 } as const;
+
+/** `useIntimacyItem` reply. */
+export interface UseIntimacyItemReply {
+  success: true;
+}
+
+/** Client text of the friend-request pushes (CALLBACK_S[96] / [97] / [98]). */
+export const FRIEND_REQUEST_TEXT = {
+  note: (name: string): string => `${name} kết bạn với bạn.`,
+  ask: (name: string): string => `${name} kết bạn với bạn, bạn có muốn kết bạn với người chơi này không?`,
+  refused: (name: string): string => `Tiếc quá, ${name} đã từ chối kết bạn với bạn.`,
+} as const;
+
+/** Chat line of `onSetClose` (CALLBACK_S[77] / [78] / [103]). */
+export function setCloseLine(name: string, num: number): string {
+  if (num > 0) return `Bạn và ${name} có điểm thân mật tăng lên: ${num}`;
+  if (num < 0) return `Điểm thân mật của bạn và ${name} giảm xuống: ${-num}`;
+  return `Điểm thân mật của bạn và ${name} đã trở thành: 0`;
 }

@@ -145,6 +145,10 @@ export interface BattleContext {
   noRewards?: boolean; // world boss: no encounter exp / bound silver / loot (the event pays per battle itself)
   atkMul?: number; // multiplier of the player characters' attack and magicAttack (world boss cheer)
   bossLevel?: number; // schedule boss: members more than 10 levels above it get exp 1 and no loot
+  // M14 H: system PvP (3v3 arena): everyone leaves at full HP / MP (no death, no 1 HP floor)
+  restoreAll?: boolean;
+  /** Living characters per side (a = attackers) captured at settle, before restoreAll revives everyone. */
+  alive?: { a: number; b: number };
 }
 
 /** One player character in a battle (solo: exactly one). */

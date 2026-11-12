@@ -3,7 +3,9 @@
 // onP2pWisperError, onSystemMidMsgOrNote (notes), onAddCharactorSlot / onDelCharactorSlot (Loa spent).
 
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { ChatChannel, ChatLimits, PERMISSION_TEXT, SOURCE_ID_CHARACTER, type SayPush, type WisperPush } from '@mc/shared';
+import {
+  ChatChannel, ChatLimits, isBanLiftCommand, PERMISSION_TEXT, ROOM_TEXT, SOURCE_ID_CHARACTER, type RoomSayPush, type SayPush, type WisperPush,
+} from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
 import { GameGateway } from '../../gateway/game.gateway';
 import { SceneManager } from '../../gateway/scene.manager';
@@ -15,6 +17,8 @@ import { GuildViewService } from '../guild/guild-view.service';
 import { PmStateService } from '../vip/pm-state.service';
 import { withCharLock } from '../inventory/char-lock';
 import { ChatRateLimiter, findOnlineByName, normalizeMessage, routeChannel, worldChatCost } from './chat-rules';
+import { ChatBanService } from './chat-ban.service';
+import { HeadlineService } from './headline.service';
 import { PermissionService } from '../settings/permission.service';
 
 const NEED_LOA =
@@ -39,6 +43,8 @@ export class ChatService implements OnModuleInit {
     private readonly guilds: GuildViewService,
     private readonly vip: PmStateService,
     private readonly perms: PermissionService,
+    private readonly bans: ChatBanService,
+    private readonly headline: HeadlineService,
   ) {}
 
   onModuleInit(): void {
@@ -55,8 +61,11 @@ export class ChatService implements OnModuleInit {
     const route = routeChannel(channelId);
     if (route === 'unsupported') throw RpcException.forbidden(UNSUPPORTED);
     this.acquire(session);
+    if (await this.bans.tryLift(session, isBanLiftCommand(msg))) return; // /huycam: any channel, no Loa
+    await this.bans.assertCanSpeak(session); // M14 G: a banned player is refused before any Loa is spent
     const payload = await this.sayPayload(session, channelId, msg);
-    if (route === 'local') this.scenes.broadcast(session.mapId, 'onSay', [payload]);
+    if (route === 'headline') await this.headline.post(session, payload);
+    else if (route === 'local') this.scenes.broadcast(session.mapId, 'onSay', [payload]);
     else if (route === 'team') this.sayTeam(session, payload);
     else if (route === 'guild') await this.sayGuild(session, payload);
     else await this.sayWorld(session, payload);
@@ -100,6 +109,18 @@ export class ChatService implements OnModuleInit {
       return;
     }
     target.callback('onP2pWisper', text, session.characterId!, session.characterName ?? '?');
+  }
+
+  /** roomChat(text): the caller's recruit room, sender included, as onRoomSay [cid, name, text] (55 chars max, shared rate limit). */
+  async sayRoom(session: Session, raw: unknown): Promise<void> {
+    const text = normalizeMessage(raw, ChatLimits.MAX_P2P_LEN);
+    if (!text) return;
+    const party = this.parties.partyOf(session.characterId!);
+    if (!party?.room) throw RpcException.forbidden(ROOM_TEXT.NOT_IN_ROOM);
+    this.acquire(session);
+    await this.bans.assertCanSpeak(session);
+    const push: RoomSayPush = [session.characterId!, session.characterName ?? '?', text];
+    for (const cid of party.members) this.scenes.findByCharacter(cid)?.callback('onRoomSay', push);
   }
 
   private acquire(session: Session): void {

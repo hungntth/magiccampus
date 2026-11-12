@@ -5,12 +5,13 @@
 import {
   GroupCantJoinCode, PartyLimits,
   type GroupAfkPush, type GroupDenyPush, type GroupFlagPush, type GroupGiveLeaderPush, type GroupInvited, type GroupJoined,
-  type GroupLeavePush, type GroupMember, type GroupRequested, type PlayerData, type SceneCharacter,
+  type GroupLeavePush, type GroupMember, type GroupMemberPos, type GroupRequested, type PlayerData, type SceneCharacter,
 } from '@mc/shared';
 import type { GameClient } from '../net/client';
 import type { ChatBox } from '../ui/chat';
 import { TeamBar } from '../ui/hud/teamBar';
 import { askConfirm } from '../ui/confirmDialog';
+import { mapNameOf } from '../ui/groupRecruit/mapNames';
 import { PopupMenu, type MenuItem } from '../ui/playerMenu';
 import { toast } from '../ui/screens';
 import type { Entity } from './Entity';
@@ -18,6 +19,7 @@ import { Behavior, dirFromDelta } from './SheetAnim';
 
 const FOLLOW_SPEED = 240; // a little above MOVE_SPEED so a trailing member catches up
 const BLOCKED_NOTE_MS = 3000;
+const POS_THROTTLE_MS = 1100;
 const FOLLOW_NOTE = 'Đã ở trong nhóm thì cần nghe lời nhóm trưởng!';
 const CANT_JOIN: Record<number, string> = {
   [GroupCantJoinCode.SPECIAL_STATE]: 'đang ở trạng thái đặc biệt',
@@ -34,6 +36,8 @@ export interface PartyHost {
   entityOf(id: number): Entity | undefined;
   /** True while the map is frozen (battle). */
   locked(): boolean;
+  /** Opens the "Chiêu mộ nhóm" window (team tile menu). */
+  openRecruit?(): void;
 }
 
 export class PartyController {
@@ -47,6 +51,7 @@ export class PartyController {
   private cancelRequest: (() => void) | null = null;
   private readonly requests: GroupRequested[] = [];
   private lastBlockedAt = -Infinity;
+  private lastPosAt = -Infinity;
 
   constructor(private readonly host: PartyHost) {
     this.selfId = host.player.id;
@@ -272,7 +277,21 @@ export class PartyController {
       if (!m.afk) items.push(['Thăng làm nhóm trưởng', () => this.call('groupGiveLeader', m.cid)]);
       items.push(['Trục xuất', () => this.call('groupKick', m.cid)]);
     }
+    if (m.cid !== this.selfId) items.push(['Vị trí', () => this.showPosition(m)]);
+    else if (this.host.openRecruit) items.push(['Chiêu mộ nhóm', () => this.host.openRecruit?.()]);
     if (items.length > 0) this.menu.show(m.name, items, x, y);
+  }
+
+  /** getGroupMemberPosistion (sic): the server limits it to once per second, so the client throttles too. */
+  private showPosition(m: GroupMember): void {
+    const now = performance.now();
+    if (now - this.lastPosAt < POS_THROTTLE_MS) return;
+    this.lastPosAt = now;
+    this.host.client.call<GroupMemberPos>('getGroupMemberPosistion', m.cid).then(async (r) => {
+      if (!r.success) return toast('Không lấy được vị trí.', true);
+      const name = await mapNameOf(this.host.client, r.map);
+      toast(`${m.name}: ${name} (${Math.floor(r.x / 10)}, ${Math.floor(r.y / 10)})`);
+    }, fail);
   }
 
   private call(method: string, ...args: unknown[]): void {

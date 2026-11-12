@@ -2,7 +2,8 @@
 // its own line locally (the server does not echo); an incoming message opens the window (H5 simplification of the Flash
 // blinking "unread" icon). Text is plain and capped at ChatLimits.MAX_P2P_LEN.
 
-import { ChatLimits } from '@mc/shared';
+import { CLASS_NAMES, ChatLimits, type ChatPanelHeader } from '@mc/shared';
+import { iconUrl } from '../assets';
 import { closeOnEscape, makeDraggable } from './panelBehavior';
 import { stageEl } from './stage';
 import './social.css';
@@ -11,6 +12,8 @@ export interface PrivateChatHost {
   /** p2pWisper(text, targetId) */
   send(targetId: number, text: string): void;
   selfName(): string;
+  /** getChatPanel(targetId, name); rejects when offline / rate limited (ignored). */
+  header(targetId: number, name: string): Promise<ChatPanelHeader>;
 }
 
 interface Win {
@@ -64,7 +67,10 @@ export class PrivateChat {
     send.type = 'submit';
     send.textContent = 'OK';
     bar.append(input, send);
-    root.append(head, log, bar);
+    const info = document.createElement('div');
+    info.className = 'pchat-info';
+    info.hidden = true;
+    root.append(head, info, log, bar);
     stageEl().appendChild(root);
     const win: Win = { root, log, input, offs: [makeDraggable(root, head), closeOnEscape(() => this.closeOne(partnerId))] };
     this.wins.set(partnerId, win);
@@ -77,6 +83,28 @@ export class PrivateChat {
       this.host.send(partnerId, text);
     };
     input.focus();
+    this.host.header(partnerId, partnerName).then(
+      (h) => this.fillInfo(win, info, h),
+      () => undefined, // offline / not found: keep the window as is
+    );
+  }
+
+  private fillInfo(win: Win, info: HTMLElement, h: ChatPanelHeader): void {
+    if (!this.wins.has(Number(win.root.dataset.partner))) return;
+    const parts = [h.name];
+    if (h.level !== undefined) parts.push(`Cấp ${h.level}`);
+    const cls = h.classId !== undefined ? CLASS_NAMES[h.classId] : undefined;
+    if (cls) parts.push(cls);
+    info.replaceChildren();
+    if (h.iconCode) {
+      const img = document.createElement('img');
+      img.src = iconUrl(h.iconCode);
+      img.alt = '';
+      img.onerror = () => img.remove();
+      info.appendChild(img);
+    }
+    info.append(parts.join(' · '));
+    info.hidden = false;
   }
 
   /** onP2pWisper(text, senderId, senderName). */

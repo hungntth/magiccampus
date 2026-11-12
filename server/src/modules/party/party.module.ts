@@ -3,14 +3,17 @@
 import { Module } from '@nestjs/common';
 import { ActivityEventsModule } from '../activity/activity-events.module';
 import { CharacterModule } from '../character/character.module';
-import { PartyManager } from './party.manager';
+import { PartyManager, RoomManager } from './party.manager';
+import { GroupExtrasService } from './group-extras.service';
+import { RoomRpc } from './room.rpc';
+import { RoomService } from './room.service';
 import { PartyRpc } from './party.rpc';
 import { PartyService } from './party.service';
 import { PermissionModule } from '../settings/permission.module';
 
 @Module({
   imports: [ActivityEventsModule, CharacterModule, PermissionModule],
-  providers: [PartyManager, PartyService, PartyRpc],
-  exports: [PartyManager, PartyService],
+  providers: [PartyManager, RoomManager, PartyService, PartyRpc, RoomService, RoomRpc, GroupExtrasService],
+  exports: [PartyManager, PartyService, RoomManager],
 })
 export class PartyModule {}

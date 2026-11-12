@@ -155,3 +155,33 @@
   color: #6f879d;
   cursor: default;
 }
+
+/* M14 A: six-ish tabs (Bạn bè / Kẻ thù / Sổ đen / Sư đồ / Kết bái) and the intimacy column. */
+.friend-panel {
+  width: 450px;
+}
+
+.friend-tabs {
+  flex-wrap: wrap;
+}
+
+.friend-tab {
+  flex: 1 1 auto;
+  padding: 3px 6px;
+  white-space: nowrap;
+}
+
+.friend-intimacy {
+  color: #ff8fb1;
+  font-size: 11px;
+  min-width: 52px;
+  text-align: right;
+}
+
+.friend-row.online .friend-intimacy {
+  color: #ffb3c9;
+}
+
+.intimacy-gift .gift-name {
+  width: 160px;
+}

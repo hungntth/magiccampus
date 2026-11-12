@@ -1,4 +1,4 @@
-// Chat RPCs: say(channelId, msg) [quiet], wisper(targetName, text), p2pWisper(text, targetId).
+// Chat RPCs: say(channelId, msg) [quiet], roomChat(text), wisper(targetName, text), p2pWisper(text, targetId).
 // Pushes (see ChatService): onSay, onWisper, onP2pWisper, onP2pWisperError, onSystemMidMsgOrNote.
 
 import { Injectable } from '@nestjs/common';
@@ -16,6 +16,13 @@ export class ChatRpc {
     const channelId = Number(args[0] ?? 0);
     if (!Number.isInteger(channelId)) throw RpcException.invalidArgs('channelId');
     await this.chat.say(session, channelId, args[1]);
+    return null;
+  }
+
+  @Rpc('roomChat', { requireCharacter: true })
+  async roomChat(session: Session, args: unknown[]): Promise<null> {
+    if (typeof args[0] !== 'string') throw RpcException.invalidArgs('text');
+    await this.chat.sayRoom(session, args[0]);
     return null;
   }
 

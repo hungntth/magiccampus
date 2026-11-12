@@ -4,7 +4,7 @@
 // Kept out of GameScene, which only hands over entities and the stage UI parent.
 
 import type { FederatedPointerEvent } from 'pixi.js';
-import { ChatChannel, emotionOf, type ChaInfo, type MapInfo, type PlayerData, type SayPush, type WisperPush } from '@mc/shared';
+import { ChatChannel, emotionOf, type ChaInfo, type ChatPanelHeader, type MapInfo, type PlayerData, type SayPush, type WisperPush } from '@mc/shared';
 import type { GameClient } from '../net/client';
 import { ChaInfoPanel } from '../ui/chaInfoPanel';
 import { ChatBox } from '../ui/chat';
@@ -14,6 +14,7 @@ import { toast } from '../ui/screens';
 import { showEmotion } from './EmotionBubble';
 import type { Entity } from './Entity';
 import { PkController } from './PkController';
+import { banChatFlow } from './ChatBanActions';
 
 /** What the player menu needs from the party controller (built after this controller, hence the lazy accessor). */
 export interface PartyActions {
@@ -70,10 +71,12 @@ export class SocialController {
       onSend: (channelId, msg) => void client.call('say', channelId, msg).catch(fail),
       onWhisper: (name, text) => void client.call('wisper', name, text).catch(fail),
       onCommand: host.onCommand,
+      onGM: (text) => void client.call('chatGM', text, 0, '').catch(fail),
     });
     this.pchat = new PrivateChat({
       send: (targetId, text) => void client.call('p2pWisper', text, targetId).catch(fail),
       selfName: () => host.player.name,
+      header: (id, name) => client.call<ChatPanelHeader>('getChatPanel', id, name),
     });
     this.menu = new PlayerMenu({
       info: (t) => this.showInfo(t),
@@ -85,6 +88,7 @@ export class SocialController {
       addFriend: (t) => host.friends().add(t.name),
       trade: (t) => host.trade().request(t.id, t.name),
       watch: (t) => host.watch(t.id),
+      banChat: (t, long) => banChatFlow(client, t, long),
     });
     this.offs.push(
       client.on('onSay', (data) => this.onSay(data as SayPush)),

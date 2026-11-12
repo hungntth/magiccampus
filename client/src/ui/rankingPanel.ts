@@ -5,6 +5,7 @@ import { RANK_TABS, type RankCategory, type RankGetReply } from '@mc/shared';
 import type { GameClient } from '../net/client';
 import { closeOnEscape, makeDraggable } from './panelBehavior';
 import { toast } from './screens';
+import { CoupleRankView } from './marriage/coupleRank';
 import { stageEl } from './stage';
 import './rankingPanel.css';
 
@@ -15,13 +16,20 @@ const el = <K extends 'div' | 'button' | 'span'>(tag: K, cls: string, text?: str
   return e;
 };
 
+/** M14 D: the extra "Phu thê" tab (getCoupleRank) after the rankGet categories. */
+const COUPLE_TAB = 'couple';
+
 export class RankingPanel {
   private root: HTMLElement | null = null;
   private offs: (() => void)[] = [];
-  private tab: RankCategory = 'exp';
+  private tab: RankCategory | typeof COUPLE_TAB = 'exp';
   private replies = new Map<RankCategory, RankGetReply>();
 
-  constructor(private readonly client: GameClient) {}
+  private readonly couple: CoupleRankView;
+
+  constructor(private readonly client: GameClient) {
+    this.couple = new CoupleRankView(client, () => this.render());
+  }
 
   toggle(): void {
     if (this.root) this.close();
@@ -41,6 +49,7 @@ export class RankingPanel {
     stageEl().appendChild(root);
     this.root = root;
     this.replies.clear();
+    this.couple.reset();
     this.offs = [makeDraggable(root, header, 'rankingPanel'), closeOnEscape(() => this.close())];
     this.select(this.tab);
   }
@@ -56,9 +65,10 @@ export class RankingPanel {
     this.close();
   }
 
-  private select(category: RankCategory): void {
+  private select(category: RankCategory | typeof COUPLE_TAB): void {
     this.tab = category;
     this.render();
+    if (category === COUPLE_TAB) return this.couple.load();
     if (this.replies.has(category)) return;
     void this.client.call<RankGetReply>('rankGet', category).then(
       (reply) => {
@@ -73,11 +83,18 @@ export class RankingPanel {
     const root = this.root;
     if (!root) return;
     const tabs = root.querySelector('.rank-tabs') as HTMLElement;
+    const coupleTab = el('button', `rank-tab${this.tab === COUPLE_TAB ? ' active' : ''}`, 'Phu thê');
+    coupleTab.dataset.tab = COUPLE_TAB;
+    coupleTab.onclick = () => this.select(COUPLE_TAB);
     tabs.replaceChildren(...RANK_TABS.map((t) => {
       const b = el('button', `rank-tab${t.category === this.tab ? ' active' : ''}`, t.label);
       b.onclick = () => this.select(t.category);
       return b;
-    }));
+    }), coupleTab);
+    if (this.tab === COUPLE_TAB) {
+      this.couple.render(root.querySelector('.rank-head') as HTMLElement, root.querySelector('.rank-list') as HTMLElement);
+      return;
+    }
     const valueLabel = RANK_TABS.find((t) => t.category === this.tab)?.valueLabel ?? '';
     const head = root.querySelector('.rank-head') as HTMLElement;
     head.replaceChildren(el('span', 'rank-no', '#'), el('span', 'rank-name', 'Tên'), el('span', 'rank-guild', 'Bang'),
