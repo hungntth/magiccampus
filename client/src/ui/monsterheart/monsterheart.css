@@ -1,0 +1,30 @@
+/* Ma Tâm window (place hearts, fuse / dissolve). Built on the .feature-window shell (featureWindow.css). */
+.feature-window.mh-window { width: 660px; height: 540px; left: calc(50% - 330px); top: 3%; }
+.mh-window .ft-btn.on { background: #e8c46a; color: #1c2b3a; }
+.mh-cols { display: flex; gap: 12px; margin-top: 6px; }
+.mh-holes { flex: 1 1 52%; display: flex; flex-direction: column; gap: 3px; }
+.mh-right { flex: 1 1 48%; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.mh-hole { display: flex; gap: 6px; padding: 3px 6px; border: 1px solid #4f86b3; border-radius: 4px; background: rgba(255, 255, 255, 0.04); }
+.mh-hole-text { flex: 1; min-width: 0; }
+.mh-hole-title { color: #cfe6ff; font-size: 11px; }
+.mh-name { font-weight: 700; }
+.mh-cell {
+  position: relative; flex: 0 0 auto; width: 36px; height: 36px; box-sizing: border-box;
+  border: 1px solid #4f86b3; border-radius: 3px; background: #071a2c;
+}
+.mh-cell img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.mh-cell.mh-pick { cursor: pointer; }
+.mh-cell.pick { border-color: #fff36a; box-shadow: 0 0 4px 1px #fff36a; }
+.mh-fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #cfe6ff; }
+.mh-count { position: absolute; right: 1px; bottom: 0; font-size: 10px; font-weight: 700; color: #fff; text-shadow: 0 0 2px #000, 0 0 2px #000; }
+.mh-c0 { border-color: #cfcfcf; } .mh-c1 { border-color: #5fd35f; } .mh-c2 { border-color: #4a9cff; }
+.mh-c3 { border-color: #b36bff; } .mh-c4 { border-color: #ff9a2e; } .mh-c5 { border-color: #ff4a4a; }
+.mh-t0 { color: #e8e8e8; } .mh-t1 { color: #7ee07e; } .mh-t2 { color: #6fb3ff; } .mh-t3 { color: #c995ff; } .mh-t4 { color: #ffb45c; } .mh-t5 { color: #ff7777; }
+.mh-bag { display: flex; flex-direction: column; gap: 4px; }
+.mh-grid { display: flex; flex-wrap: wrap; gap: 3px; min-height: 40px; max-height: 120px; overflow-y: auto; }
+.mh-combos { display: flex; flex-direction: column; gap: 2px; }
+.mh-combo { color: #ffe9a8; }
+.mh-fuse { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+.mh-check { color: #dcecf8; cursor: pointer; }
+.mh-num { min-width: 22px; text-align: center; color: #ffe9a8; font-weight: 700; }
+.mh-status { margin-top: 8px; min-height: 16px; }

@@ -13,6 +13,7 @@ export interface ActiveBuff {
   deltas: Record<number, number>; // prop -> delta applied to the stat
   dot?: { def: NonNullable<BuffDef['dot']>; magic: number; attack: number };
   hot?: { def: NonNullable<BuffDef['hot']>; magic: number; attack: number };
+  mpBurn?: number; // M13 G2 Pháp Lực Nhiên Thiêu: % of current MP lost at each turn start after the landing round
 }
 
 export interface ActiveStatus {
@@ -26,17 +27,23 @@ export interface ActiveStatus {
 type StatKey =
   | 'hpMax' | 'attack' | 'magicAttack' | 'defense' | 'magicDefense' | 'hit' | 'dodge' | 'counter' | 'speed' | 'combo' | 'critical'
   | 'reduceHurt1' | 'reduceHurt2' | 'defy' | 'rebornRate' | 'resiCritical' | 'resiDefy' | 'enhPhyHurt' | 'enhMagicHurt'
-  | 'immunePhys' | 'immuneMagic' | 'fullResistPhys' | 'fullResistMagic';
+  | 'immunePhys' | 'immuneMagic' | 'fullResistPhys' | 'fullResistMagic' | 'damageTaken' | 'reflectAll' | 'lifeSteal';
+
+/**
+ * H5-only pseudo prop for life steal (Go maps the text "X% sát thương chuyển hóa thành HP" to prop 41, but the seed rows that carry
+ * prop 41 mean other things: Chiến Phách, Niết Bàn, Thần Chi Quỹ Tích). 901 / 903 are Go's pseudo props (no seed row uses them).
+ */
+export const PROP_LIFE_STEAL = 941;
 
 /** GamePredef.BUFF_PROP_* → fighter stat (Go participantStatField / extraStatField). */
 const PROP_STAT: Readonly<Record<number, StatKey>> = {
   1: 'hpMax', 4: 'attack', 5: 'magicAttack', 6: 'defense', 7: 'magicDefense', 8: 'hit', 9: 'dodge', 10: 'counter', 11: 'speed',
   12: 'combo', 13: 'critical', 15: 'reduceHurt1', 16: 'reduceHurt2', 14: 'defy', 34: 'rebornRate', 31: 'resiCritical',
   51: 'resiCritical', 61: 'resiDefy', 62: 'enhPhyHurt', 63: 'enhMagicHurt', 908: 'immunePhys', 909: 'immuneMagic',
-  910: 'fullResistPhys', 911: 'fullResistMagic',
+  910: 'fullResistPhys', 911: 'fullResistMagic', 901: 'damageTaken', 903: 'reflectAll', [PROP_LIFE_STEAL]: 'lifeSteal',
 };
 /** Go isFlatPointProp: rates and pseudo props add their value whatever percent_flag says. */
-const FLAT_PROPS = new Set([10, 12, 13, 14, 15, 16, 31, 34, 51, 61, 62, 63, 908, 909, 910, 911]);
+const FLAT_PROPS = new Set([10, 12, 13, 14, 15, 16, 31, 34, 51, 61, 62, 63, 901, 903, 908, 909, 910, 911, PROP_LIFE_STEAL]);
 
 /** Go DebuffKind: 0 generic, 1 dizzy, 2 confusion, 3 sleep, 4 poison, 5 rage, 6 light (petrify family). */
 export const DEBUFF_KINDS = 7;
@@ -100,6 +107,7 @@ export function applyBuff(caster: Fighter, f: Fighter, def: BuffDef, round: numb
   }
   if (def.dot) b.dot = { def: def.dot, magic: caster.magicAttack, attack: caster.attack };
   if (def.hot) b.hot = { def: def.hot, magic: caster.magicAttack, attack: caster.attack };
+  if (def.mpBurn) b.mpBurn = def.mpBurn;
   (f.buffs ??= []).push(b);
 }
 

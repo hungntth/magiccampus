@@ -27,9 +27,11 @@ import { ForgeController } from './ForgeController';
 import { MallController } from './MallController';
 import { CharacterController } from './CharacterController';
 import { AppearanceController } from './AppearanceController';
+import { ninjaShadowPreview } from './appearancePreview';
 import { PetController } from './PetController';
 import { RankingPanel } from '../ui/rankingPanel';
 import { PetLayer } from './PetLayer';
+import { FairyLayer } from './FairyLayer';
 import { BattleController } from './BattleController';
 import { runSceneCommand } from './sceneCommands';
 import { DungeonController } from './DungeonController';
@@ -97,6 +99,7 @@ export class GameScene {
   private readonly dungeons: DungeonController;
   private readonly maze: MazeController;
   private readonly petLayer: PetLayer;
+  private readonly fairyLayer: FairyLayer;
   private readonly battle: BattleController;
   private readonly offs: (() => void)[] = [];
 
@@ -138,7 +141,7 @@ export class GameScene {
       onShop: () => void this.mall.toggle(),
       onForge: (tab) => this.forge.open(tab),
       onRank: () => this.ranking.toggle(), onAchieve: () => this.character.toggleAchievements(), onDaily: () => this.activity.openDaily(), onVip: () => this.activity.openVip(), onOffline: () => this.activity.openOffline(),
-      onPet: () => this.pet.toggle(),
+      onPet: () => this.pet.toggle(), onFairy: () => void (this.battle.locked || this.pet.toggleFairy()),
       onQuest: () => this.quest.toggleLog(),
       onArena: () => this.pet.toggleArena(), onPpve: () => this.pet.togglePpve(),
       onLevelUp: () => this.character.levelUp(),
@@ -170,7 +173,7 @@ export class GameScene {
     this.ranking = new RankingPanel(client);
     this.dungeons = new DungeonController(client, (id) => this.bag.countOf(id));
     this.maze = new MazeController(client, () => player.level);
-    this.activity = new ActivityController({ client, player, refreshHud: () => this.updateHud(), entityOf, bagCount: (id) => this.bag.countOf(id), openDungeons: () => void this.dungeons.openHub(), openStar: () => this.dungeons.star.toggle(), openMaze: () => this.maze.toggleLobby(), openQuiz: () => this.quiz.openFromStrip() });
+    this.activity = new ActivityController({ client, player, refreshHud: () => this.updateHud(), entityOf, bagCount: (id) => this.bag.countOf(id), openDungeons: () => void this.dungeons.openHub(), openStar: () => this.dungeons.star.toggle(), openMaze: () => this.maze.toggleLobby(), openQuiz: () => this.quiz.openFromStrip(), openQiling: () => this.forge.open('qiling') });
     this.quiz = new QuizController(client, player, this.chat);
     this.worldBoss = new WorldBossController(client, player.id, this.chat);
     this.trade = new TradeController({ client, player, bag: this.bag });
@@ -184,6 +187,7 @@ export class GameScene {
     this.character = new CharacterController({
       client, player, bag: this.bag, entityOf, onMount: () => this.activity.openMount(),
       dressHide: { get: () => this.appearance.dressHidden(), set: (h, done) => this.appearance.setDressHide(h, done) },
+      wingHide: { get: () => this.appearance.wingHidden(), set: (h, done) => this.appearance.setWingHide(h, done) },
     });
     this.guild = new GuildController({ client, player, bagItems: () => this.bag.list(), entities: this.entityLayer });
     this.pet = new PetController({ client, player, chat: this.chat, bag: this.bag, setBattlePet: (p) => this.hud.setBattlePet(p), onDetail: () => this.character.detail.toggle('pet') });
@@ -206,6 +210,7 @@ export class GameScene {
     this.instanceNpcs = new InstanceNpcs(client, this.npcs, () => this.mapInfo?.id ?? 0);
     this.world.addChild(this.entityLayer);
     this.petLayer = new PetLayer(client, this.entityLayer, entityOf);
+    this.fairyLayer = new FairyLayer(client, this.entityLayer, entityOf);
     this.portals = new PortalLayer(this.entityLayer, this.world, (p, e) => this.onGateTap(p, e), this.guild.buildings);
     this.root.addChild(this.world);
     this.root.scale.set(stageScale());
@@ -238,7 +243,7 @@ export class GameScene {
     for (const off of this.offs) off();
     const { social, party, friends, guild, trade, quest, bag, character, pet, petLayer, battle, hud } = this;
     for (const c of [social, party, friends, guild, trade, quest, bag, character, pet, petLayer, battle, hud, this.bosses, this.scripts, this.instanceNpcs]) c.destroy();
-    for (const c of [this.appearance, this.mail, this.tempBag, this.auction, this.mall, this.forge, this.ranking, this.activity, this.dungeons, this.maze, this.quiz, this.worldBoss]) c.destroy();
+    for (const c of [this.fairyLayer, this.appearance, this.mail, this.tempBag, this.auction, this.mall, this.forge, this.ranking, this.activity, this.dungeons, this.maze, this.quiz, this.worldBoss]) c.destroy();
     this.panels.destroy();
     this.npcs.clear();
     this.app.ticker.stop();
@@ -261,21 +266,23 @@ export class GameScene {
   }
 
   private async applyScene(res: SceneLoginResponse): Promise<void> {
+    const self = ninjaShadowPreview(res.self, this.player.name, new URLSearchParams(window.location.search));
     this.clearScene();
     this.mapInfo = res.map;
-    this.battle.setCheckPoint(res.self.posX, res.self.posY);
+    this.battle.setCheckPoint(self.posX, self.posY);
     this.map = new MapLayer(res.map);
     this.world.addChildAt(this.map, 0);
     const [, mask] = await Promise.all([this.map.loadInitial(), HitMask.load(res.map.resCode)]);
     this.hitMask = mask;
 
-    this.self = new Entity(res.self.id, 'self', res.self.name, res.self.iconCode, res.self.resCode, res.self.posX, res.self.posY, res.self.posDir);
-    this.self.applyScene(res.self);
+    this.self = new Entity(self.id, 'self', self.name, self.iconCode, self.resCode, self.posX, self.posY, self.posDir);
+    this.self.applyScene(self);
     this.appearance.bindSelf(this.self);
     this.entityLayer.addChild(this.self);
-    this.party.track(res.self);
-    this.character.applyTitles(this.self, res.self);
-    this.petLayer.fromScene(res.self);
+    this.party.track(self);
+    this.character.applyTitles(this.self, self);
+    this.petLayer.fromScene(self);
+    this.fairyLayer.fromScene(self);
 
     const [peers, npcs, items] = await Promise.all([
       this.client.call<Record<string, SceneCharacter>>('createChars'),
@@ -301,6 +308,7 @@ export class GameScene {
     this.pendingGate = null;
     this.portals.clear();
     this.petLayer.clear();
+    this.fairyLayer.clear();
     this.map?.destroy({ children: true });
     this.map = null;
     for (const e of this.players.values()) e.destroy({ children: true });
@@ -327,6 +335,7 @@ export class GameScene {
     this.character.applyTitles(e, data);
     this.party.track(data);
     this.petLayer.fromScene(data);
+    this.fairyLayer.fromScene(data);
     this.view.apply(this.players.values(), this.self);
   }
 
@@ -430,6 +439,7 @@ export class GameScene {
     for (const e of this.players.values()) e.tick(dt);
     this.npcs.tick(dt);
     this.petLayer.tick(dt);
+    this.fairyLayer.tick(dt);
     this.party.tick(dt);
 
     this.root.scale.set(stageScale() * this.appearance.zoomStep(dt)); // flyEffect zoom

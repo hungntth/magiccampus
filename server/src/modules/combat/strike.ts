@@ -3,6 +3,7 @@
 // to a random living enemy when the target dies; skills: one extra hit at combo / 100), the counter (needs a landed or
 // resisted main hit of a melee basic attack, struck in place, chains its own combo, can be countered back up to 5 times),
 // Miễn Tử (lethal hit leaves 1 HP once, tSObj.reborn) and the miss text (tSObj.status "Né tránh" / "Kháng cự").
+// M13 G2: damage taken (901) scales the hit; mechanics/hit-reactions.ts adds life steal, fairy procs and reflect after it.
 
 import { BattleBehavior, type BattleStateObj, type BattleStep } from '@mc/shared';
 import type { Fighter, Rng, SkillCast } from './battle.types';
@@ -12,6 +13,7 @@ import {
 } from './damage';
 import { clearOnDeath, wakeOnHit } from './mechanics/battle-buffs';
 import { markHit } from './mechanics/death-mark';
+import { hitReactions, takenDamage } from './mechanics/hit-reactions';
 
 const B = BattleBehavior;
 export const DODGE_TEXT = 'Né tránh';
@@ -24,6 +26,7 @@ export interface StrikeCtx {
   rng: Rng;
   defending: Set<number>;
   groups: Group[];
+  round?: number; // the round being resolved (fairy procs: once per round); CastCtx always sets it
 }
 
 export type StrikeOutcome = 'hit' | 'miss' | 'resisted';
@@ -48,6 +51,8 @@ export interface LandedHit {
   state: BattleStateObj; // the target's popup state (hHp / cri / reborn / buffDel, or miss + status)
   died: boolean;
   cleared: boolean; // the dead target had buffs / statuses: the die step carries buffClear
+  src?: BattleStateObj; // M13 G2: the attacker's own state on the hit step (life steal rHp)
+  after?: Group[]; // M13 G2: fairy proc buffs and the reflect hurt, played after the hit's die / stand group
 }
 
 /** Resolves and applies one hit a -> t without emitting steps (single strikes and multi-target clusters share it). */
@@ -64,7 +69,7 @@ export function landHit(ctx: StrikeCtx, a: Fighter, t: Fighter, sk: SkillSpec, m
     const pct = Math.max(mods.maxHpPct.min, Math.min(mods.maxHpPct.max, mods.maxHpPct.max * Math.min(1, elementModifier(a.element ?? 0, t.element ?? 0))));
     raw = Math.max(1, Math.round(t.hpMax * pct));
     if (defending) raw = Math.trunc(raw / 2);
-  }
+  } else raw = takenDamage(t, raw); // M13 G2 Go DamageTakenUp (901, fairy Chi Diệp)
   const saved = deathImmune(a, t, raw, ctx.rng);
   const damage = saved ?? raw;
   t.hp = Math.max(0, preHp - damage);
@@ -77,7 +82,8 @@ export function landHit(ctx: StrikeCtx, a: Fighter, t: Fighter, sk: SkillSpec, m
   const mark = markHit(a, t); // E2.7 Mehdi death mark stack on every landed hit
   if (mark) Object.assign(state, mark);
   const cleared = !t.alive && clearOnDeath(t);
-  return { outcome: 'hit', state, died: !t.alive, cleared };
+  const react = hitReactions(ctx, a, t, damage, !mods.kill && !mods.maxHpPct);
+  return { outcome: 'hit', state, died: !t.alive, cleared, ...(react.src ? { src: react.src } : {}), ...(react.after.length ? { after: react.after } : {}) };
 }
 
 /** The die (or stand) step that follows a hit on t. */
@@ -94,10 +100,11 @@ export function strike(
     return h.outcome;
   }
   ctx.groups.push([
-    step(a.slot, t.slot, attackBid, 400, { tSObj: h.state }),
+    step(a.slot, t.slot, attackBid, 400, { tSObj: h.state, ...(h.src ? { sSObj: h.src } : {}) }),
     step(t.slot, a.slot, ctx.defending.has(t.slot) ? B.DEFENCE : B.HURT, 100),
   ]);
   ctx.groups.push([followStep(t, a.slot, h)]);
+  if (h.after) ctx.groups.push(...h.after);
   return 'hit';
 }
 

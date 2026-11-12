@@ -3,7 +3,7 @@
 // attributes with +/- free-point allocation, step 1 or 10, OK sends changeProperty; combat stats on the right).
 // Pure view: CharacterController owns the data. Drop a bag item here = equip; double-click an equipped slot = unequip.
 
-import { DRESS_HIDE_TEXT, EQUIP_SLOT_COUNT, MW, charElementOf, type BagItem, type CharProperty, type PlayerData } from '@mc/shared';
+import { DRESS_HIDE_TEXT, DRESS_PANEL, EQUIP_SLOT_COUNT, MW, charElementOf, type BagItem, type CharProperty, type PlayerData } from '@mc/shared';
 import { CharFigure } from './charFigure';
 import { endDrag, dragging, fillItemCell } from './itemCell';
 import { closeOnEscape, makeDraggable } from './panelBehavior';
@@ -53,15 +53,25 @@ export interface CharacterPanelHost {
   onFeatures(): void;
   /** Thần khí tab "Chức năng" button: toggles the magic weapon window. */
   onMagicWeapon(): void;
+  /** "Hồn khí" button on the equipment page: the Hồn Khí Vương Tộc window (looks, hole level-up, runes). */
+  onDeco(): void;
   /** Thần khí tab "Sửa" button: repairs the worn magic weapons. */
   onRepairMagicWeapons(): void;
   /** "Thú cưỡi" tab (legacy tabBtn4 -> showMount). */
   onMount(): void;
-  /** "Tủ đồ" button on the equipment page. */
-  onBag(): void;
+  /** "Tủ đồ" button on the equipment page: the dress cabinet (the bag has its own HUD button / B key). */
+  onDress(): void;
   /** "Ẩn thời trang" checkbox (setDressHide): current flag and the change handler. */
   dressHidden(): boolean;
   onDressHide(hide: boolean): void;
+  /** "Ấn chương", "Ấn thạch" and "Ma tâm" buttons (M13 E2): the medal, stone seal and monster heart windows. */
+  onMedal(): void;
+  onStoneSeal(): void;
+  onMonsterHeart(): void;
+  /** "Cánh" button (the wing window) and the "Ẩn cánh" checkbox (setWingHide). */
+  onWing(): void;
+  wingHidden(): boolean;
+  onWingHide(hide: boolean): void;
   /** Right-edge tab: toggles the character's secondary-rate detail window. */
   onDetail(anchor: HTMLElement): void;
   onClose(): void;
@@ -78,7 +88,9 @@ export class CharacterPanel {
   private tabs = new Map<TabKey, HTMLElement>();
   private mwTools: HTMLElement | null = null;
   private equipTools: HTMLElement | null = null;
+  private growthTools: HTMLElement | null = null;
   private dressHide: HTMLInputElement | null = null;
+  private wingHide: HTMLInputElement | null = null;
   private figure: CharFigure | null = null;
   private offs: (() => void)[] = [];
 
@@ -137,15 +149,31 @@ export class CharacterPanel {
     equip.appendChild(tools);
     this.mwTools = tools;
     const equipTools = el('div', 'char-equiptools');
-    const bag = el('button', 'char-ok', 'Tủ đồ');
+    const bag = el('button', 'char-ok', DRESS_PANEL.BUTTON);
     bag.title = 'Mở Tủ đồ';
-    bag.onclick = () => this.host.onBag();
+    bag.onclick = () => this.host.onDress();
     const soul = el('button', 'char-ok', 'Hồn khí');
-    soul.title = 'Mở chức năng Hồn khí';
-    soul.onclick = () => this.host.onMagicWeapon();
-    equipTools.append(bag, soul);
+    soul.title = 'Hồn Khí Vương Tộc: hình dạng, cường hóa, phù văn';
+    soul.onclick = () => this.host.onDeco();
+    const wing = el('button', 'char-ok', 'Cánh');
+    wing.title = 'Cải tạo cánh: dung hợp, thăng tinh, lông vũ, thăng cấp';
+    wing.onclick = () => this.host.onWing();
+    equipTools.append(bag, soul, wing);
     equip.appendChild(equipTools);
     this.equipTools = equipTools;
+    const growthTools = el('div', 'char-equiptools char-equiptools2');
+    const medal = el('button', 'char-ok', 'Ấn chương');
+    medal.title = 'Ấn Chương: trang bị, thăng cấp, phân giải, dòng khắc ấn';
+    medal.onclick = () => this.host.onMedal();
+    const seal = el('button', 'char-ok', 'Ấn thạch');
+    seal.title = 'Ấn Thạch: khai ấn, phong ấn bảo thạch, kết ấn';
+    seal.onclick = () => this.host.onStoneSeal();
+    const heart = el('button', 'char-ok', 'Ma tâm');
+    heart.title = 'Ma Tâm: đặt Ma Tâm, tổ hợp, dung luyện, phân giải';
+    heart.onclick = () => this.host.onMonsterHeart();
+    growthTools.append(medal, seal, heart);
+    equip.appendChild(growthTools);
+    this.growthTools = growthTools;
     const hide = el('label', 'char-dresshide');
     hide.title = DRESS_HIDE_TEXT.TIP;
     const hideBox = document.createElement('input');
@@ -154,6 +182,14 @@ export class CharacterPanel {
     hide.append(hideBox, document.createTextNode(DRESS_HIDE_TEXT.LABEL));
     equip.appendChild(hide);
     this.dressHide = hideBox;
+    const wingHide = el('label', 'char-dresshide char-winghide');
+    wingHide.title = 'Ẩn cánh';
+    const wingBox = document.createElement('input');
+    wingBox.type = 'checkbox';
+    wingBox.onchange = () => this.host.onWingHide(wingBox.checked);
+    wingHide.append(wingBox, document.createTextNode('Ẩn cánh'));
+    equip.appendChild(wingHide);
+    this.wingHide = wingBox;
     this.stats = el('div', 'char-stats');
     equip.appendChild(this.stats);
     root.appendChild(equip);
@@ -187,7 +223,9 @@ export class CharacterPanel {
     this.stats = null;
     this.mwTools = null;
     this.equipTools = null;
+    this.growthTools = null;
     this.dressHide = null;
+    this.wingHide = null;
     this.figure = null;
     this.tabs.clear();
     this.mode = 'equip';
@@ -226,9 +264,14 @@ export class CharacterPanel {
     for (const [key, b] of this.tabs) b.classList.toggle('on', key === this.selectedTab);
     if (this.mwTools) this.mwTools.style.display = this.mode === 'mw' ? '' : 'none';
     if (this.equipTools) this.equipTools.style.display = this.mode === 'equip' ? '' : 'none';
+    if (this.growthTools) this.growthTools.style.display = this.mode === 'equip' ? '' : 'none';
     if (this.dressHide) {
       this.dressHide.checked = this.host.dressHidden();
       (this.dressHide.parentElement as HTMLElement).style.display = this.mode === 'equip' ? '' : 'none';
+    }
+    if (this.wingHide) {
+      this.wingHide.checked = this.host.wingHidden();
+      (this.wingHide.parentElement as HTMLElement).style.display = this.mode === 'equip' ? '' : 'none';
     }
     const spirit = this.mwTools?.querySelector('.char-spirit');
     if (spirit) spirit.textContent = `Thần tu: ${p.property?.spirituality ?? 0}`;

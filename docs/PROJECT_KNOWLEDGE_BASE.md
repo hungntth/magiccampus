@@ -35,6 +35,17 @@ Legacy (Go/Flash) knowledge: `D:\mcgame\docs\PROJECT_KNOWLEDGE_BASE.md`.
 - [Stat-feature panels](memory/stat-features.md) — train soul, awakening, war sprite, magic crystal, heiyaoshi, zodiac stars (Tu luyện window).
 - [Magic weapon](memory/magic-weapon.md) — Thần Khí slots 15-20, data_tbl_artifact upgrades, repair/resolve/transfer/reset.
 - [Appearance + flying (M13 A)](memory/appearance.md) — avatar resolver (`av`), costume / flyer / mount layers, beginFlying / stopFlying / fixFlyState, setDressHide, AvatarView + AppearanceController.
+- [Wings - Cải tạo cánh (M13 C)](memory/wings.md) — 20 wing RPCs (join, stars, holes, feathers, prefix / bind / dye / look, advance), wing stats + pet feathers, wing layer + onWingOn / setWingHide, wing panel.
+- [Dress system - Tủ Đồ (M13 B)](memory/dress.md) — 17 dress RPCs + getDressCatalog, draws / chips / transform / exchange, dress-book stats, fake look, forge gate, Tủ Đồ panel.
+- [Mật Bảo + Lò luyện thần bí (M13 F)](memory/mystery-treasure.md) — 11 Mật Bảo RPCs + furnace (items / scores) + H5 catalog / info, 50 crafts a day, books 5042-5107 via item-use, collection stat provider, dissolve -> Bí Ngân + runes / chips, Mật Bảo tab + furnace window.
+- [Tiểu Tinh Linh (M13 G, fairy)](memory/fairy.md) — 12 fairy RPCs, NPC 1726 adopt / shop 96 / gift bags, grow / feed / raise / skills / skins, guard look `av.fairy` + onFairyOn/Off, owner stat provider, G2 battle accessor (client pending).
+- [Chân Hồn Thần Thú (M13 G, PRS)](memory/prs.md) — 14 PRS RPCs, soul tree + Thần Dụ forms on the battle pet, chips / exchange slots / crystal exchange, collects, map-wide form look, strip icon 58.
+- [Năng Lượng Tự Nhiên (M13 F)](memory/astrology.md) — 4 astrology RPCs, noon-to-noon cycle, deterministic formulas, first-completion x11 + announcement, record feed, panel.
+- [Ấn Chương (M13 E2)](memory/medal.md) — 5 medal RPCs + catalog, bag / worn slots, engrave lines, level up / dissolve, character + pet stat providers, medal exp items, medal window.
+- [Ấn Thạch (M13 E2)](memory/stone-seal.md) — 7 stone seal RPCs (`{flag, data, view}`), bore / succinct costs, stone + add-line stats, stone seal window.
+- [Ma Tâm (M13 E2)](memory/monster-heart.md) — 8 monster heart RPCs + catalog, Ma Tâm opener (type 550 / one-key temp bag), combines, fusion, container, stat provider, Ma Tâm window.
+- [Hồn Khí + Phù Văn (M13 E1)](memory/rune-deco.md) — 10 deco RPCs + 8 rune RPCs, Bí Ngân / rune exp, deco + rune stat providers (character and pet page), deco look layers (onDeco*), Hồn Khí window.
+- [Equipment depth (M13 D)](memory/equip-depth.md) — 11 RPCs: character Thăng hoa / Khắc chế, Kỳ Linh / Trùng Chú, jewel exchange, isEquSid; `properties.sublime` / `qiling`, set bonus stats, forge tabs + Kỳ Linh strip entry.
 - [Activities](memory/activities.md) — UTC+7 day keys, activity strip, sign-in, diary + DiaryEvents, online/offline exp, festivals, daily boss, lotto, prabuff, mount.
 - [VIP](memory/vip.md) — PM packages and levels, daily rights (mark-first), findback, VIP shop rotation.
 - [Loop quests](memory/loop-quest.md) — TBL_QUEST_LOOP take/cancel/repair, playable round pools, round rewards, [Vòng] NPC entries.

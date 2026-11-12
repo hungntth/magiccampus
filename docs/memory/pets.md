@@ -113,3 +113,11 @@ Research: `docs/research/2026-11-04_07_PET_CLIENT_RESEARCH.md`, `..._08_PET_SERV
 
 ## Pet-target items (item use D / E, 2026-11-07)
 - `pet/pet-item.service.ts` (+ `pet-item-rules.ts`, pure): grow potions (`PET_GROW_ITEM_EXP`, exp clamped to owner level + 5 through `PetBattleService.grantExp`), Tho Menh Dan 1533 / 1534 (life, cap 10000) and Tinh Hon Chi Thuc 3984 (+1 lowest aptitude below round(template * 1.2), written to `aptRefined`). Plans return a refusal or an `apply` step; the item-use caller consumes the unit in between and holds the character lock. `PetSlotService.bookPlan / applyBook` serve the pet slot book 326. Pet HP / MP and loyalty are not persisted, so HP / MP potions and loyalty potions never change a pet. Wiring: `docs/memory/item-use.md`.
+
+## Chân Hồn Thần Thú on the battle pet (M13 phase G, 2026-11-12)
+- PetStatProvider `prs` (`prs/prs-pets.service.ts`, registered by PrsModule): soul tree + activated Thần Dụ forms in panel units on the battle pet (state 1; every PPVE line-up pet), dictionary `TALENT_PROPS` + 14 / 34. Tree / form changes push `onRefreshPetProp` through `PetBonusService.battlePetPushes`.
+- `PetFollowService.setLookHook` / `lookOf`: the equipped form (`prsUseId`) goes on every scene character, the following pet shows the form art while it is the battle pet (`sceneViewOf`), and `PetBattleService.fighterOf` gives the pet fighter the same `resCode` (Flash BattleCreatureView). Details: `docs/memory/prs.md`.
+
+## Tiểu Tinh Linh (M13 phase G, 2026-11-12)
+The fairy is **not** a pet: it lives in the feature store (`fairy`), buffs the owner only (no PetStatRegistry provider: Go has no pet-side effect)
+and has its own window opened from the fairy toggle of the HUD pet bar (Flash `PetCanvas.__fairyTog_click`). See `docs/memory/fairy.md`.

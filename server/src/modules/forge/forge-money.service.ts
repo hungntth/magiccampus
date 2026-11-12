@@ -13,15 +13,21 @@ export interface Charge {
   total: number;
 }
 
-export type ChargeMode = 'selected' | 'unbound';
+/** 'gold' = unbound gold (Vang) only, never Kim phieu (dust auto-buy, Ky Linh stones). */
+export type ChargeMode = 'selected' | 'unbound' | 'gold';
 
 @Injectable()
 export class ForgeMoneyService {
   constructor(private readonly characters: CharacterService) {}
 
-  /** Charges `amount` silver; null when the balance is short. A zero amount charges nothing. */
+  private async keyOf(characterId: number, mode: ChargeMode): Promise<MoneyKey> {
+    if (mode === 'gold') return 'gold';
+    return mode === 'unbound' ? 'money' : (await this.characters.paymentPrefs(characterId)).money;
+  }
+
+  /** Charges `amount` silver (or plain gold with mode 'gold'); null when the balance is short. A zero amount charges nothing. */
   async spend(characterId: number, amount: number, mode: ChargeMode = 'selected'): Promise<Charge | null> {
-    const key: MoneyKey = mode === 'unbound' ? 'money' : (await this.characters.paymentPrefs(characterId)).money;
+    const key = await this.keyOf(characterId, mode);
     if (amount <= 0) return { key, amount: 0, total: -1 };
     const total = await this.characters.spendMoney(characterId, key, amount);
     return total === null ? null : { key, amount, total };
@@ -29,7 +35,7 @@ export class ForgeMoneyService {
 
   /** True when the balance covers `amount` (no charge); used by previews that only charge on confirm. */
   async canAfford(characterId: number, amount: number, mode: ChargeMode = 'selected'): Promise<boolean> {
-    const key: MoneyKey = mode === 'unbound' ? 'money' : (await this.characters.paymentPrefs(characterId)).money;
+    const key = await this.keyOf(characterId, mode);
     return (await this.characters.getById(characterId))[key] >= amount;
   }
 

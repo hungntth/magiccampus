@@ -2,7 +2,7 @@
 // active transform (VIP right 13, Mê Huyễn curse) > (dress hidden or no costume worn: class body) > fake dress > worn costume > class
 // body. A fake dress / fake flyer (phase B data) only replaces a costume / flyer that is actually worn. Flying needs a flyable map.
 
-import type { AvatarBody, AvatarView } from '@mc/shared';
+import type { AvatarBody, AvatarView, DecoLook } from '@mc/shared';
 
 /** Flyer art pair: main layer (res_code) and the optional front overlay (wav_code). */
 export interface FlyerArt {
@@ -29,11 +29,17 @@ export interface LookInput {
   mapFlyable: boolean;
   /** Art of the riding mount skin, null when not riding. */
   mount: string | null;
+  /** Art of the worn wing, null when none is worn or setWingHide hides it. */
+  wing: string | null;
+  /** Hồn Khí looks of the equipped, visible positions (M13 E1). */
+  deco: readonly DecoLook[];
+  /** World art of the guarding Tiểu Tinh Linh (M13 G), null when none guards. */
+  fairy: string | null;
 }
 
 export const NO_LOOK_INPUT: LookInput = {
   classBody: '0', transform: null, weapon: '0', costume: null, hideDress: false, fakeDress: null, flyer: null, fakeFlyer: null,
-  flying: false, mapFlyable: true, mount: null,
+  flying: false, mapFlyable: true, mount: null, wing: null, deco: [], fairy: null,
 };
 
 /** Body art and its kind. */
@@ -59,6 +65,9 @@ export function appearanceOf(i: LookInput): AvatarView {
     if (flyer.wav) view.flyerFront = flyer.wav;
   }
   if (i.mount) view.mount = i.mount;
+  if (i.wing) view.wing = i.wing;
+  if (i.deco.length > 0) view.deco = [...i.deco];
+  if (i.fairy) view.fairy = i.fairy;
   return view;
 }
 

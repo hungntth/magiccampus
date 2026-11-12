@@ -14,10 +14,11 @@ import { CharacterTitle, CharacterTitleSchema } from '../title/title.schema';
 import { CharacterStatsService } from './character-stats.service';
 import { BuffBonusProvider, GearBonusProvider, GuildSkillBonusProvider } from './core-providers';
 import {
-  AwakenBonusProvider, CrystalBonusProvider, HeiyaoshiBonusProvider, MountBonusProvider, PrabuffBonusProvider, SoulBonusProvider, WarSpriteBonusProvider,
+  AwakenBonusProvider, CrystalBonusProvider, DecoBonusProvider, DressBonusProvider, HeiyaoshiBonusProvider, MountBonusProvider, PrabuffBonusProvider, RuneBonusProvider, SoulBonusProvider, WarSpriteBonusProvider,
   ZodiacBonusProvider,
 } from './feature-providers';
 import { GuildSkillBonusService } from './guild-skill-bonus.service';
+import { FairyBonusProvider, MedalBonusProvider, MonsterHeartBonusProvider, MysteryBonusProvider, StoneSealBonusProvider } from './growth-providers';
 import { STAT_BONUS_PROVIDERS } from './stat-provider';
 import { TitleBonusProvider } from './title-bonus.provider';
 import { TrainingBonusProvider } from './training-bonus.provider';
@@ -26,7 +27,8 @@ import { CharacterSkill, CharacterSkillSchema } from '../skill/skill.schema';
 const PROVIDER_CLASSES = [
   GearBonusProvider, BuffBonusProvider, GuildSkillBonusProvider, TitleBonusProvider,
   SoulBonusProvider, AwakenBonusProvider, WarSpriteBonusProvider, CrystalBonusProvider, HeiyaoshiBonusProvider, ZodiacBonusProvider,
-  PrabuffBonusProvider, MountBonusProvider, TrainingBonusProvider,
+  PrabuffBonusProvider, MountBonusProvider, TrainingBonusProvider, DressBonusProvider, DecoBonusProvider, RuneBonusProvider,
+  MedalBonusProvider, StoneSealBonusProvider, MonsterHeartBonusProvider, MysteryBonusProvider, FairyBonusProvider,
 ];
 
 @Module({

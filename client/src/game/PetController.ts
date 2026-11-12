@@ -23,6 +23,7 @@ import { PetGearActions } from './PetGearActions';
 import { PetSoulController } from './PetSoulController';
 import { PetStoneController } from './PetStoneController';
 import { PpveController } from './PpveController';
+import { FairyController } from './FairyController';
 
 const OP_DELAY = 500; // Flash PETMANAGERPANEL_S[24]: no back-to-back pet operations
 const FOLLOW_LOCK_MS = 5000; // Flash changePetFollow: the follow button is disabled for 5 s
@@ -50,6 +51,8 @@ export class PetController {
   /** M12 slice C6: Đấu pet and Không Gian Điêu Khắc windows (opened from the HUD function column). */
   private readonly arena: ArenaController;
   private readonly ppve: PpveController;
+  /** M13 G: Tiểu Tinh Linh window (fairy toggle of the HUD pet frame). */
+  private readonly fairy: FairyController;
   /** Second-row window openers (M12); slices register theirs with setFuncHandler, unwired ids toast. */
   private readonly funcs = new Map<PetFuncId, (pet: PetView) => void>();
   private readonly allow = createThrottle();
@@ -77,6 +80,7 @@ export class PetController {
     const battleHost = { client: host.client, player: host.player, pets: () => this.pets(), skillInfo: (id: number) => this.gear.skillInfo(id) };
     this.arena = new ArenaController(battleHost);
     this.ppve = new PpveController(battleHost);
+    this.fairy = new FairyController({ client: host.client, player: host.player, bag: host.bag });
     this.funcs.set('soul', (pet) => this.soul.open(pet));
     this.funcs.set('guard', () => this.boost.openGuard());
     this.funcs.set('talent', () => this.boost.openTalent());
@@ -137,6 +141,12 @@ export class PetController {
     this.soul.destroy();
     this.arena.destroy();
     this.ppve.destroy();
+    this.fairy.destroy();
+  }
+
+  /** HUD pet frame fairy toggle (PetCanvas.__fairyTog_click). */
+  toggleFairy(): void {
+    this.fairy.toggle();
   }
 
   /** HUD red column "Đấu Pet" / "Điêu Khắc". */

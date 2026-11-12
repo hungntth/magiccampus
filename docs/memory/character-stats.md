@@ -78,7 +78,7 @@ Not verified in the browser:
 Quiet the new RPCs only after the user confirms.
 
 ## Stat providers (M7)
-Bonuses now come from the `STAT_BONUS_PROVIDERS` registry (gear, buffs, guild skills, titles, stat features); BUFF_PROP 59/60 = finalPraDef/finalPraMagDef. See `progression.md`.
+Bonuses now come from the `STAT_BONUS_PROVIDERS` registry (gear, buffs, guild skills, titles, stat features); BUFF_PROP 59/60 = finalPraDef/finalPraMagDef. See `progression.md`. M13 E2 adds `MedalBonusProvider` (worn character medals + engrave line), `StoneSealBonusProvider` (stones of the worn gear's seal holes + add lines) and `MonsterHeartBonusProvider` (placed hearts + combines), all in `stats/growth-providers.ts` (`medal.md`, `stone-seal.md`, `monster-heart.md`). M13 phase B adds `DressBonusProvider` (feature key `dress`, flat prop1..4 of every activated Tủ Đồ dress through `EQUIP_PROP`; see `dress.md`).
 
 ## M9 phase B
 - New stat provider `training-skill` (`stats/training-bonus.provider.ts`): flat maxHp / defense / magicDefense / speed from the Luyện
@@ -88,6 +88,11 @@ Bonuses now come from the `STAT_BONUS_PROVIDERS` registry (gear, buffs, guild sk
 - `getFinalPraDef(key, value, cid)` / `finalPraMagDef` (character-stats.rpc): the caller's aggregated rate; reply `{key, value}` when
   args[0] is a non-empty string, else the number (`character/final-rate.ts`). Client `ui/detailPropPanel.ts` ("Chi tiết" in the
   character panel header): 26 labels in Flash order, 19 plain `x.xx` + 7 percent `x.xx%`.
+
+## Wing stats (M13 phase C, 2026-11-09)
+- `GearBonusProvider` merges `inventory/wing-stats.ts` `wingBonusOf` for the worn wing: `(WING_LEVEL_ADD[level-1] - 1)` x each of the four lines (mains after the star
+  multiplier, flat) plus the feathers of the odd holes (`properties.wing.holes`, never gem `t*` keys). Even-hole feathers go to every pet through the
+  `WingPetService` `PetStatProvider` ('wing'). Feather templates need `i3 / n1..n3` (added to `TEMPLATE_FIELDS`). See `docs/memory/wings.md`.
 
 ## Weapon in hand (M13 phase A slice, 2026-11-07)
 Superseded in part by `docs/memory/appearance.md` (2026-11-07): `scene.wp` / `onEquipOn` / `onEquipOff` are now built by `AppearanceService`
@@ -109,3 +114,25 @@ Superseded in part by `docs/memory/appearance.md` (2026-11-07): `scene.wp` / `on
 - Not yet: reborn art `res_code_*2`, `ee` / `ef` / `star` glow fields, wing/dress/flyer layers.
 - Verified: ws e2e (two local test accounts on map 1: `wp` in sceneLogin/createChars, peer receives onEquipOff/onEquipOn) and
   browser (self entity loads `EQUIP_MC1_000001`, mallet drawn at the hand).
+
+## Equipment depth stats (M13 phase D, 2026-11-09)
+`GearBonusProvider` now adds, per worn piece, the lines of its current Thăng hoa level (`properties.sublime.lv` -> `data_tbl_sublimation` row, attack positions props 1/2, others 3/4; flat like gems, not star-multiplied,
+`EquipEntry.sublime` in `inventory/equip-stats.ts`) and the Kỳ Linh lines of every worn piece above level 150 (`forge/qiling-rules.ts qilingBonusOf`: props through `BUFF_PROP`, flat values rounded, rates as points, all lines
+scaled by the set bonus of the full lines over all worn pieces: 2/4/6/8/10/12 -> +2/5/8/12/16/20 %). Debuff hit / resist lines (props 32 / 58) have no H5 stat. `equipt_suit` is a pet-gear / wing table with no character
+consumer (see `equip-depth.md`). The sublime element hurt up / down is not applied in combat yet.
+
+## Hồn Khí and rune stats (M13 phase E1, 2026-11-09)
+`DecoBonusProvider` adds every position hole row + live activated show + full-suit (+20 % HP / Công VL / Công MP of the pieces) + linked-suit (+10 %) lines as flat bonuses (`EQUIP_PROP` 1 / 4 / 5 / 11). `RuneBonusProvider` adds the socketed runes of the character page (odd holes of open slots, one value per prop type per Hồn Khí, panel units: types 8/9/13/14/31/32/58/61 /10000, 34/59/60/62/63/71 /100; flat props rounded after summing, rate props fractional). The pet page (even holes) feeds every pet through `RunePetService`. See `rune-deco.md`.
+
+## Mật Bảo collection stats (M13 phase F, 2026-11-12)
+`MysteryBonusProvider` (`stats/growth-providers.ts`, feature `mystery_treasure`) adds the Thu Thập collection: every `data_tbl_mystre` piece ever owned (codex) or present in the Túi Mật Bảo counts once; flat `prop_num` summed by `prop_type` through `EQUIP_PROP` (1 HP, 4 attack, 5 magic attack, 11 speed in the data). Decomposing never un-collects. A new piece pushes `onUPP` stats. See `mystery-treasure.md`.
+
+## Chân Hồn Thần Thú (M13 phase G, 2026-11-12)
+No character stats: since the Go fix of 2026-10-30 the PRS tree and forms feed the **battle pet** only (`prs/prs-pets.service.ts`, PetStatProvider `prs`). Panel units = stat units: props 1/4/5/6/7/11 raw, every other prop / 100 (`prsPanelValue`). See `docs/memory/prs.md`.
+
+## Tiểu Tinh Linh guard bonus (M13 phase G, 2026-11-12)
+`FairyBonusProvider` (`stats/growth-providers.ts`, feature `fairy`): only the guarding fairy (state 1). Nhẫn / Lực / Xảo / Trí / Thần =
+`round(eff x (base + (lv - 1) x (growth + 0.2 g)))` (shared `fairyGuardStats`, eff = colour band x satiety factor) added as flat attribute points
+(`attr.sta/str/agi/int/eng`, through the formula), plus the TBL_BUFF rows of its passive (type 11) skills, one per `code_name` family at its highest
+level, through `buffBonuses` (percent_flag 1: +5/7/10 % attack, magic attack, speed, mdef, def, max HP). FairyModule pushes the `onUPP` refresh after
+every change of the guarding fairy (grow / feed / raise / learn / upgrade) and on every guard change / release. Details: `docs/memory/fairy.md`.

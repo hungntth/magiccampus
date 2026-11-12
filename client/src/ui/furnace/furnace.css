@@ -1,0 +1,14 @@
+/* Lò Luyện Thần Bí window, built on the .feature-window shell (featureWindow.css). */
+.feature-window.furnace-window { width: 520px; height: 460px; left: calc(50% - 260px); top: 5%; }
+
+.fn-grid { display: grid; grid-template-columns: repeat(10, 36px); gap: 3px; max-height: 220px; overflow-y: auto; padding: 2px; margin: 4px 0; }
+.fn-cell { position: relative; width: 36px; height: 36px; box-sizing: border-box; border: 1px solid #4f86b3; border-radius: 3px; background: #071a2c; cursor: pointer; }
+.fn-cell img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.fn-cell.sel { border-color: #fff36a; box-shadow: 0 0 4px 1px #fff36a; }
+.fn-count { position: absolute; right: 1px; bottom: 0; font-size: 10px; font-weight: 700; color: #fff; text-shadow: 0 0 2px #000, 0 0 2px #000; }
+.fn-line { color: #ffe9a8; margin: 4px 0; }
+.fn-row { display: flex; align-items: center; gap: 8px; padding: 2px 4px; font-size: 12px; }
+.fn-name { flex: 1; color: #dcecf8; }
+.fn-owned { color: #cfe6ff; min-width: 90px; }
+.fn-input { width: 80px; }
+.fn-preview { min-width: 60px; color: #00ff00; text-align: right; }

@@ -25,7 +25,7 @@ Capacity (`tempbag-rules.ts capacityOf`): sum of `num` of holders in OPENED hold
 - Temp bag: `getTBag`, `addtItemFromBag` / `addmxFromBag(bagSid, posId)`, `moveItemBtwTemp` / `movemxBtwTemp(from, to)`, `tempToBag` / `mxtempToBag(posId)`,
   `addItemFromTemp` / `addMXFromTemp(posId, bagSid[, num])`, `delTempSlot` / `delmxTempSlot(posId[, md5])`, `setTempBag` / `setmxTempBag(bagSid, holderSid)`,
   `setTbagDire(bool)`, `openTempSlot` / `openmxTempSlot`, `tempBagSort` / `mxBagSort` (reply = `tBag`, also pushed as `updateTempBags`),
-  `oneKeyOpenAllMXTemp` (refuses with "Chức năng Mở nhanh chưa hỗ trợ.", replies `tBag`; behaviour needs M13.5 Monster Heart).
+  `oneKeyOpenAllMXTemp` (M13 E2: opens every Ma Tâm item row of the Ma Tâm temp bag through `MxOpenRegistry` (opener registered by MonsterHeartModule), replies `tBag`, pushes `updateTempBags` + `updateMonsterHeartBagByOneKey(n)`; "Chức năng Mở nhanh chưa hỗ trợ." only when no opener is registered, "Không có Ma Tâm để mở" when nothing is eligible).
 - Pushes: `onMoveToTBag` / `onMoveMXToTBag(bagSid, posId, slot, curNum)` (no `onDelCharactorSlot`: the client removes the bag row by sid),
   `onMoveTempBtw` / `onMoveMXBtw(pos1, data1, pos2, data2, curNum)`, `onAddItemDelTemp` / `onAddItemDelmx(slot|null, posId, curNum)` + `onAddCharactorSlot`,
   `onAddTempDirect` / `onAddMXTempDirect(effect, posId, slot, curNum)`, `updateTempBags`.
@@ -62,7 +62,7 @@ Capacity (`tempbag-rules.ts capacityOf`): sum of `num` of holders in OPENED hold
 
 ## Deferred
 - Re-pushing `updateTempBags` when the PM level changes (Go does after `buyPm`); the panel re-reads `getTBag` on open, so the new VIP slots appear after reopening.
-- `oneKeyOpenAllMXTemp` behaviour (M13.5), gathering routing (M15), crafting / quest counting of temp-bag materials, `changeBagGroup`.
+- Gathering routing (M15), crafting / quest counting of temp-bag materials, `changeBagGroup`.
 - Art: CSS only (no swfui render of TempBagSlot / TemporaryBagPanel / the warn icon).
 - Trade-lock gate for `delBagItems` (Go refuses it while a trade offer is locked): InventoryModule cannot import TradeModule; a locked trade whose item vanished fails
   cleanly in the swap saga instead.

@@ -237,6 +237,7 @@
 }
 
 .char-equiptools .char-ok { padding: 0 6px; }
+.char-equiptools2 { top: 198px; }
 
 /* Ẩn thời trang checkbox beside the costume slot (legacy dressHide at box 90, 81). */
 .char-dresshide {
@@ -252,6 +253,8 @@
   white-space: nowrap;
   cursor: pointer;
 }
+
+.char-winghide { top: 100px; }
 
 .char-dresshide input {
   width: 12px;

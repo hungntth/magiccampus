@@ -33,6 +33,7 @@ import { missingCommands, playerSlot, selectRoster, type RosterCandidate } from 
 import { NpcSkillCatalog } from './npc-skill-catalog';
 import { resolveRound, type RoundOutcome } from './round';
 import { WeaponLookService } from '../inventory/weapon-look.service';
+import { FairyBattleKits } from './fairy-kits.service';
 
 @Injectable()
 export class CombatService implements OnModuleInit {
@@ -56,6 +57,7 @@ export class CombatService implements OnModuleInit {
     private readonly spectate: SpectateService,
     private readonly npcSkills: NpcSkillCatalog,
     private readonly weapons: WeaponLookService,
+    private readonly fairyKits: FairyBattleKits,
   ) {}
 
   onModuleInit(): void {
@@ -63,8 +65,12 @@ export class CombatService implements OnModuleInit {
     this.gateway.onDisconnect((session) => this.onSessionClosed(session));
   }
 
-  /** The fighting pet (state 1, life > 0) of each character that has one, by owner id. */
+  /**
+   * The fighting pet (state 1, life > 0) of each character that has one, by owner id. Also preloads each character's guarding fairy
+   * rotation (M13 G2), taken when startGroup / PvpService.start builds the character fighter: every battle start awaits this first.
+   */
   async loadPets(characterIds: readonly number[]): Promise<Map<number, BattlePet>> {
+    await this.fairyKits.preload(characterIds);
     const out = new Map<number, BattlePet>();
     for (const id of characterIds) {
       const pet = await this.petBattle.fighterOf(id);
@@ -119,6 +125,8 @@ export class CombatService implements OnModuleInit {
         f.attack = Math.round(f.attack * ctx.atkMul); // M10 I: world boss cheer scales the character, not the pet
         f.magicAttack = Math.round(f.magicAttack * ctx.atkMul);
       }
+      const fairy = this.fairyKits.take(cid);
+      if (fairy) f.fairy = fairy;
       fighters.set(f.slot, f);
       const bp = pets.get(cid);
       if (bp) fighters.set(f.slot + BATTLE_PET_SLOT_OFFSET, petFighter(f.slot, bp));

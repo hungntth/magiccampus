@@ -1,0 +1,45 @@
+/* Ấn Chương window. Built on the .feature-window shell (featureWindow.css). */
+.feature-window.medal-window { width: 600px; height: 560px; left: calc(50% - 300px); top: 3%; }
+
+.md-exp { color: #ffe9a8; font-weight: 700; margin-bottom: 4px; }
+.md-top { display: flex; gap: 10px; }
+.md-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.md-title { color: #ffe9a8; font-weight: 700; }
+.md-worn {
+  display: flex; align-items: center; gap: 6px; padding: 2px 4px; min-height: 38px; cursor: pointer;
+  border: 1px solid #4f86b3; border-radius: 4px; background: rgba(255, 255, 255, 0.04);
+}
+.md-worn:hover { background: rgba(255, 255, 255, 0.1); }
+.md-worn.sel { background: rgba(232, 196, 106, 0.25); border-color: #e8c46a; }
+.md-worn-text { flex: 1; min-width: 0; }
+.md-slot-name { color: #8fb7d8; font-size: 10px; }
+.md-name { color: #ffe9a8; font-weight: 700; }
+.md-sub { color: #cfe6ff; font-size: 11px; }
+.md-prop { color: #7dff7d; font-size: 11px; }
+.md-dim { color: #888; font-size: 11px; }
+.md-ok { color: #00ff00; font-size: 11px; }
+.md-bad { color: #ff7777; }
+.md-line { padding: 3px 6px; border: 1px dashed #e8c46a; border-radius: 4px; }
+.md-line.off { border-color: #555; opacity: 0.7; }
+
+.md-cell {
+  position: relative; flex: 0 0 auto; width: 34px; height: 34px; box-sizing: border-box;
+  border: 1px solid #4f86b3; border-radius: 3px; background: #071a2c;
+}
+.md-cell img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.md-cell.filled { cursor: pointer; }
+.md-cell.pick { border-color: #fff36a; box-shadow: 0 0 4px 1px #fff36a; }
+.md-q0 { border-color: #cfcfcf; } .md-q1 { border-color: #5fd35f; } .md-q2 { border-color: #4a9cff; } .md-q3 { border-color: #b36bff; } .md-q4 { border-color: #ff9a2e; }
+.md-tq0 { color: #e6e6e6; } .md-tq1 { color: #7ae67a; } .md-tq2 { color: #7ab8ff; } .md-tq3 { color: #c99aff; } .md-tq4 { color: #ffb45a; }
+.md-count { position: absolute; right: 1px; bottom: 0; font-size: 10px; font-weight: 700; color: #fff; text-shadow: 0 0 2px #000, 0 0 2px #000; }
+.md-lv { position: absolute; left: 1px; top: 0; font-size: 9px; color: #ffe9a8; text-shadow: 0 0 2px #000, 0 0 2px #000; }
+
+.md-low { display: flex; gap: 10px; margin-top: 8px; align-items: flex-start; }
+.md-bag { flex: 0 0 auto; display: flex; flex-direction: column; gap: 4px; }
+.md-bag-head { display: flex; justify-content: space-between; align-items: center; }
+.md-grid { display: grid; grid-template-columns: repeat(8, 34px); gap: 3px; }
+.md-pager { display: flex; justify-content: center; align-items: center; gap: 8px; }
+.md-detail { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; padding: 4px 6px; border: 1px solid #4f86b3; border-radius: 4px; }
+.md-btns { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+.md-count-num { min-width: 22px; text-align: center; color: #fff; }
+.md-rules { white-space: pre-line; color: #dcecf8; line-height: 1.5; }

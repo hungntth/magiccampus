@@ -22,6 +22,12 @@ export const CURRENCY_IDS = {
   // M12 Mệnh Hồn: three distinct balances. soulChip 242 is the Go currency id (Mảnh Vỡ). soulExp (Go Character.SoulExp, Exp Mệnh Hồn) and
   // soulPnt (Go Character.SoulPoints, Pha Lê) have NO Go type id (client keys only), so 243 / 244 are H5-only ids; /grant accepts the keys.
   soulExp: 243, soulPnt: 244, soulChip: 242,
+  // M13 Tủ Đồ: Điểm Thời Thượng (Go currency 61, client key shishangdian), paid for the ssd draws
+  shishangdian: 61,
+  // M13 Hồn Khí: Bí Ngân (Go currency 216), the hole level-up material; runeExp (217) above is the rune level-up exp
+  decoSilver: 216,
+  // M13 Ma Tam: Tam Tinh Thach (Go currency 232, client key mhjingshi), protects a failed heart fusion
+  mhjingshi: 232,
 } as const;
 
 export type CurrencyKey = keyof typeof CURRENCY_IDS;
@@ -111,7 +117,7 @@ export function titleLabel(view: Pick<TitleView, 'n' | 'a'>): { text: string; co
 
 // --- gmGrant (H5 dev command: /grant <currency|item|title> <id> <n>) ---
 
-export type GrantKind = 'currency' | 'item' | 'title' | 'equip';
+export type GrantKind = 'currency' | 'item' | 'title' | 'equip' | 'wing' | 'rune' | 'runechip' | 'medal' | 'medalexp' | 'heart' | 'prschip' | 'fairy';
 
 export interface GmGrantResult {
   kind: GrantKind;

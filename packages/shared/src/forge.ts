@@ -2,7 +2,10 @@
 // maker, rolled lines, holes, gems), the quality / star multiplier tables, crafting (getMakeColor, newMake), material
 // mixing (materialMixOne/All), gem upgrade (jewelUpdateOne/All) and the phase D upgrades. Flash names and reply keys are kept as they are.
 
+import type { EquipSublime, QilingLine } from './equipDepth.js';
 import type { BagItem } from './inventory.js';
+import type { WingState } from './wing.js';
+import type { WingView } from './wingProtocol.js';
 
 /** GamePredef EQUIPT_QUALITY: line multiplier per quality index 0..20 (craft rolls use [q-1, q], capped at 20). */
 export const EQUIPT_QUALITY = [1, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.35, 1.4, 1.45, 1.5, 1.6, 1.7, 1.8, 1.9, 2.1, 2.3, 2.5, 2.7, 2.9, 3.5] as const;
@@ -68,6 +71,12 @@ export interface EquipProperties extends EquipLines {
   flag3?: string; // pet gear: inlaid pet stones, JSON {"hole":[tid,0,skillId]} (petStone.ts)
   /** Pet gear: 1 once a pet upgrade (tier / colour / bind / pre) ran, so stats use the Go colour-scaled lines and bind percent. */
   petGear?: number;
+  /** Wing instance state (level, exp, look, dye, feather holes): wings only (wing.ts). */
+  wing?: WingState;
+  /** Character gear Thang hoa state (equipDepth.ts); pet gear keeps its JSON in `flag`. */
+  sublime?: EquipSublime;
+  /** Ky Linh lines (3), set by updateQiLingProp / updateChongZhu on gear above level 150. */
+  qiling?: QilingLine[];
 }
 
 /** Instance fields carried by a BagItem (all optional: items and plain equipment have none). */
@@ -85,6 +94,12 @@ export interface EquipInstanceView {
   flag3?: string; // pet gear: inlaid pet stones (see EquipProperties.flag3)
   /** Pet gear Thang hoa state parsed from `properties.flag` (absent while the piece was never sublimated). */
   sublime?: { id: number; add: number; element: number };
+  /** Wings: colour, level, look, dye and feather holes (set by toBagItem for kind-13 templates). */
+  wing?: WingView;
+  /** Ky Linh lines of the piece (absent until its first Ky Linh). */
+  qiling?: QilingLine[];
+  /** Ky Linh plan slot 0..5 of a piece that can take Ky Linh (level > 150, kind 1-4); absent otherwise. */
+  qilingSlot?: number;
 }
 
 /** One material slot of getMakeColor / newMake: the item instance id (bag) or temp-bag position (not supported). */

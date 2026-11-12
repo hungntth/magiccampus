@@ -152,3 +152,17 @@ PvP battles reuse BattleManager with two player sides; see `pk.md`.
 - 2026-11-05 (M12 client slice C6): `WatchMode` (`game/battle/watchMode.ts`) is also the pet replay stage: `onBattleReplay(start, bid)` opens it (ignored while `host.inBattle()`), the bare end marker of the single `onBattlePlayList` closes it after a short hold, `Thoát` skips `quitWatch` for replays. Live `BattleController` flow is unchanged (it now passes its own `inBattle` into the watch host).
 
 - 2026-11-07 (item use D / E): battle consumers of item buffs. `combat/exp-rate.ts` (pure, Go exp_rate_buffs.go) turns the active long buffs' props 24 / 25 into a character / pet exp rate; `BattleSettleService` applies it per surviving winner (character exp, and the half-exp pet share through `petExp`) before the boss level-gap clamp. `encounter.ts encounterMods` + `rollEncounter(..., mods)`: buff 313 = no encounter, 314 = rate 100 %, 1365 = all 5 enemy slots filled (`EncounterService` reads the buffs). Luyen Thu Don buff 565: `PetCatchService.bonusPoints` -> `PlayerCommand.catch.bonusPoints` -> shared `catchRate({ bonusPoints })` (gate `catchable <= 1 + bonus`). Details: `docs/memory/item-use.md`.
+
+## M13 G2: guarding fairy active skills (2026-11-12)
+- `FairyBattleKits` (`combat/fairy-kits.service.ts`, CombatModule imports FairyModule, no cycle): `CombatService.loadPets` (awaited by every
+  PvE / PvP start) also preloads each character's rotation from `FairySkillService.battleSkills`; `startGroup` / `PvpService.start` take it
+  (15 s TTL) and set `Fighter.fairy` (fresh `FairyKit` per battle). Rotation re-read at every battle start, no relog.
+- Pure kit: `mechanics/fairy-battle-rules.ts` (`buildFairyKit`, `fairySkillForRound`, text stats 58 / 32 / 903 / 901 / 941, Cổ Vũ rage, procs
+  `<code_name>_b2s1` same level, Độc Đao poison 2/3/5 % max HP in code, Bí Diệm `mpBurn`). Engine: `mechanics/fairy-battle.ts`
+  (`fairyTurnStart` in `resolveRound` before `turnStart`: MP burn, then the cast as an idle `sSObj.buffAdd` step on the owner;
+  `fairyProcSteps`), `mechanics/hit-reactions.ts` (life steal `sSObj.rHp` on the hit step, procs, reflect self-hurt + die).
+- Generic engine additions (no-ops without fairy buffs): `CombatStats.damageTaken / reflectAll / lifeSteal` (props 901 / 903 / H5 941),
+  `BuffDef.mpBurn` -> `ActiveBuff.mpBurn`, `LandedHit.src / after` (pushed by `strike()` and `clusterDamage`), `StrikeCtx.round`.
+  Seed prop 41 rows are NOT life steal (Chiến Phách, Niết Bàn, …): life steal uses pseudo prop 941.
+- Tests `mechanics/fairy-battle-rules.test.ts` (7, real rows). Live ws smoke (scratchpad `g2_smoke.mjs`): casts at rounds 1 / 2 / 4 / 6, nothing
+  on empty slots, Thánh Ca rHp tick. Classification table: research `2026-11-12_02_FAIRY_PRS_RESEARCH.md` § "G2 fairy battle skills".

@@ -46,8 +46,8 @@ export async function runSceneCommand(
     }
     if (cmd === 'grant') {
       const kind = args[0];
-      if (!['currency', 'item', 'title', 'equip'].includes(kind ?? '') || args[1] === undefined) {
-        chat.system('Dùng: /grant <currency|item|title|equip> <id> [n] [khóa] (currency: tên hoặc id, vd spirituality; title: n = giây, 0 = vĩnh viễn; equip: id trang bị, khóa = 1)');
+      if (!['currency', 'item', 'title', 'equip', 'wing'].includes(kind ?? '') || args[1] === undefined) {
+        chat.system('Dùng: /grant <currency|item|title|equip|wing> <id> [n] [khóa] (currency: tên hoặc id, vd spirituality; title: n = giây, 0 = vĩnh viễn; equip: id trang bị, khóa = 1; wing: id cánh, n = phẩm chất 0 trắng .. 4 cam, khóa = 1)');
         return;
       }
       const r = await client.call<GmGrantResult>('gmGrant', kind, args[1], args[2] === undefined ? undefined : Number(args[2]), args[3] === undefined ? undefined : Number(args[3]));

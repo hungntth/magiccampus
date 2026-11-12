@@ -162,8 +162,15 @@ money chests (bound / unbound), kim phieu, mystery key, `use_type 4` refusal, re
 unreadable bag, no-handler item, full bag (`NO_ROOM`, nothing consumed), no gold (`NEED_GOLD`, kept), spirituality daily cap (4th use
 refused), Anh Linh / point items, quest pet bag (5 pets), Thu Thach bags, expand pack; flat potions and page books unaffected.
 
+## M13 E2: Ma Tâm and medal exp items
+`ItemUseRegistry.addQuestItem` handlers: Ma Tâm items (type 550, template 5375-5697 / 5770-5841, `propl_num` = `creatureh_heart` id) add the heart to the Ma Tâm bag (`monsterheart/monsterheart-items.service.ts`, runs inside useItem's lock via `grantLocked`),
+Tâm Tinh Thạch 5884 (+1 `mhjingshi`), Ma Năng stones 5877 / 5878 / 5879 (+5000 / 3000 / 1000 `monsterHeart`), and medal exp items 3816 / 5114 / 5275 (+25 / +125 / +2000, `medal/medal-items.service.ts`). See `monster-heart.md`, `medal.md`.
+
 Phase B / C smoke (ws bot, 2026-11-07): paid chest 5710 (note + panel, pick -> item, -1500 gold, box -1, `onUPP{gold}`), bad index -> -1, re-open
 while pending, no gold -> `NEED_GOLD` without a panel, free chest 4785, pet bag 5266 (`onAddPet`), feather 4924 (22 choices), Than Khi 4873 (equipment
 colour 3), title choice 4961, desc choice bags 3837 / 3621, full bag -> `PICK_NO_ROOM` with the box kept, food 374 twice (7195 s left), battle food 105
 twice (battleLeft 10), food without buff 4153 kept with `FOOD_NO_EFFECT`, wedding candy 1690, potion 1 still heals. Browser: bag double-click on 5710
 opens the panel (3 per page + pager), pick closes it and the item lands in the bag.
+
+## Phase F: Bí Kíp Chế Tạo Mật Bảo (2026-11-12)
+The 66 type-516 books 5042-5107 are no longer skipped: `MysteryBooksService` (`modules/mystery/mystery-books.service.ts`) registers them with `ItemUseRegistry.addTemplate`. Recipe = id - 5042 + 1 (level = offset / 11 + 1); a level-1 book or a known recipe answers "Bạn đã học công thức này." and the book is kept; any other book is consumed first, then `learnedRec` is written (a book may be read below the craft level, crafting still needs the skill level) and `updateMysTreMakeData` is pushed. The handler runs inside useItem's character lock, so it writes the feature store directly. The other 516 books (life skills) still have no handler.

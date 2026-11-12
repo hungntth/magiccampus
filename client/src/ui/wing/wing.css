@@ -1,0 +1,31 @@
+/* Wing window (Cải tạo cánh) on the .feature-window shell (featureWindow.css). */
+.feature-window.wing-window { width: 640px; height: 520px; left: calc(50% - 320px); top: 3%; }
+
+.wg-split { height: 100%; }
+.wg-list { flex: 0 0 210px; overflow-y: auto; max-height: 100%; }
+.wg-row { display: flex; align-items: center; gap: 6px; }
+.wg-name { flex: 1; min-width: 0; font-size: 11px; line-height: 1.2; }
+.wg-empty { padding: 6px; }
+.wg-short { color: #ff8a8a; }
+
+.wg-cell {
+  position: relative; flex: 0 0 auto; width: 32px; height: 32px; box-sizing: border-box;
+  border: 1px solid #4f86b3; border-radius: 3px; background: #071a2c;
+}
+.wg-cell img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.wg-cell.pick { border-color: #e8c46a; box-shadow: 0 0 4px #e8c46a; cursor: pointer; }
+.wg-count { position: absolute; right: 1px; bottom: 0; font-size: 10px; font-weight: 700; color: #fff; text-shadow: 0 0 2px #000, 0 0 2px #000; }
+.wg-cells, .wg-items { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.wg-items .wg-cell { cursor: pointer; }
+
+.wg-holes { display: grid; grid-template-columns: repeat(5, 36px); gap: 4px; }
+.wg-hole {
+  position: relative; width: 36px; height: 36px; box-sizing: border-box; border: 1px solid #4f86b3; border-radius: 4px; background: #071a2c;
+  color: #6f8da6; font-size: 11px; text-align: center; line-height: 34px; cursor: pointer;
+}
+.wg-hole img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.wg-hole.closed { border-style: dashed; cursor: default; }
+.wg-hole.filled { border-color: #e8c46a; }
+.wg-hole.pet { order: 2; }
+.wg-hole.char { order: 1; }
+.wg-holes { grid-auto-flow: row; }

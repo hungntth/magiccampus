@@ -1,0 +1,25 @@
+/* Năng Lượng Tự Nhiên window, built on the .feature-window shell (featureWindow.css). */
+.feature-window.astro-window { width: 640px; height: 480px; left: calc(50% - 320px); top: 5%; }
+
+.as-cols { display: flex; gap: 8px; align-items: flex-start; }
+.as-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.as-box { display: flex; flex-direction: column; gap: 4px; padding: 6px; border: 1px solid #4f86b3; border-radius: 4px; background: rgba(255, 255, 255, 0.04); }
+.as-title { font-weight: 700; color: #ffe9a8; }
+.as-formula { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.as-no { color: #ffe9a8; }
+.as-tokens { color: #cfe6ff; }
+.as-tokens.hidden { color: #999; }
+.as-award { flex: 1; color: #dcecf8; font-size: 11px; text-align: right; }
+.as-stars { display: flex; gap: 4px; }
+.as-star {
+  min-width: 52px; height: 28px; padding: 0 4px; box-sizing: border-box; display: flex; align-items: center; justify-content: center;
+  border: 1px solid #4f86b3; border-radius: 3px; background: #071a2c; color: #888; font-size: 12px;
+}
+.as-star.lit { color: #ffe9a8; border-color: #e8c46a; }
+.as-star.cand { color: #fff; cursor: pointer; border-color: #fff36a55; }
+.as-star.cand.sel { border-color: #fff36a; box-shadow: 0 0 4px 1px #fff36a; }
+.as-action { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.as-result { color: #00ff00; }
+.as-records { max-height: 150px; overflow-y: auto; }
+.as-record { font-size: 12px; color: #cfe6ff; }
+.as-help { padding: 8px; line-height: 1.5; color: #dcecf8; }

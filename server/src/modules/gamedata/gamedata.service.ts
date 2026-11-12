@@ -12,11 +12,21 @@ import type { BuildingRow, GuildSkillRow } from '@mc/shared';
 import { buildHeiyaoshiTables, type HeiyaoshiTables } from './heiyaoshi-data';
 import { artifactRowAt, buildArtifactTables, cumulativeSpirit, type ArtifactRow, type ArtifactTables, type MwSkill } from './artifact-data';
 import { buildStarTables, starKey, type StarTables, type StarTemplate } from './star-data';
+import { buildDecoTables, type DecoRuneDef, type DecoTables, type RuneChipDef } from './deco-data';
+import type { DecoHoleRow, DecoShowRow } from '@mc/shared';
+import type { CombineRow, ContainRow, HeartRow, MedalRow, PointRow } from '@mc/shared';
+import { buildGrowthTables, type GrowthTables } from './growth-data';
+import { buildMysteryTables, slotSellsForSilver, type MysteryTables } from './mystery-data';
+import type { FairyTemplateRow, MysItemRow, MysRecipeRow, PrsChipRow, PrsShowRow, PrsTreeRow } from '@mc/shared';
+import { buildFairyTemplates } from './fairy-data';
+import { buildPrsTables, type PrsTables } from './prs-data';
+import { buildDressTables, type DressDef, type DressTables, type RecipeDef } from './dress-data';
 import { buildFeatureTables, type AwakenRow, type AwakenSkillRow, type FeatureTables, type SoulRow, type WspRow } from './feature-data';
 import { buildNameIndex, nameKey } from './name-index';
 import { isNpcVisible } from './npc-visibility';
 import { applyNpcOverrides, applyQuestOverrides, OVERLAYS, unionRows } from './overlays';
 import { buildSceneItemTables, type SceneItemRow, type SceneItemTables } from './sceneitem-data';
+import { customTemplate } from './custom-templates';
 import {
   buildCombatTables, type CombatTables, type CreatureTemplate, type LootRow, type MapCreatureRow,
 } from './combat-data';
@@ -52,6 +62,8 @@ const TEMPLATE_FIELDS = {
   artifact_skill: 1,
   // avatar: weapon art in hand, costume body art (res_code_male / female), flyer art (res_code + wav_code front overlay)
   res_code_male: 1, res_code_female: 1, res_code: 1, wav_code: 1,
+  // wings: feather stat lines (i1..i3 / n1..n3 = prop id / value) and fusion formula inputs
+  i3: 1, n1: 1, n2: 1, n3: 1,
 };
 
 @Injectable()
@@ -94,6 +106,14 @@ export class GameDataService implements OnModuleInit {
   private heiyaoshi: HeiyaoshiTables = buildHeiyaoshiTables([], [], [], [], []);
   private stars: StarTables = buildStarTables([]);
   private artifacts: ArtifactTables = buildArtifactTables([], []);
+  private dress: DressTables = buildDressTables([], []);
+  private deco: DecoTables = buildDecoTables([], [], [], []);
+  private growth: GrowthTables = buildGrowthTables([], [], [], [], []);
+  private medalLineCache: MedalRow[] | null = null;
+  private mystery: MysteryTables = buildMysteryTables([], [], []);
+  private silverShopItems: Promise<Set<number>> | null = null;
+  private prs: PrsTables = buildPrsTables([], [], [], []);
+  private fairies = new Map<number, FairyTemplateRow>();
 
   constructor(@InjectConnection() private readonly conn: Connection) {}
 
@@ -187,6 +207,21 @@ export class GameDataService implements OnModuleInit {
     );
     this.stars = buildStarTables(await this.rows('data_tbl_stars_template'));
     this.artifacts = buildArtifactTables(await this.rows('data_tbl_artifact'), await this.rows('data_tbl_skill', { use_env: 5 }));
+    this.dress = buildDressTables(await this.rows('data_tbl_dress'), await this.rows('data_tbl_recipe'));
+    this.deco = buildDecoTables(
+      await this.rows('data_tbl_deco_hole'), await this.rows('data_tbl_deco_show'), await this.rows('data_tbl_deco_rune'), await this.rows('data_tbl_rune_chip'),
+    );
+    this.growth = buildGrowthTables(
+      await this.rows('data_tbl_medal'), await this.rows('data_tbl_creatureh_heart'), await this.rows('data_tbl_creatureh_combine'),
+      await this.rows('data_tbl_creatureh_point'), await this.rows('data_tbl_creatureh_contain'),
+    );
+    const recycling: Row[] = [];
+    for (const c of ['data_tbl_recycling', 'data_tbl_recycling_extra', 'data_tbl_recycling_jewels', 'data_tbl_recycling_all']) recycling.push(...(await this.rows(c)));
+    this.mystery = buildMysteryTables(await this.rows('data_tbl_mystre'), await this.rows('data_tbl_mystre_recipe'), recycling);
+    this.prs = buildPrsTables(
+      await this.rows('data_tbl_prs_tree'), await this.rows('data_tbl_prs_show'), await this.rows('data_tbl_prs_chip'), await this.rows('game_tuning_prs_collect'),
+    );
+    this.fairies = buildFairyTemplates(await this.rows('data_tbl_fairy_tempalte'));
     this.logger.log(
       `Loaded ${this.maps.size} maps, ${this.classes.size} classes, ${npcs.length} npcs, ` +
         `${quests.length} quests (${requires.length} require, ${pres.length} pre, ${awards.length} award), ` +
@@ -566,6 +601,188 @@ export class GameDataService implements OnModuleInit {
     return this.artifacts.skills;
   }
 
+  /** Tủ Đồ rows (data_tbl_dress / data_tbl_recipe), cached at startup. */
+  dressRow(id: number): DressDef | undefined {
+    return this.dress.dresses.get(id);
+  }
+
+  dressRows(): DressDef[] {
+    return [...this.dress.dresses.values()];
+  }
+
+  /** The dress whose set recipe is `recipeId`. */
+  dressOfRecipe(recipeId: number): DressDef | undefined {
+    return this.dress.byRecipe.get(recipeId);
+  }
+
+  recipeRow(id: number): RecipeDef | undefined {
+    return this.dress.recipes.get(id);
+  }
+
+  recipeRows(): RecipeDef[] {
+    return [...this.dress.recipes.values()];
+  }
+
+  /** Hồn Khí / rune rows (data_tbl_deco_hole, _show, _rune, rune_chip), cached at startup. */
+  decoHole(id: number): DecoHoleRow | undefined {
+    return this.deco.holes.get(id);
+  }
+
+  decoHoles(): DecoHoleRow[] {
+    return [...this.deco.holes.values()];
+  }
+
+  decoShow(id: number): DecoShowRow | undefined {
+    return this.deco.shows.get(id);
+  }
+
+  decoShows(): DecoShowRow[] {
+    return [...this.deco.shows.values()];
+  }
+
+  /** The pieces of one suit_id, ordered by id. */
+  decoSuit(suitId: number): DecoShowRow[] {
+    return this.deco.bySuit.get(suitId) ?? [];
+  }
+
+  decoRune(id: number): DecoRuneDef | undefined {
+    return this.deco.runes.get(id);
+  }
+
+  decoRunes(): DecoRuneDef[] {
+    return [...this.deco.runes.values()];
+  }
+
+  runeChip(id: number): RuneChipDef | undefined {
+    return this.deco.chips.get(id);
+  }
+
+  runeChips(): RuneChipDef[] {
+    return [...this.deco.chips.values()];
+  }
+
+  /** Mật Bảo (data_tbl_mystre / mystre_recipe) and furnace (data_tbl_recycling*) tables, cached at startup (M13 phase F). */
+  mystre(id: number): MysItemRow | undefined {
+    return this.mystery.items.get(id);
+  }
+
+  mystres(): MysItemRow[] {
+    return [...this.mystery.items.values()];
+  }
+
+  /** Pieces of one (kind, level) group ordered by id. */
+  mystreGroup(kind: number, level: number): readonly MysItemRow[] {
+    return this.mystery.groups.get(`${kind}:${level}`) ?? [];
+  }
+
+  mystreRecipe(id: number): MysRecipeRow | undefined {
+    return this.mystery.recipes.get(id);
+  }
+
+  mystreRecipes(): MysRecipeRow[] {
+    return [...this.mystery.recipes.values()];
+  }
+
+  /** Crystals per unit of an item template at an instance colour (type 1 rows), undefined when the furnace has no row. */
+  recyclingItem(templateId: number, color: number): number | undefined {
+    return this.mystery.recycleItems.get(`${templateId}:${color}`);
+  }
+
+  /** Crystals per unit of a furnace score type (2..18), undefined without a row. */
+  recyclingScore(type: number): number | undefined {
+    return this.mystery.recycleScores.get(type);
+  }
+
+  /** Chân Hồn Thần Thú tables (data_tbl_prs_tree / show / chip) and the raw game_tuning_prs_collect JSON, cached at startup (M13 phase G). */
+  prsTree(id: number): PrsTreeRow | undefined {
+    return this.prs.tree.get(id);
+  }
+
+  prsTrees(): PrsTreeRow[] {
+    return [...this.prs.tree.values()];
+  }
+
+  prsShow(id: number): PrsShowRow | undefined {
+    return this.prs.show.get(id);
+  }
+
+  prsChip(id: number): PrsChipRow | undefined {
+    return this.prs.chip.get(id);
+  }
+
+  prsChips(): PrsChipRow[] {
+    return [...this.prs.chip.values()];
+  }
+
+  prsCollectRaw(): string {
+    return this.prs.collectRaw;
+  }
+
+  /** Tiểu Tinh Linh template (data_tbl_fairy_tempalte, legacy typo kept), cached at startup (M13 phase G). */
+  fairyTemplate(tid: number): FairyTemplateRow | undefined {
+    return this.fairies.get(tid);
+  }
+
+  fairyTemplates(): FairyTemplateRow[] {
+    return [...this.fairies.values()];
+  }
+
+  /** Item templates an NPC shop sells for silver only: never furnace fuel (Go exploit fix 2026-11-01). Computed once from the shop slots + template prices. */
+  silverShopSet(): Promise<Set<number>> {
+    return (this.silverShopItems ??= (async () => {
+      const slots = [...this.shopSlotsById.values()].filter((s) => Number(s.type) !== 19 && Number(s.st) !== 5 && Number(s.p_type1) <= 0);
+      const blank = slots.filter((s) => Number(s.gold) === 0 && Number(s.money) === 0).map((s) => Number(s.item_id));
+      const tpls = await this.templatesByIds(29, [...new Set(blank)]);
+      return new Set(slots.filter((s) => slotSellsForSilver(s, tpls.get(Number(s.item_id)))).map((s) => Number(s.item_id)));
+    })());
+  }
+
+  /** Medal rows (data_tbl_medal) and the Ma Tâm tables (creatureh_heart / combine / point / contain), cached at startup (M13 E2). */
+  medal(id: number): MedalRow | undefined {
+    return this.growth.medals.get(id);
+  }
+
+  medals(): MedalRow[] {
+    return [...this.growth.medals.values()];
+  }
+
+  /** Engrave line rows of the medals (sid 1006 pet / 2006 character). */
+  medalLines(): MedalRow[] {
+    return (this.medalLineCache ??= this.medals().filter((m) => m.sid === 1006 || m.sid === 2006));
+  }
+
+  heart(id: number): (HeartRow & { icon: string }) | undefined {
+    return this.growth.hearts.get(id);
+  }
+
+  hearts(): (HeartRow & { icon: string })[] {
+    return [...this.growth.hearts.values()];
+  }
+
+  heartCombine(id: number): CombineRow | undefined {
+    return this.growth.combines.get(id);
+  }
+
+  heartCombines(): CombineRow[] {
+    return [...this.growth.combines.values()];
+  }
+
+  heartPoint(id: number): PointRow | undefined {
+    return this.growth.points.get(id);
+  }
+
+  heartPoints(): PointRow[] {
+    return [...this.growth.points.values()];
+  }
+
+  heartContain(id: number): ContainRow | undefined {
+    return this.growth.contains.get(id);
+  }
+
+  heartContains(): ContainRow[] {
+    return [...this.growth.contains.values()];
+  }
+
   /** Equipment templates with makable == 1 (the craft recipes), loaded once and cached. */
   async makableEquipment(): Promise<Row[]> {
     if (!this.makable) {
@@ -588,11 +805,17 @@ export class GameDataService implements OnModuleInit {
     const projection = { ...TEMPLATE_FIELDS };
     const rows = await this.conn.db!.collection<Row>(collection).find({ id: { $in: ids } }, { projection }).toArray();
     for (const row of rows) out.set(Number(row.id), row);
+    for (const id of ids) if (!out.has(id)) {
+      const local = customTemplate(type, id);
+      if (local) out.set(id, local);
+    }
     return out;
   }
 
   /** Name of an item (table type 29) or equipment (type 19) template, queried on demand; '#<id>' if unknown. */
   async templateName(type: number, id: number): Promise<string> {
+    const local = customTemplate(type, id);
+    if (local?.name) return String(local.name);
     const collection = type === 19 ? 'data_tbl_equipt_template' : type === 29 ? 'data_tbl_item_template' : null;
     if (!collection) return `#${id}`;
     const row = await this.conn.db!.collection<{ _id: number; name?: unknown }>(collection).findOne({ _id: id }, { projection: { name: 1 } });

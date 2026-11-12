@@ -34,6 +34,8 @@ export interface BagItem extends EquipInstanceView {
   /** H5 extension (M12): `prop_type` / `propl_num` of type 507 pet-function items (the Luyen pet window sorts items by them). */
   tplPropType?: number;
   tplPropNum?: number;
+  /** H5 extension (M13 wings): a feather fusion formula (kind 14, type 1400) lists its inputs and the product template. */
+  featherMix?: { inputs: { tid: number; num: number }[]; product: number };
   /** H5 extension (item use D): item template `use_type` (1 character, 2 pet, 3 both, 4 never) and `req_class` ("|1|2|") for the Player.useItem client gate; items only. */
   useType?: number;
   reqClass?: string;

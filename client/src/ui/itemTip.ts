@@ -4,6 +4,8 @@
 import { ELEMENT_NAMES, EQUIP_PROP_LABELS, PET_SUBLIME_ELEMENTS, PREFIX_NAMES, type BagItem, type EquipLines, type ShopSlotView } from '@mc/shared';
 import { iconUrl } from '../assets';
 import { itemTypeName } from './itemTypeNames';
+import { appendDepthTip } from './depthTip';
+import { appendWingTip } from './wing/wingTip';
 import { stageEl, stageScale } from './stage';
 import './itemTip.css';
 
@@ -102,8 +104,9 @@ export function renderItemTip(item: BagItem, ctx: ItemTipContext): HTMLElement {
     icon.appendChild(img);
   }
   const prefix = item.prefix ? PREFIX_NAMES[item.prefix] : '';
-  const name = el('div', 'it-name', prefix ? `${prefix} ${item.name}` : item.name, head);
-  name.style.color = NAME_COLORS[item.color] ?? NAME_COLORS[0];
+  const plus = item.sublime && item.sublime.id > 0 ? ` +${item.sublime.id}` : '';
+  const name = el('div', 'it-name', `${prefix ? `${prefix} ${item.name}` : item.name}${plus}`, head);
+  name.style.color = NAME_COLORS[item.wing ? item.wing.colour : item.color] ?? NAME_COLORS[0];
   el('div', 'it-bind', item.binded ? 'Đã khóa' : 'Chưa khóa', head);
 
   if (item.info) el('div', 'it-info', item.info, root);
@@ -112,9 +115,14 @@ export function renderItemTip(item: BagItem, ctx: ItemTipContext): HTMLElement {
   if (item.quality) el('div', 'it-line', `Phẩm chất: ${item.quality}`, root);
   if (item.element) el('div', 'it-line', `Hệ: ${ELEMENT_NAMES[item.element] ?? item.element}`, root);
   if (item.star) el('div', 'it-line', `Sao: ${item.star}`, root);
+  appendWingTip(item, (text, cls) => void el('div', cls, text, root));
   if (item.sublime && item.sublime.id > 0) {
     el('div', 'it-line it-prop', `Thăng hoa: +${item.sublime.id}  Nguyên tố: ${PET_SUBLIME_ELEMENTS[item.sublime.element] ?? 'Chưa có'}`, root);
   }
+  appendDepthTip(item, (text, cls, color) => {
+    const line = el('div', cls, text, root);
+    if (color) line.style.color = color;
+  });
   if (item.reqLevel > 0) {
     el('div', `it-line${ctx.level < item.reqLevel ? ' it-bad' : ''}`, `Cấp độ cần: ${item.reqLevel}`, root);
   }

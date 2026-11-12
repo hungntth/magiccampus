@@ -1,0 +1,93 @@
+// Texts of the Hồn Khí / Phù Văn window: the verbatim Flash strings (Language.as DECORATE_PANEL, TIPPROP_S) and the H5 refusal notes
+// shown through onSystemMidMsgOrNote (Go answered most refusals silently; H5 toasts every one).
+
+export const DECO_PANEL = {
+  TITLE: 'Hồn Khí Vương Tộc',
+  TABS: ['Hồn Khí', 'C.Hóa H.Khí', 'Phù Văn'],
+  /** 4th tab (phase F): the Mật Bảo pages, see MYS_TEXT. */
+  MYSTERY_TAB: 'Mật Bảo',
+  POSITIONS: ['Hoàng Quan', 'Thánh Quang', 'Ấn Tích', 'Pháp Trận'],
+  NOT_ACTIVE: 'Chưa K.Hoạt',
+  ACTIVE: 'Đã K.Hoạt',
+  DURATION: 'Thời hạn',
+  FOREVER: 'Vĩnh viễn',
+  BTN_ACTIVATE: 'Kích hoạt',
+  BTN_UNEQUIP: 'Gỡ ra',
+  BTN_EQUIP: 'Trang bị',
+  SHOW: 'Hiện',
+  HIDE: 'Ẩn',
+  LOOK: 'Ngoại hình',
+  LOOK_TIER: ['Cấp 1', 'Cấp 2', 'Cấp 3'],
+  TIER_LOCK: ['', 'Cấp độ Hồn Khí đạt cấp 30 có thể sử dụng hình dạng Lv2', 'Cấp độ Hồn Khí đạt cấp 50 có thể sử dụng hình dạng Lv3'],
+  UPGRADE_TITLE: 'Cường Hóa Hồn Khí',
+  UPGRADE_LEVEL: 'Cấp độ cường hóa',
+  PAGE: ['Nhân vật', 'Pet'],
+  MAX: 'Đã MAX',
+  NEED_SILVER: 'Bí ngân cần：',
+  NEED_MONEY: 'Ngân phiếu cần：',
+  RATE: 'Thành công：',
+  HAVE_SILVER: 'Bí ngân có：',
+  BTN_UPGRADE: 'Cường hóa',
+  BTN_UPGRADE10: 'Cường hóa 10 lần',
+  RUNE_BAG: 'Túi phù văn',
+  RUNE_HINT: 'Nhấn kéo phù văn để đục lỗ',
+  RUNE_ADD: 'Phù văn thêm',
+  ARRANGE: 'Sắp xếp túi',
+  RESOLVE_PICK: 'Nhấn vào phù văn để chọn (có thể chọn nhiều)',
+  RESOLVE_GAIN: (n: number): string => `Phân giải nhận exp phù văn：${n}`,
+  RESOLVE_TITLE: 'Phân giải Phù Văn',
+  UP_HINT: 'Kéo phù văn đặt vào',
+  EXP_HAVE: 'Exp phù văn có：',
+  EXP_NEED: (n: number): string => `Exp thăng cấp: ${n}`,
+  UP_TITLE: 'Thăng cấp Phù Văn',
+  SELECT_ALL: 'Chọn hết',
+  EXCHANGE: 'H.Đổi P.Văn',
+  SUIT: 'Bộ Hồn Khí',
+  EVENT_ONLY: 'Hình dạng này không thể dùng vàng kích hoạt, chỉ nhận được thông qua sự kiện',
+  CONFIRM_ACTIVATE: (gold: number): string => `Xác nhận mất ${gold} vàng kích hoạt hình dạng này?`,
+  SLOT_LOCK: (level: number): string => `Cấp độ Hồn Khí đạt cấp ${level} sẽ mở`,
+  STATS_CHAR: 'Thuộc tính Nhân vật',
+  STATS_PET: 'Thuộc tính Pet',
+  NONE: 'Chưa có',
+} as const;
+
+/** TIPPROP_S labels of the prop ids the Hồn Khí and the runes use (without the trailing "+"). */
+export const DECO_PROP_NAMES: Readonly<Record<number, string>> = {
+  1: 'HP', 4: 'Công VL', 5: 'Công MP', 6: 'Phòng VL', 7: 'Phòng MP', 8: 'Chính xác', 9: 'Né tránh', 11: 'Tốc độ', 13: 'Bạo kích',
+  14: 'Xuyên PN', 31: 'Kháng Bạo', 32: 'Debuff chính xác', 34: 'Miễn tử', 58: 'Kháng Defbuff', 59: 'Miễn giảm sát thương VL',
+  60: 'Miễn giảm sát thương MP', 61: 'Kháng xuyên', 62: 'Tăng sát thương VL', 63: 'Tăng sát thương MP', 71: 'Sát thương bạo kích',
+};
+
+/** Colour names of a rune (quality 0..4, DECORATE_PANEL[60]). */
+export const RUNE_COLOR_NAMES = ['Phù văn trắng', 'Phù văn lục', 'Phù văn lam', 'Phù văn tím', 'Phù văn cam'] as const;
+
+/** H5 refusal notes (onSystemMidMsgOrNote) of the Hồn Khí and rune RPCs. */
+export const DECO_SERVER_TEXT = {
+  BAD_POSITION: 'Vị trí Hồn Khí không hợp lệ',
+  NO_SHOW: 'Hình dạng này không tồn tại!',
+  NO_GOLD: 'Không đủ vàng để kích hoạt hình dạng này!',
+  EVENT_ONLY: 'Hình dạng này không thể dùng vàng kích hoạt, chỉ nhận được thông qua sự kiện',
+  ALREADY_ACTIVE: 'Hình dạng này đã được kích hoạt',
+  NOT_ACTIVE: 'Hình dạng này chưa được kích hoạt!',
+  TIER_LOCKED: 'Cấp Hồn Khí chưa đủ để đổi ngoại hình này!',
+  NO_SILVER: 'Không đủ Bí Ngân!',
+  NO_MONEY: 'Không đủ Ngân phiếu!',
+  HOLE_MAX: 'Hồn Khí đã đạt cấp tối đa',
+  TOO_FAST: 'Thao tác quá nhanh, vui lòng thử lại',
+  RUNE_BAD_ARGS: 'Dữ liệu phù văn không hợp lệ',
+  RUNE_NOT_IN_BAG: 'Không tìm thấy phù văn trong túi',
+  RUNE_KIND: 'Chỉ được đặt vào túi phù văn cùng loại',
+  RUNE_PARITY: 'Phù văn Nhân vật khảm ô lẻ, phù văn Pet khảm ô chẵn',
+  RUNE_SLOT_LOCKED: 'Ô phù văn này chưa mở, hãy nâng cấp Hồn Khí',
+  RUNE_SAME_TYPE: 'Hồn Khí này đã khảm phù văn cùng loại',
+  RUNE_HOLE_FILLED: 'Ô này đã có phù văn, hãy gỡ phù văn cũ trước',
+  RUNE_HOLE_EMPTY: 'Ô này chưa có phù văn',
+  RUNE_BAG_FULL: 'Túi phù văn đã đầy',
+  RUNE_UP_EMPTY: 'Hãy đặt phù văn vào ô thăng cấp',
+  RUNE_UP_MAX: 'Phù văn đã đạt cấp tối đa',
+  RUNE_UP_EXP: 'Không đủ exp phù văn để thăng cấp',
+  RUNE_HOLE_BUSY: 'Ô thăng cấp đang có phù văn',
+  RUNE_NOTHING: 'Chưa có mảnh vỡ nào đủ để đổi phù văn',
+  RUNE_RARE: 'Mảnh Vỡ Phù Văn Hủy Diệt / Hy Hữu không thể đổi thành phù văn. Các phù văn này chỉ nhận được khi mở Bảo Rương Phù Văn Hủy Diệt / Hy Hữu.',
+  RUNE_NO_DATA: 'Thiếu dữ liệu phù văn',
+} as const;

@@ -1,7 +1,8 @@
 // Maps a CharacterItem document + its template row to the BagItem wire shape.
 
 import {
-  EQUIP_INSTANCE_TYPE, ITEM_INSTANCE_TYPE, ItemKind, MAX_HOLES, sidOf, type BagItem, type EquipInstanceView, type EquipLines,
+  EQUIP_INSTANCE_TYPE, ITEM_INSTANCE_TYPE, ItemKind, MAX_HOLES, WING_KIND, parseEquipSublime, parseQilingLines, qilingEligibleSlot, sidOf, wingViewOf, type BagItem,
+  type EquipInstanceView, type EquipLines,
 } from '@mc/shared';
 import { parseSublimeState } from '../forge/sublime-rules';
 import type { Row } from '../gamedata/gamedata.service';
@@ -39,14 +40,18 @@ export function instanceView(doc: Pick<CharacterItem, 'itemType' | 'properties' 
   for (const k of LINE_KEYS) if (p[k] !== undefined) lines[k] = p[k];
   if (Object.keys(lines).length > 0) out.lines = lines;
   if (p.flag3) out.flag3 = p.flag3;
-  if (p.flag) {
+  const own = p.sublime ? parseEquipSublime(p.sublime) : undefined;
+  if (own && (own.lv > 0 || own.add > 0 || own.el > 0)) out.sublime = { id: own.lv, add: own.add, element: own.el };
+  else if (p.flag) {
     const { state } = parseSublimeState(p.flag);
     if (state.id > 0 || state.add > 0 || state.element > 0) out.sublime = { id: state.id, add: state.add, element: state.element };
   }
+  const qiling = parseQilingLines(p.qiling);
+  if (qiling.length > 0) out.qiling = qiling;
   return out;
 }
 
-export function toBagItem(doc: CharacterItem, tpl: Row | undefined): BagItem {
+export function toBagItem(doc: CharacterItem, tpl: Row | undefined, feathers?: ReadonlyMap<number, Row>): BagItem {
   return {
     id: doc._id,
     // equipped items: sid = template position = slotIndex + 1 (1..22); bank / pages per the shared sid map
@@ -70,9 +75,21 @@ export function toBagItem(doc: CharacterItem, tpl: Row | undefined): BagItem {
     sellPrice: sellUnit(tpl),
     ...(doc.itemType === ItemKind.EQUIP ? {} : { tplKind: Number(tpl?.kind ?? 0) || 0, useType: Number(tpl?.use_type ?? 0) || 0 }),
     ...(doc.itemType !== ItemKind.EQUIP && tpl?.req_class ? { reqClass: String(tpl.req_class) } : {}),
+    ...(doc.itemType !== ItemKind.EQUIP && Number(tpl?.kind) === 14 && Number(tpl?.type) === 1400
+      ? {
+        featherMix: {
+          inputs: [1, 2].filter((n) => Number(tpl?.[`i${n}`]) > 0).map((n) => ({ tid: Number(tpl?.[`i${n}`]), num: Math.max(1, Number(tpl?.[`n${n}`]) || 1) })),
+          product: Number(tpl?.next_jewel_tid ?? 0) || 0,
+        },
+      }
+      : {}),
     ...(doc.itemType !== ItemKind.EQUIP && Number(tpl?.type) === 507
       ? { tplPropType: Number(tpl?.prop_type ?? 0) || 0, tplPropNum: Number(tpl?.propl_num ?? 0) || 0 }
       : {}),
     ...instanceView(doc),
+    ...(doc.itemType === ItemKind.EQUIP && qilingEligibleSlot(Number(tpl?.kind), Number(tpl?.type), Number(tpl?.req_level)) >= 0
+      ? { qilingSlot: qilingEligibleSlot(Number(tpl?.kind), Number(tpl?.type), Number(tpl?.req_level)) }
+      : {}),
+    ...(doc.itemType === ItemKind.EQUIP && Number(tpl?.kind) === WING_KIND ? { wing: wingViewOf(doc.properties?.wing, doc.colorCode, (tid) => feathers?.get(tid)) } : {}),
   };
 }

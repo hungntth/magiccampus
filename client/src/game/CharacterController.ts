@@ -1,6 +1,6 @@
 // Client character state + flows: the "Nhân vật" panel (C key / HUD button), changeProperty (OK button, fire-and-forget),
 // manual level-up (lvUp from level 20, confirm first), stat-refresh onUPP (the player object is merged by QuestController
-// first; this only re-renders). Looks on the map (onEquipOn / onEquipOff / onSetRes) are AppearanceController's. Server text pushes (onSystemMidMsgOrNote, ...) are handled by BagController.
+// first; this only re-renders). The "Tủ đồ" button opens the dress cabinet (DressController). Looks on the map (onEquipOn / onEquipOff / onSetRes) are AppearanceController's. Server text pushes (onSystemMidMsgOrNote, ...) are handled by BagController.
 // Must be constructed after QuestController and BagController.
 
 import { AUTO_LEVEL_CAP } from '@mc/shared';
@@ -11,10 +11,16 @@ import { CharacterPanel } from '../ui/characterPanel';
 import { DetailPropPanel } from '../ui/detailPropPanel';
 import type { BagController } from './BagController';
 import { AchievementController } from './AchievementController';
+import { DecoController } from './DecoController';
+import { MedalController } from './MedalController';
+import { MonsterHeartController } from './MonsterHeartController';
+import { StoneSealController } from './StoneSealController';
+import { DressController } from './DressController';
 import { FeatureController } from './FeatureController';
 import { MagicWeaponController } from './MagicWeaponController';
 import type { Entity } from './Entity';
 import { TitleController } from './TitleController';
+import { WingController } from './WingController';
 
 export interface CharacterHost {
   client: GameClient;
@@ -25,6 +31,8 @@ export interface CharacterHost {
   onMount(): void;
   /** Dress hide checkbox (owned by AppearanceController). */
   dressHide: { get(): boolean; set(hide: boolean, done: () => void): void };
+  /** Wing hide checkbox (owned by AppearanceController). */
+  wingHide: { get(): boolean; set(hide: boolean, done: () => void): void };
 }
 
 export class CharacterController {
@@ -35,6 +43,12 @@ export class CharacterController {
   private readonly achievements: AchievementController;
   private readonly features: FeatureController;
   private readonly magicWeapon: MagicWeaponController;
+  private readonly dress: DressController;
+  private readonly deco: DecoController;
+  private readonly medal: MedalController;
+  private readonly stoneSeal: StoneSealController;
+  private readonly monsterHeart: MonsterHeartController;
+  private readonly wing: WingController;
   private readonly offs: (() => void)[] = [];
 
   constructor(private readonly host: CharacterHost) {
@@ -42,6 +56,13 @@ export class CharacterController {
     this.detail = new DetailPropPanel(host.client);
     this.achievements = new AchievementController(host.client, host.player);
     this.features = new FeatureController(host.client, host.player);
+    this.dress = new DressController({ client: host.client, player: host.player });
+    this.deco = new DecoController({ client: host.client, player: host.player, items: () => [...bag.list(), ...bag.equipped().values()] });
+    const allItems = () => [...bag.list(), ...bag.equipped().values()];
+    this.medal = new MedalController({ client: host.client, player: host.player });
+    this.stoneSeal = new StoneSealController({ client: host.client, player: host.player, items: allItems });
+    this.monsterHeart = new MonsterHeartController({ client: host.client, player: host.player, items: allItems });
+    this.wing = new WingController({ client: host.client, player: host.player, items: () => [...bag.list(), ...bag.equipped().values()] });
     this.magicWeapon = new MagicWeaponController({
       client: host.client, player: host.player, items: () => [...bag.list(), ...bag.equipped().values()],
     });
@@ -57,9 +78,16 @@ export class CharacterController {
       onMagicWeapon: () => this.magicWeapon.toggle(),
       onRepairMagicWeapons: () => this.magicWeapon.repairWorn(),
       onMount: () => host.onMount(),
-      onBag: () => bag.toggle(),
+      onDress: () => this.dress.toggle(),
+      onDeco: () => this.deco.toggle(),
+      onMedal: () => this.medal.toggle(),
+      onStoneSeal: () => this.stoneSeal.toggle(),
+      onMonsterHeart: () => this.monsterHeart.toggle(),
       dressHidden: () => host.dressHide.get(),
       onDressHide: (hide) => host.dressHide.set(hide, () => this.panel.render()),
+      onWing: () => this.wing.toggle(),
+      wingHidden: () => host.wingHide.get(),
+      onWingHide: (hide) => host.wingHide.set(hide, () => this.panel.render()),
       onDetail: (anchor) => this.toggleCharacterDetail(anchor),
       onClose: () => {
         this.detail.close();
@@ -69,6 +97,7 @@ export class CharacterController {
     bag.onChange = () => {
       this.panel.render();
       this.magicWeapon.refresh();
+      this.wing.refresh();
     };
     this.offs.push(
       host.client.on('onUPP', () => this.panel.render()),
@@ -82,6 +111,12 @@ export class CharacterController {
     this.achievements.destroy();
     this.features.destroy();
     this.magicWeapon.destroy();
+    this.dress.destroy();
+    this.deco.destroy();
+    this.medal.destroy();
+    this.stoneSeal.destroy();
+    this.monsterHeart.destroy();
+    this.wing.destroy();
     this.detail.close();
     this.panel.close();
   }

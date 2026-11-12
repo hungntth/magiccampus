@@ -29,3 +29,13 @@
 - [Item use B+C](item_use_bc.md) — gift box / food buff wiring, smoke_bc recipe, nest-watch dist pitfall
 - [Item use D+E+F](item_use_def.md) — pet handler hook, battle consumers, useMultiItem, client gate, smoke + shell pitfalls
 - [M13 appearance + flying (A)](m13_appearance_a.md) — EquipHooks cycle trick, TEMPLATE_FIELDS projection, dir-0 Chinese clip labels, fly smoke recipe
+- [M13 dress (B)](m13_dress_b.md) — Tủ Đồ wiring, cycle-free fake look, forge gate, ws bot + browser selectors
+- [M13 wings (C)](m13_wings.md) — wing module wiring, ws smoke + pet fixture recipe, TEMPLATE_FIELDS projection / money-type / tsx pitfalls
+- [M13 equipment depth (D)](m13_equip_depth.md) — sublime/qiling/jewel wiring, colour-scale trap, equipt_suit = pet only, smoke + CRLF tips
+- [M13 runes + Hồn Khí (E1)](m13_rune_deco.md) — deco/rune module wiring, mongosh toArray trap, hidden pane = Pixi frozen, ws smoke recipe
+- [M13 E2 growth (medal / seal / heart)](m13_growth_e2.md) — growth-providers file, lock-free item handlers, MxOpenRegistry, DEV_COMMANDS smoke, watcher pid trap
+- [M13 mystery + astrology (F)](m13_mystery_astrology.md) — mystery/astrology wiring, lock-free book + rune grant, colour fixtures, smoke recipe
+- [M13 PRS (G)](m13_prs.md) — prs module, PetFollowService look hook, gen-prs static table, smoke + MSYS_NO_PATHCONV trap
+- [M13 fairy (G, server half)](m13_fairy.md) — fairy module wiring, look/stat/G2 hooks, Go fail replies, smoke + level-80 bag trap
+- [M13 fairy client (G)](m13_fairy_client.md) — FairyController/ui/fairy/FairyLayer wiring, client tests via server tsx, send/render order, duplicate-agent lesson
+- [M13 fairy G2 (battle skills)](m13_fairy_g2.md) — loadPets preload hook, CRLF combat files, prop 41 trap, live battle smoke

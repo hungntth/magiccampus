@@ -567,3 +567,11 @@
 .hud-emoji-btn:hover {
   background: url(/ui/MainStage_Emotions/BtnEm_mc1.png) no-repeat;
 }
+
+/* Fairy toggle of the pet frame (PetCanvas fairyTog): no FAIRY_PANEL_BUTTON art in the dump. */
+.hud-fairy-tog {
+  position: absolute; box-sizing: border-box; border-radius: 50%; cursor: pointer; pointer-events: auto;
+  display: flex; align-items: center; justify-content: center; font: 700 10px Tahoma, sans-serif; color: #fff7c2;
+  background: radial-gradient(circle at 35% 30%, #c9f4ff, #3d9fd6 55%, #1b4f86); border: 1px solid #ffe08a; text-shadow: 0 0 2px #000;
+}
+.hud-fairy-tog:hover { filter: brightness(1.25); }

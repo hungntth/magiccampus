@@ -3,12 +3,13 @@
 // or failed roll also shows onSystemMidMsgOrNote (newMake replies {flag:false} for a failed roll, as Go does).
 
 import { Injectable } from '@nestjs/common';
-import type { GetMakeColorReply, MakeRecipe, MaterialMixReply, MaterialRef, MaterialRefs, NewMakeReply } from '@mc/shared';
+import type { GetMakeColorReply, JewelExchangeReply, MakeRecipe, MaterialMixReply, MaterialRef, MaterialRefs, NewMakeReply } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
 import { Rpc } from '../../gateway/rpc.decorator';
 import type { Session } from '../../gateway/session';
 import { sendPushes } from '../inventory/pushes';
 import { CraftService } from './craft.service';
+import { ForgeItemsService } from './forge-items.service';
 import { MixService, type MixMode } from './mix.service';
 
 /** `materials` = {"1": {tempBagFlag, idx}, ...}; anything else is rejected. */
@@ -31,7 +32,7 @@ const tplId = (v: unknown): number => {
 
 @Injectable()
 export class ForgeRpc {
-  constructor(private readonly craft: CraftService, private readonly mix: MixService) {}
+  constructor(private readonly craft: CraftService, private readonly mix: MixService, private readonly forgeItems: ForgeItemsService) {}
 
   @Rpc('getMakeRecipes', { requireCharacter: true })
   getMakeRecipes(): Promise<MakeRecipe[]> {
@@ -69,6 +70,30 @@ export class ForgeRpc {
   @Rpc('jewelUpdateAll', { requireCharacter: true, forbidInBattle: true })
   jewelUpdateAll(session: Session, args: unknown[]): Promise<MaterialMixReply> {
     return this.runMix(session, args, 'jewel', true);
+  }
+
+  /** pmJewelExchage(sid, targetTid, tempBagFlag) -> {flag, finalNum, finalNme} (client typo kept); a refusal shows a note and answers {flag:false}. */
+  @Rpc('pmJewelExchage', { requireCharacter: true, forbidInBattle: true })
+  async pmJewelExchage(session: Session, args: unknown[]): Promise<JewelExchangeReply> {
+    const sid = Number(args[0]);
+    const target = Number(args[1]);
+    if (!Number.isInteger(sid) || !Number.isInteger(target)) throw RpcException.invalidArgs('sid');
+    const r = await this.mix.exchangeJewel(session.characterId!, sid, target, args[2] === true);
+    sendPushes(session, r.pushes);
+    if (r.note) session.callback('onSystemMidMsgOrNote', r.note);
+    return r.reply;
+  }
+
+  /** isEquSid(sid): is that item worn (tooltip hint "Nhấp đôi để tháo gỡ" / "để mặc"). The sid is coerced; junk answers false (Go panicked). */
+  @Rpc('isEquSid', { requireCharacter: true })
+  isEquSid(session: Session, args: unknown[]): Promise<boolean> {
+    return this.forgeItems.isWornSid(session.characterId!, Number(args[0]));
+  }
+
+  /** checkEquipEdit(mode): dead in Go (never answered), registered so the Flash name surface is complete. */
+  @Rpc('checkEquipEdit', { requireCharacter: true })
+  checkEquipEdit(): null {
+    return null;
   }
 
   private async runMix(session: Session, args: unknown[], mode: MixMode, all: boolean): Promise<MaterialMixReply> {

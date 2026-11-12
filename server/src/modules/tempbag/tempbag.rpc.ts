@@ -13,6 +13,7 @@ import { midNoteOnFail, sendPushes, type Push } from '../inventory/pushes';
 import { TradeManager } from '../trade/trade.manager';
 import { TempBagHoldersService, type OpenSlotReply } from './tempbag-holders.service';
 import { TempBagMovesService } from './tempbag-moves.service';
+import { MxOpenRegistry } from './mx-open.registry';
 import { TempBagStateService } from './tempbag-state.service';
 import { TemporaryBagService } from './temporary-bag.service';
 
@@ -30,6 +31,7 @@ export class TempBagRpc {
     private readonly holders: TempBagHoldersService,
     private readonly temporary: TemporaryBagService,
     private readonly trades: TradeManager,
+    private readonly mxOpen: MxOpenRegistry,
   ) {}
 
   @Rpc('getTBag', { requireCharacter: true })
@@ -125,11 +127,13 @@ export class TempBagRpc {
     return this.sort(session, true);
   }
 
-  /** Needs the Monster Heart panel (M13.5): refused with a note; the reply keeps the client's tBag valid. */
+  /** Opens every Ma Tâm item of the Ma Tâm temp bag (opener registered by MonsterHeartModule); the reply is the new tBag, also pushed as updateTempBags. */
   @Rpc('oneKeyOpenAllMXTemp', { requireCharacter: true, forbidInBattle: true })
   async oneKeyOpenAllMXTemp(session: Session): Promise<TBag> {
-    session.callback('onSystemMidMsgOrNote', TEMP_BAG_TEXT.NO_QUICK_OPEN);
-    return this.state.payload(session.characterId!);
+    if (!(await midNoteOnFail(session, () => this.mxOpen.openAll(session)))) session.callback('onSystemMidMsgOrNote', TEMP_BAG_TEXT.NO_QUICK_OPEN);
+    const tBag = await this.state.payload(session.characterId!);
+    session.callback('updateTempBags', tBag);
+    return tBag;
   }
 
   @Rpc('addSingleItemToBag', { requireCharacter: true })

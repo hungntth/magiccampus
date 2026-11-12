@@ -1,23 +1,32 @@
-// Layered sprite of one map character (legacy CreatureView layers, M13 phase A). Bottom to top: flyer (only while airborne), body
+// Layered sprite of one map character (legacy CreatureView layers, M13 phase A + C). Bottom to top: flyer (only while airborne), wing (behind
+// the body for directions 0, 1 and 7, in front of it for the others; hidden on a transform body, while riding and while lying dead), body
 // (class body, costume or transform; the mount sheet replaces it while riding), weapon (class body only), flyer front overlay (wav_code,
 // airborne only). Every layer is a SheetAnim anchored at (-midX, -footY) and played in lockstep. A missing sheet falls back to the
 // class body (`base`), then to nothing (the Entity shows its portrait marker).
 
 import { Container } from 'pixi.js';
-import { decodeResCode, type AvatarBody } from '@mc/shared';
+import { decodeResCode, type AvatarBody, type DecoLook } from '@mc/shared';
 import { CHAR_SELECTED_GLOW } from './GlowFilter';
+import { DecoLayers } from './DecoLayers';
 import { Behavior, SheetAnim, loadSheet } from './SheetAnim';
+import { customSheetName } from './customSheets';
+
+export { NINJA_SHADOW_PREVIEW_RES } from './customSheets';
 
 /** Sheet name (path without .swf) of a resource code, null for none / unknown codes. */
 export function sheetNameFromResCode(resCode: string): string | null {
+  const custom = customSheetName(resCode);
+  if (custom) return custom;
   if (!resCode || resCode === '0') return null;
   const d = decodeResCode(resCode);
   if (!d.path) return null;
   return d.path.replace(/\.swf$/, '');
 }
 
-type Slot = 'flyer' | 'body' | 'weapon' | 'front';
-const ORDER: readonly Slot[] = ['flyer', 'body', 'weapon', 'front'];
+type Slot = 'flyer' | 'wing' | 'body' | 'weapon' | 'front';
+const ORDER: readonly Slot[] = ['flyer', 'wing', 'body', 'weapon', 'front'];
+/** Directions in which the wing is drawn behind the body (CreatureView 10289-10302). */
+const WING_BEHIND_DIRS: ReadonlySet<number> = new Set([0, 1, 7]);
 // Mounted behaviours of the mount sheets (rider + mount in one clip): breath 8, run fast 9, run 10.
 const MOUNT_BEHAVIOR: Record<number, number> = { [Behavior.STAND]: 8, [Behavior.RUN_FAST]: 9, [Behavior.RUN]: 10 };
 const MOUNT_STAND = 8;
@@ -42,7 +51,7 @@ function playFirst(anim: SheetAnim, dir: number, behaviors: number[], restart: b
 
 export class AvatarView extends Container {
   private readonly layers: Record<Slot, Layer> = {
-    flyer: { key: '', anim: null, token: 0 }, body: { key: '', anim: null, token: 0 },
+    flyer: { key: '', anim: null, token: 0 }, wing: { key: '', anim: null, token: 0 }, body: { key: '', anim: null, token: 0 },
     weapon: { key: '', anim: null, token: 0 }, front: { key: '', anim: null, token: 0 },
   };
   private bodyRes = '';
@@ -52,14 +61,18 @@ export class AvatarView extends Container {
   private flyerRes = '';
   private frontRes = '';
   private mountRes = '';
+  private wingRes = '';
   private airborne = false;
   private hovered = false;
   private dir = 0;
   private behavior: number = Behavior.STAND;
+  /** Hồn Khí halo / aura / ground effects (M13 E1): the below container is the bottom child, the above container the top one. */
+  private readonly deco = new DecoLayers(sheetNameFromResCode);
 
   /** `onBody(headY)` runs when a body sheet is shown (headY = top of the sprite above the feet) or with null when none loaded. */
   constructor(private readonly onBody: (headY: number | null) => void) {
     super();
+    this.addChild(this.deco.below, this.deco.above);
   }
 
   get hasBody(): boolean {
@@ -90,6 +103,27 @@ export class AvatarView extends Container {
     this.refresh();
   }
 
+  /** Wing art (onWingOn / scene av.wing); null removes it. A missing sheet simply draws no wing. */
+  setWing(res: string | null | undefined): void {
+    this.wingRes = none(res);
+    this.refresh();
+  }
+
+  /** Hồn Khí looks of the equipped, visible positions (scene av.deco); a missing sheet draws nothing. */
+  setDeco(looks: readonly DecoLook[] | undefined): void {
+    this.deco.setAll(looks);
+  }
+
+  /** One Hồn Khí position (onDeco<Pos>On) or null (onDeco<Pos>Off). */
+  setDecoAt(pos: number, look: DecoLook | null): void {
+    this.deco.set(pos, look);
+  }
+
+  override destroy(options?: Parameters<Container['destroy']>[0]): void {
+    this.deco.destroy();
+    super.destroy(options);
+  }
+
   /** The flyer layers are drawn while not on the ground (take-off, in the air, landing). */
   setAirborne(on: boolean): void {
     if (this.airborne === on) return;
@@ -104,13 +138,16 @@ export class AvatarView extends Container {
   }
 
   play(dir: number, behavior: number, restart = false): void {
+    const flip = WING_BEHIND_DIRS.has(dir) !== WING_BEHIND_DIRS.has(this.dir);
     this.dir = dir;
+    if (flip) this.restack();
     this.behavior = behavior;
     this.applyAnim(restart);
   }
 
   tick(dt: number): void {
     for (const l of Object.values(this.layers)) l.anim?.tick(dt);
+    this.deco.tick(dt);
   }
 
   private get mountShown(): boolean {
@@ -124,6 +161,7 @@ export class AvatarView extends Container {
     return {
       flyer: list(this.airborne ? this.flyerRes : ''),
       body: list(mounted ? this.mountRes : '', this.bodyRes, this.baseRes),
+      wing: list(this.kind !== 'transform' && !mounted ? this.wingRes : ''),
       weapon: list(this.kind === 'class' && !mounted ? this.weaponRes : ''),
       front: list(this.airborne ? this.frontRes : ''),
     };
@@ -171,13 +209,26 @@ export class AvatarView extends Container {
     if (this.hovered) anim.filters = [CHAR_SELECTED_GLOW];
     old?.destroy();
     layer.anim = anim;
-    for (const s of ORDER) if (this.layers[s].anim) this.addChild(this.layers[s].anim!); // re-stack: addChild moves to the top in order
-    if (slot === 'body') this.onBody((meta?.bodyY ?? meta?.headY ?? 0) - footY - 4);
+    this.restack();
+    if (slot === 'body') {
+      const headY = (meta?.bodyY ?? meta?.headY ?? 0) - footY - 4;
+      this.deco.setHeadY(headY);
+      this.onBody(headY);
+    }
     this.applyAnim(true);
   }
 
+  /** Layer order bottom to top; the wing sits below the body for the back-facing directions. addChild moves each layer to the top in turn. */
+  private restack(): void {
+    const order: Slot[] = ORDER.filter((s) => s !== 'wing');
+    order.splice(WING_BEHIND_DIRS.has(this.dir) ? order.indexOf('body') : order.indexOf('body') + 1, 0, 'wing');
+    for (const s of order) if (this.layers[s].anim) this.addChild(this.layers[s].anim!);
+    this.addChildAt(this.deco.below, 0);
+    this.addChild(this.deco.above);
+  }
+
   private applyAnim(restart: boolean): void {
-    const { body, weapon, flyer, front } = this.layers;
+    const { body, weapon, flyer, front, wing } = this.layers;
     const b = this.behavior;
     const mounted = this.mountShown;
     // Flash: in the air the body breathes while the flyer plays the walk loop (behavior % 8).
@@ -186,6 +237,10 @@ export class AvatarView extends Container {
     if (body.anim) {
       const label = playFirst(body.anim, this.dir, [bodyB, standB, Behavior.STAND], restart) ?? (body.anim.play(body.anim.firstLabel, restart) ? body.anim.firstLabel : null);
       if (label && weapon.anim) weapon.anim.play(label, restart);
+    }
+    if (wing.anim) {
+      wing.anim.visible = b !== Behavior.DEAD; // the wing is hidden while the body lies dead
+      playFirst(wing.anim, this.dir, [bodyB, standB, Behavior.STAND], restart);
     }
     if (flyer.anim) playFirst(flyer.anim, this.dir, [b % 8, Behavior.STAND], restart);
     if (front.anim) playFirst(front.anim, this.dir, [Behavior.STAND], restart);

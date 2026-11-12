@@ -1,11 +1,13 @@
 // Pet map follow (phase B): startPetFollow / cancelPetFollow state, the map broadcast (onCancelPet then onCreatePet, owner
 // included) and the scene payload decoration (showPetId / showPetObj). Following persists in the pet row (H5: survives
 // portals and relog). Mutations run under withCharLock; broadcast() is also called by PetService (which holds the lock).
+// Look hook (M13 G, Chân Hồn Thần Thú): PrsModule registers `setLookHook`; the equipped form id goes on the scene character
+// (`prsUseId`) and its art replaces the following pet's resCode while that pet is the battle pet (Go pet SceneDTO / look.go).
 
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import type { OnCreatePetPush, SceneCharacter } from '@mc/shared';
+import { PetState, type OnCreatePetPush, type SceneCharacter } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
 import { SceneManager } from '../../gateway/scene.manager';
 import { GameDataService } from '../gamedata/gamedata.service';
@@ -14,13 +16,35 @@ import { Pet } from './pet.schema';
 import { petShownOnMap } from './pet-rules';
 import { petSceneView } from './pet-view';
 
+/** Equipped look of a character's battle pet: the form id and its art (resource code string). */
+export interface PetLook {
+  useId: number;
+  resCode: string;
+}
+
 @Injectable()
 export class PetFollowService {
+  private lookHook: ((characterId: number) => Promise<PetLook | null>) | null = null;
+
   constructor(
     @InjectModel(Pet.name) private readonly pets: Model<Pet>,
     private readonly scenes: SceneManager,
     private readonly gameData: GameDataService,
   ) {}
+
+  setLookHook(hook: (characterId: number) => Promise<PetLook | null>): void {
+    this.lookHook = hook;
+  }
+
+  /** The equipped battle-pet look, or null (no hook / none / failure). */
+  async lookOf(characterId: number): Promise<PetLook | null> {
+    if (!this.lookHook) return null;
+    try {
+      return await this.lookHook(characterId);
+    } catch {
+      return null;
+    }
+  }
 
   /** startPetFollow(petId, currentShowPetId): one following pet per character; `state` is untouched. */
   start(characterId: number, petId: number): Promise<true> {
@@ -60,14 +84,20 @@ export class PetFollowService {
 
   /** Scene payloads (createChars, onScenePlayerEntered, sceneLogin self) carry showPetId / showPetObj. */
   async decorate(sc: SceneCharacter): Promise<SceneCharacter> {
-    if (!petShownOnMap(sc)) return sc;
-    const petData = await this.sceneViewOf(sc.id);
-    return petData ? { ...sc, showPetId: petData.id, showPetObj: petData } : sc;
+    const look = await this.lookOf(sc.id);
+    const base = look ? { ...sc, prsUseId: look.useId } : sc;
+    if (!petShownOnMap(base)) return base;
+    const petData = await this.sceneViewOf(base.id, look);
+    return petData ? { ...base, showPetId: petData.id, showPetObj: petData } : base;
   }
 
-  async sceneViewOf(characterId: number): Promise<OnCreatePetPush['petData'] | null> {
+  /** `look` undefined = fetch it here; null = none. */
+  async sceneViewOf(characterId: number, look?: PetLook | null): Promise<OnCreatePetPush['petData'] | null> {
     const row = await this.pets.findOne({ characterId, following: true }).lean();
     const tpl = row ? this.gameData.petTemplate(row.tid) : undefined;
-    return row && tpl ? petSceneView(row, tpl) : null;
+    if (!row || !tpl) return null;
+    const view = petSceneView(row, tpl);
+    const form = row.state === PetState.BATTLE ? (look === undefined ? await this.lookOf(characterId) : look) : null;
+    return form ? { ...view, resCode: form.resCode } : view;
   }
 }

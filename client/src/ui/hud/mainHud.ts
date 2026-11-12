@@ -19,6 +19,9 @@ import { SystemBar } from './systemBar';
 import { UserBar } from './userBar';
 import './hud.css';
 
+/** PetCanvas.showPet: the fairy toggle is shown from this level. */
+const FAIRY_TOGGLE_LEVEL = 80;
+
 export interface HudActions {
   onBag(): void;
   onCharacter(): void;
@@ -43,6 +46,8 @@ export interface HudActions {
   onPk(): void;
   /** W key / HUD pet button / pet icon. */
   onPet(): void;
+  /** Fairy toggle of the pet frame (PetCanvas.fairyTog, level 80+): Tiểu Tinh Linh window. */
+  onFairy(): void;
   /** Q key / bottom task icon: quest manager window. */
   onQuest(): void;
   onLevelUp(): void;
@@ -84,7 +89,7 @@ export class MainHud {
   constructor(parent: HTMLElement, client: GameClient, typing: () => boolean, actions: HudActions) {
     this.portrait = new PortraitCanvas(parent, actions);
     this.bloodBag = new BloodBagPanel(client, () => this.player?.ep);
-    this.petCanvas = new PetCanvas(parent, actions.onPet, (bt) => actions.onBloodBag(bt), actions.onBag);
+    this.petCanvas = new PetCanvas(parent, actions.onPet, (bt) => actions.onBloodBag(bt), actions.onBag, actions.onFairy);
     this.buffBar = new BuffBar(parent, client);
     const autoPanel = new AutoBattlePanel({ client, bagItems: () => actions.bagItems() });
     const worldMap = new WorldMapPanel({ client, level: () => this.player?.level ?? 1, travel: (id, group) => actions.travel(id, group) });
@@ -133,6 +138,7 @@ export class MainHud {
     this.player = p;
     this.portrait.update(p);
     this.petCanvas.setEp(p.ep);
+    this.petCanvas.setFairyVisible(p.level >= FAIRY_TOGGLE_LEVEL);
     this.bloodBag.refresh();
     if (!this.pkInit) {
       this.pkInit = true;

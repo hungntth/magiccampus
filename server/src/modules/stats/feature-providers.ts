@@ -1,11 +1,17 @@
 // Stat providers of the M7 phase C-D features, one per system: train soul (current level row), awakening (rows 1..level), war sprite
-// (aggregated chains), magic crystal (16 pools), heiyaoshi (triangles + completion bonuses) and zodiac stars (add_value x addition). They read the character_features documents through the model only (the pure
+// (aggregated chains), magic crystal (16 pools), heiyaoshi (triangles + completion bonuses), zodiac stars (add_value x addition) and the
+// Tủ Đồ dress book (M13 phase B). They read the character_features documents through the model only (the pure
 // rules live in modules/feature/*-rules.ts), so StatsModule stays free of feature services.
 
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import type { Bonuses } from '../character/character-stats';
+import { BUFF_PROP, type Bonuses } from '../character/character-stats';
+import { decoBonuses, decoTotals } from '../deco/deco-rules';
+import { DECO_FEATURE_KEY, parseDeco } from '../deco/deco-state';
+import { runeBonuses, runeTotals } from '../rune/rune-stats';
+import { dressBonuses } from '../dress/dress-rules';
+import { DRESS_FEATURE_KEY, parseDress } from '../dress/dress-state';
 import { awakenBonuses } from '../feature/awaken-rules';
 import { crystalBonuses } from '../feature/crystal-rules';
 import { FEATURE_KEYS, parseAwaken, parseCrystals, parseSoul, parseWsp } from '../feature/feature-state';
@@ -143,5 +149,49 @@ export class MountBonusProvider extends FeatureProvider {
     const t = await mountTables(this.gameData);
     if (!ownedDresses(state, t.rows, Date.now()).has(state.useDress)) return mountBonuses(undefined, undefined);
     return mountBonuses(t.rows.find((r) => r.type === 2 && r.level === state.upLv), t.dresses.get(state.useDress));
+  }
+}
+
+/** Flat stats of every activated dress (fashion and flyer) from the Tủ Đồ book (Go bonuses.go): prop1..4 through the equipment prop scale. */
+@Injectable()
+export class DressBonusProvider extends FeatureProvider {
+  readonly key = 'dress';
+  protected readonly featureKey = DRESS_FEATURE_KEY;
+  constructor(@InjectModel(CharacterFeature.name) features: Model<CharacterFeature>, gameData: GameDataService) {
+    super(features, gameData);
+  }
+
+  async bonuses(characterId: number): Promise<Bonuses> {
+    return dressBonuses(parseDress(await this.state(characterId)).book, (id) => this.gameData.dressRow(id));
+  }
+}
+
+/** Hồn Khí (M13 E1): every position's hole row + live shows + full-suit / link bonuses (Go deco_bonus.go), flat through the equipment prop scale. */
+@Injectable()
+export class DecoBonusProvider extends FeatureProvider {
+  readonly key = 'deco';
+  protected readonly featureKey = DECO_FEATURE_KEY;
+  constructor(@InjectModel(CharacterFeature.name) features: Model<CharacterFeature>, gameData: GameDataService) {
+    super(features, gameData);
+  }
+
+  async bonuses(characterId: number): Promise<Bonuses> {
+    const g = this.gameData;
+    return decoBonuses(decoTotals(parseDeco(await this.state(characterId)), Date.now(), (id) => g.decoHole(id), (id) => g.decoShow(id), (id) => g.decoSuit(id)));
+  }
+}
+
+/** Socketed runes of the character page (odd holes, open slots only) of the four Hồn Khí (Go statfeature/deco.go applyDecoRuneBonus). */
+@Injectable()
+export class RuneBonusProvider extends FeatureProvider {
+  readonly key = 'rune';
+  protected readonly featureKey = DECO_FEATURE_KEY;
+  constructor(@InjectModel(CharacterFeature.name) features: Model<CharacterFeature>, gameData: GameDataService) {
+    super(features, gameData);
+  }
+
+  async bonuses(characterId: number): Promise<Bonuses> {
+    const g = this.gameData;
+    return runeBonuses(runeTotals(parseDeco(await this.state(characterId)), 'cha', (id) => g.decoHole(id), (id) => g.decoRune(id)), BUFF_PROP);
   }
 }

@@ -51,7 +51,10 @@ export class PetBattleService {
   /** The owner's battle pet (state 1, life > 0), or null. */
   async fighterOf(characterId: number): Promise<BattlePet | null> {
     const row = await this.pets.findOne({ characterId, state: PetState.BATTLE, life: { $gt: 0 } }).lean();
-    return row ? (await this.battlePetsOf(characterId, [row], 'battle')).get(row._id) ?? null : null;
+    const bp = row ? (await this.battlePetsOf(characterId, [row], 'battle')).get(row._id) ?? null : null;
+    // Chân Hồn Thần Thú form art (Flash BattleCreatureView swaps a pet's resCode for its owner's prsUseId form).
+    const look = bp ? await this.follow.lookOf(characterId) : null;
+    return bp && look ? { ...bp, resCode: look.resCode } : bp;
   }
 
   /**

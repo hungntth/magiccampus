@@ -32,6 +32,7 @@ export interface BuffDef {
   dot?: DotDef;
   hot?: HotDef;
   status?: number; // StatusEffect type (10 dizzy … 120 bind); set = goes through the status layer
+  mpBurn?: number; // M13 G2: % of the holder's current MP lost at each later turn start (fairy Bí Diệm proc)
 }
 
 export type NpcSkillKind = 'damage' | 'heal' | 'state' | 'passive' | 'unsupported';

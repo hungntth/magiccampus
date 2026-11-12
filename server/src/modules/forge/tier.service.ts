@@ -38,7 +38,7 @@ export class TierService {
 
   /** getUpgradeInfo (H5): the material and cost lines every upgrade tab needs for one equipment. */
   async info(cid: number, equipId: number): Promise<UpgradeInfo> {
-    const equip = await this.forgeItems.equipRow(cid, equipId);
+    const equip = await this.forgeItems.equipRow(cid, equipId, true, false);
     const tpl = equip ? await this.gameData.template(19, equip.templateId) : undefined;
     if (!equip || !tpl) throw RpcException.notFound('Không tìm thấy trang bị.');
     const nextTpl = int(tpl.next_equ_tid) > 0 ? await this.gameData.template(19, int(tpl.next_equ_tid)) : undefined;
@@ -109,7 +109,7 @@ export class TierService {
         throw e;
       }
       await this.items.updateOne(
-        { _id: equip._id, characterId: cid, templateId: equip.templateId }, { $set: tierResetFields(next, colors) },
+        { _id: equip._id, characterId: cid, templateId: equip.templateId }, { $set: tierResetFields(next, colors, equip.properties) },
       );
       const pushes = [...spent.pushes, ...this.money.pushes(charge), ...(await this.forgeItems.slotPushes(cid, equip._id, true))];
       const n = await this.forgeItems.view(cid, equip._id);
@@ -166,6 +166,8 @@ export class TierService {
 
   bindItem(cid: number, itemId: number): Promise<Out<{ success: boolean }>> {
     return withCharLock(cid, async () => {
+      const worn = await this.items.findOne({ _id: itemId, characterId: cid, itemType: ItemKind.EQUIP }, { templateId: 1 }).lean();
+      if (worn) await this.forgeItems.refuseDressGear(worn.templateId);
       const row = await this.items.findOneAndUpdate(
         { _id: itemId, characterId: cid, slotType: { $ne: SlotType.PET_EQUIP } }, { $set: { isBound: true } }, { new: true, projection: { _id: 1 } },
       ).lean();

@@ -11,6 +11,8 @@ import { InventoryModule } from '../inventory/inventory.module';
 import { PetModule } from '../pet/pet.module';
 import { StatsModule } from '../stats/stats.module';
 import { CraftService } from './craft.service';
+import { EquipSublimeRpc } from './equip-sublime.rpc';
+import { EquipSublimeService } from './equip-sublime.service';
 import { EquipUpgradeRpc } from './equip-upgrade.rpc';
 import { ForgeItemsService } from './forge-items.service';
 import { ForgeMoneyService } from './forge-money.service';
@@ -22,6 +24,8 @@ import { PetGearRepairService } from './pet-gear-repair.service';
 import { PetGearUpRpc } from './pet-gear-up.rpc';
 import { PetGearUpService } from './pet-gear-up.service';
 import { PrefixService } from './prefix.service';
+import { QilingRpc } from './qiling.rpc';
+import { QilingService } from './qiling.service';
 import { RefinePending } from './refine-pending';
 import { RefineRpc } from './refine.rpc';
 import { RefineService } from './refine.service';
@@ -43,6 +47,10 @@ import { TierService } from './tier.service';
     CraftService, MixService, ForgeItemsService, ForgeRpc, ForgeMoneyService, StarService, SocketService, RefineService,
     PrefixService, RefinePending, TierService, EquipUpgradeRpc, RefineRpc,
     PetGearOpsService, PetGearUpService, PetGearModService, SublimeService, PetGearRepairService, PetGearUpRpc,
+    // M13 phase D: character gear Thang hoa / restrain and Ky Linh / Trung Chu.
+    EquipSublimeService, EquipSublimeRpc, QilingService, QilingRpc,
   ],
+  // Shared plumbing of the wing module (M13 phase C): item pushes / consumption, silver charging, the in-memory previews.
+  exports: [ForgeItemsService, ForgeMoneyService, RefinePending],
 })
 export class ForgeModule {}

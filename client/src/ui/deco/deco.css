@@ -1,0 +1,48 @@
+/* Hồn Khí Vương Tộc window (looks, hole level-up, runes). Built on the .feature-window shell (featureWindow.css). */
+.feature-window.deco-window { width: 640px; height: 520px; left: calc(50% - 320px); top: 3%; }
+
+.dc-positions { display: flex; gap: 4px; }
+.dc-positions .ft-btn.on, .dc-controls .ft-btn.on, .ft-btns .ft-btn.on { background: #e8c46a; color: #1c2b3a; }
+
+.dc-rows { display: flex; flex-direction: column; gap: 3px; }
+.dc-row {
+  display: flex; align-items: center; gap: 8px; padding: 3px 6px; min-height: 40px;
+  border: 1px solid #4f86b3; border-radius: 4px; background: rgba(255, 255, 255, 0.04); cursor: pointer;
+}
+.dc-row:hover { background: rgba(255, 255, 255, 0.1); }
+.dc-row.sel { background: rgba(232, 196, 106, 0.25); border-color: #e8c46a; }
+.dc-row-text { flex: 1; min-width: 0; }
+.dc-name { font-weight: 700; color: #ffe9a8; }
+.dc-sub { color: #cfe6ff; font-size: 11px; white-space: pre-line; }
+.dc-state { color: #999; font-size: 11px; white-space: nowrap; min-width: 62px; text-align: right; }
+.dc-state.on, .dc-ok { color: #00ff00; }
+.dc-bad { color: #ff7777; }
+.dc-controls { display: flex; align-items: center; gap: 6px; }
+.dc-label { color: #dcecf8; }
+.dc-suit { min-height: 70px; }
+
+.dc-cols { display: flex; gap: 20px; }
+.dc-stats { flex: 1; }
+.dc-need { display: flex; flex-direction: column; gap: 3px; padding: 4px 2px; }
+
+.dc-cell {
+  position: relative; flex: 0 0 auto; width: 34px; height: 34px; box-sizing: border-box;
+  border: 1px solid #4f86b3; border-radius: 3px; background: #071a2c;
+}
+.dc-cell img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.dc-cell.filled, .dc-cell.dc-hole, .dc-rune { cursor: pointer; }
+.dc-cell.dc-hole { border-color: #e8c46a; }
+.dc-cell.dc-locked { opacity: 0.45; background: #2b2b2b; }
+.dc-cell.pick { border-color: #fff36a; box-shadow: 0 0 4px 1px #fff36a; }
+.dc-q0 { border-color: #cfcfcf; } .dc-q1 { border-color: #5fd35f; } .dc-q2 { border-color: #4a9cff; } .dc-q3 { border-color: #b36bff; } .dc-q4 { border-color: #ff9a2e; }
+.dc-count { position: absolute; right: 1px; bottom: 0; font-size: 10px; font-weight: 700; color: #fff; text-shadow: 0 0 2px #000, 0 0 2px #000; }
+.dc-lv { position: absolute; left: 1px; top: 0; font-size: 9px; color: #ffe9a8; text-shadow: 0 0 2px #000, 0 0 2px #000; }
+
+.dc-split { display: flex; gap: 8px; align-items: flex-start; }
+.dc-left { flex: 0 0 250px; display: flex; flex-direction: column; gap: 6px; }
+.dc-bag { flex: 1; min-width: 0; }
+.dc-hole-grid { display: grid; grid-template-columns: repeat(2, 34px); gap: 4px 10px; justify-content: center; }
+.dc-grid { display: grid; grid-template-columns: repeat(5, 34px); gap: 3px; max-height: 200px; overflow-y: auto; padding: 2px; justify-content: center; }
+.dc-resolve { display: flex; flex-direction: column; gap: 4px; padding-top: 4px; }
+.dc-up-row { display: flex; align-items: center; gap: 8px; }
+.dc-up-info { flex: 1; }

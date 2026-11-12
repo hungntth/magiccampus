@@ -1,0 +1,33 @@
+/* Mật Bảo tab of the Hồn Khí window (collect / craft / resolve pages). Built on the .feature-window helpers (.ft-*, .dc-*). */
+.my-kinds { display: flex; flex-wrap: wrap; gap: 3px; }
+.my-kinds .ft-btn { flex: 1 1 18%; min-width: 92px; font-size: 11px; padding: 3px 2px; }
+.my-kinds .ft-btn.on { background: #e8c46a; color: #1c2b3a; }
+.my-subtabs { margin-bottom: 2px; }
+
+.my-pieces { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 4px; max-height: 190px; overflow-y: auto; padding: 2px; }
+.my-piece { display: grid; grid-template-columns: 34px 1fr; column-gap: 5px; padding: 3px; border: 1px solid #36597a; border-radius: 4px; background: rgba(255, 255, 255, 0.03); opacity: 0.5; }
+.my-piece.got { opacity: 1; border-color: #5fd35f; background: rgba(95, 211, 95, 0.08); }
+.my-piece .dc-cell { grid-row: 1 / span 2; }
+.my-piece-name { font-size: 11px; font-weight: 700; color: #ffe9a8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.my-piece-sub { font-size: 10px; color: #cfe6ff; }
+.my-buffs { flex: 0 0 auto; }
+
+.my-levels-wrap { display: flex; flex-direction: column; gap: 3px; }
+.my-levels { display: flex; gap: 3px; }
+.my-levels .ft-btn { flex: 1; padding: 3px 2px; }
+.my-levels .ft-btn.on { background: #e8c46a; color: #1c2b3a; }
+.my-levels .ft-btn.my-red { color: #ff7777; }
+.my-levels .ft-btn.my-red.on { color: #8a1010; }
+.my-skill { color: #cfe6ff; font-size: 11px; }
+.my-filter { font-size: 11px; color: #dcecf8; cursor: pointer; }
+.my-recipes { flex: 0 0 250px; display: flex; flex-direction: column; gap: 3px; max-height: 270px; overflow-y: auto; }
+.my-craft-right { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.my-mat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.my-mat { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 3px; border: 1px solid #36597a; border-radius: 4px; }
+.my-mat.short { border-color: #aa4444; }
+.my-mat-name { font-size: 10px; text-align: center; color: #dcecf8; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.my-mat-n { font-size: 11px; }
+
+.my-bag { display: grid; grid-template-columns: repeat(10, 34px); gap: 3px; justify-content: center; padding: 2px; }
+.my-bag-cell { cursor: default; }
+.my-bag-cell.pick { cursor: pointer; }

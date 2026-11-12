@@ -27,7 +27,7 @@ export class StarService {
   ) {}
 
   async starNum(characterId: number, equipId: number): Promise<number> {
-    const row = await this.forgeItems.equipRow(characterId, equipId);
+    const row = await this.forgeItems.equipRow(characterId, equipId, true, false);
     return row ? starOf(row) : 0;
   }
 

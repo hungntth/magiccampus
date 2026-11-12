@@ -1,5 +1,6 @@
 // HUD pet frame under the portrait (legacy PetCanvas left2/top67 179x46): battle pet icon, name, level and HP / MP bars
-// (no exp bar). Click the icon = toggle the pet window. Empty state = default frame with full bars and no avatar.
+// (no exp bar). Click the icon = toggle the pet window. Empty state = default frame with full bars and no avatar. The fairy toggle
+// (fairyTog at 175,-5, level 80+) opens the Tiểu Tinh Linh window (no FAIRY_PANEL_BUTTON art in the dump: a CSS badge).
 
 import { petLevelOfExp, type PetView } from '@mc/shared';
 import { iconUrl } from '../../assets';
@@ -15,8 +16,9 @@ export class PetCanvas {
   private readonly mp: Bar;
 
   private readonly heal: HTMLDivElement[];
+  private readonly fairy: HTMLDivElement;
 
-  constructor(parent: HTMLElement, onToggle: () => void, onBloodBag: (bt: number) => void = notReady, onBag: () => void = notReady) {
+  constructor(parent: HTMLElement, onToggle: () => void, onBloodBag: (bt: number) => void = notReady, onBag: () => void = notReady, onFairy: () => void = notReady) {
     const root = place(div('hud-portrait', parent), 2, 67, 179, 46);
     skinImage('MainStage_CharInfo/PetPortrait_png', root, 0, 0);
     this.head = document.createElement('img');
@@ -33,8 +35,18 @@ export class PetCanvas {
     this.heal = [3, 4].map((bt) => skinButton(std(healButtonState(undefined, bt).skin), root, 161, bt === 3 ? 20 : 30, '',
       () => onBloodBag(bt)));
     skinButton(std('MainStage_CharInfo/ItemBag'), root, 160, 3, 'Vật phẩm pet sử dụng', onBag);
+    this.fairy = place(div('hud-fairy-tog', root), 175, -5, 22, 22) as HTMLDivElement;
+    this.fairy.textContent = 'TL';
+    this.fairy.title = 'Mở/Ẩn bảng Tinh Linh';
+    this.fairy.onclick = onFairy;
+    this.fairy.style.display = 'none';
     this.setEp(undefined);
     this.setPet(null);
+  }
+
+  /** Flash showPet: the fairy toggle shows from level 80. */
+  setFairyVisible(on: boolean): void {
+    this.fairy.style.display = on ? '' : 'none';
   }
 
   /** Blood bag pools 3 / 4 (pet HP / MP) on the heal buttons. */

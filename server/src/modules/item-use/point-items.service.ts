@@ -1,8 +1,9 @@
 // Currency items of type 550 in the quest-item chain (Go effect_point_items.go, effect_talent_items.go Anh Linh points,
 // effect_spirituality_items.go, effect_merit_nature_items.go npPnt): a double click credits a special currency instead of opening a
 // bag. The unit is consumed first, then the currency is credited through GrantService (onUPP {currencies}). Spirituality items roll
-// by level and 2795 / 2796 are capped per day (feature state item_daily_use, written before the effect). Skipped: medal exp
-// (3816 / 5114 / 5275), Van Chi carve KP (6524 / 6525) and the reborn-only merit medals 4134 / 4155 (no medal / rebirth systems).
+// by level and 2795 / 2796 are capped per day (feature state item_daily_use, written before the effect).
+// Medal exp items (3816 / 5114 / 5275) live in medal/medal-items.service.ts. Skipped: Van Chi carve KP (6524 / 6525) and the reborn-only merit medals
+// 4134 / 4155 (no rebirth system).
 
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { dayKey, itemUseText } from '@mc/shared';

@@ -3,7 +3,7 @@
 // at the preview are not refunded (legacy).
 
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
-import type { EquipProperties, UpgradeRequest } from '@mc/shared';
+import type { EquipProperties, UpgradeRequest, WingColorOption, WingPropLines } from '@mc/shared';
 import { GameGateway } from '../../gateway/game.gateway';
 import type { Session } from '../../gateway/session';
 
@@ -13,6 +13,9 @@ export type Pending =
   | { kind: 'soul'; equipId: number; prop: number; num: number }
   | { kind: 'petBind'; equipId: number; b1: number; b2: number }
   | { kind: 'petPre'; equipId: number; b1: number; b2: number }
+  | { kind: 'wingPrefix'; wingId: number; lines: WingPropLines }
+  | { kind: 'wingBind'; wingId: number; b1: number; b2: number }
+  | { kind: 'wingDye'; wingId: number; options: WingColorOption[] }
   | { kind: 'prefix'; req: UpgradeRequest; quality: number; element: number; star: number; lines: EquipProperties };
 
 export type PendingKind = Pending['kind'];
@@ -56,6 +59,6 @@ export class RefinePending implements OnModuleInit {
   }
 
   clear(characterId: number): void {
-    for (const k of ['element', 'bind', 'soul', 'prefix', 'petBind', 'petPre'] as const) this.drop(characterId, k);
+    for (const k of ['element', 'bind', 'soul', 'prefix', 'petBind', 'petPre', 'wingPrefix', 'wingBind', 'wingDye'] as const) this.drop(characterId, k);
   }
 }

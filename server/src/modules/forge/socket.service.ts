@@ -38,12 +38,12 @@ export class SocketService {
   ) {}
 
   async jewelData(characterId: number, equipId: number): Promise<JewelData> {
-    const row = await this.forgeItems.equipRow(characterId, equipId);
+    const row = await this.forgeItems.equipRow(characterId, equipId, true, false);
     return jewelDataOf(row?.properties);
   }
 
   async holeNum(characterId: number, equipId: number): Promise<HoleNumReply> {
-    const row = await this.forgeItems.equipRow(characterId, equipId);
+    const row = await this.forgeItems.equipRow(characterId, equipId, true, false);
     return { holeNum: row ? holesOf(row.properties) : 0, flag: !!row };
   }
 

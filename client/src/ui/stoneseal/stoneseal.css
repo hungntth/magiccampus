@@ -1,0 +1,42 @@
+/* Ấn Thạch window. Built on the .feature-window shell (featureWindow.css). */
+.feature-window.ss-window { width: 640px; height: 540px; left: calc(50% - 320px); top: 3%; }
+.ss-wrap { display: flex; gap: 8px; align-items: flex-start; }
+.ss-slots { flex: 0 0 150px; display: flex; flex-direction: column; gap: 3px; }
+.ss-slot {
+  display: flex; align-items: center; gap: 4px; padding: 3px 5px; font-size: 11px; text-align: left; cursor: pointer;
+  border: 1px solid #4f86b3; border-radius: 4px; background: rgba(255, 255, 255, 0.04); color: #dcecf8;
+}
+.ss-slot.on { background: rgba(232, 196, 106, 0.25); border-color: #e8c46a; }
+.ss-slot-pos { flex: 0 0 52px; color: #ffe9a8; }
+.ss-slot-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ss-badge { color: #00ffff; font-size: 10px; }
+.ss-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.ss-head { display: flex; align-items: center; gap: 8px; }
+.ss-title { font-weight: 700; color: #ffe9a8; flex: 1; }
+.ss-level { color: #00ffff; }
+.ss-section { color: #ffff7d; font-weight: 700; }
+.ss-icon { position: relative; flex: 0 0 auto; width: 32px; height: 32px; box-sizing: border-box; border: 1px solid #4f86b3; border-radius: 3px; background: #071a2c; }
+.ss-icon img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.ss-pickable { cursor: pointer; }
+.ss-icon.pick { border-color: #fff36a; box-shadow: 0 0 4px 1px #fff36a; }
+.ss-count { position: absolute; right: 1px; bottom: 0; font-size: 10px; font-weight: 700; color: #fff; text-shadow: 0 0 2px #000; }
+.ss-picker { display: flex; flex-wrap: wrap; gap: 3px; min-height: 34px; max-height: 76px; overflow-y: auto; }
+.ss-holes { display: flex; flex-direction: column; gap: 3px; }
+.ss-hole { display: flex; align-items: center; gap: 6px; padding: 3px 5px; border: 1px solid #4f86b3; border-radius: 4px; background: rgba(255, 255, 255, 0.04); }
+.ss-hole.closed { opacity: 0.7; }
+.ss-hole.mark { border-color: #e8c46a; background: rgba(232, 196, 106, 0.2); }
+.ss-idx { flex: 0 0 14px; color: #8fb0cc; font-size: 11px; }
+.ss-hole-text { flex: 1; min-width: 0; font-size: 11px; }
+.ss-name { color: #ffe9a8; font-weight: 700; }
+.ss-prop { color: #cfe6ff; }
+.ss-sub { color: #8fb0cc; }
+.ss-add { color: #00ff00; }
+.ss-bad { color: #ff7777; }
+.ss-ok { color: #00ff00; }
+.ss-hole-acts { display: flex; gap: 3px; }
+.ss-sum { display: flex; flex-direction: column; gap: 2px; }
+.ss-help { white-space: pre-line; font-size: 11px; color: #cfe6ff; }
+.ss-help[hidden] { display: none; }
+.ss-dialog { display: flex; flex-direction: column; gap: 4px; padding: 6px; border: 1px solid #e8c46a; border-radius: 4px; background: rgba(7, 26, 44, 0.9); }
+.ss-dlg-title { font-weight: 700; color: #ffe9a8; }
+.ss-cost { display: flex; justify-content: space-between; gap: 8px; }

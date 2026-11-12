@@ -7,7 +7,10 @@ import type { GameClient } from '../net/client';
 import { craftTab } from '../ui/forge/craftTab';
 import { ForgePanel } from '../ui/forge/forgePanel';
 import type { ForgeGroup, ForgeTab } from '../ui/forge/forgeTypes';
+import { jewelExchangeTab } from '../ui/forge/jewelExchange';
 import { jewelTab, mixTab } from '../ui/forge/mixTab';
+import { restrainTab, sublimeTab } from '../ui/forge/equipSublimeTabs';
+import { chongZhuTab, qilingTab } from '../ui/forge/qilingTabs';
 import { refineTab } from '../ui/forge/refineTab';
 import { resolveTab } from '../ui/forge/resolveTab';
 import { socketTab } from '../ui/forge/socketTab';
@@ -24,9 +27,10 @@ const inGroup = (group: ForgeGroup, tabs: readonly ForgeTab[]): ForgeTab[] => ta
  *  Bảo thạch | Thần khí (own window) | T.bị pet (Thăng cấp, Đổi màu, Đổi khóa, Tái thiết lập, Th.hoa, Khắc chế). */
 export const FORGE_TABS: readonly ForgeTab[] = [
   ...inGroup('equip', [craftTab]),
-  ...inGroup('modify', [starTab, socketTab, tierTab, refineTab, resolveTab]),
+  ...inGroup('modify', [starTab, socketTab, tierTab, refineTab, sublimeTab, restrainTab, qilingTab, chongZhuTab, resolveTab]),
   ...inGroup('mix', [mixTab]),
   ...inGroup('jewel', [jewelTab]),
+  jewelExchangeTab,
   ...inGroup('pet', [petLevelTab, petColorTab, petBindTab, petPreTab, petSublimeTab, petRestrainTab]),
 ];
 

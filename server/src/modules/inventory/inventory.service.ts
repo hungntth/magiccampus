@@ -5,7 +5,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { bagCapacity, ItemKind, SlotType, sidOf as sidAt, type BagItem, type EquipProperties } from '@mc/shared';
+import { bagCapacity, ItemKind, SlotType, WING_KIND, parseWing, sidOf as sidAt, type BagItem, type EquipProperties } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
 import { Character } from '../character/character.schema';
 import { Counter } from '../character/counter.schema';
@@ -191,7 +191,10 @@ export class InventoryService {
       const ids = [...new Set(docs.filter((d) => templateTable(d.itemType) === table).map((d) => d.templateId))];
       tpls.set(table, await this.gameData.templatesByIds(table, ids));
     }
-    return docs.map((d) => toBagItem(d, tpls.get(templateTable(d.itemType))?.get(d.templateId)));
+    // Wings carry the facts of their inlaid feathers (the client has no item tables).
+    const featherIds = [...new Set(docs.flatMap((d) => (d.itemType === ItemKind.EQUIP && Number(tpls.get(19)?.get(d.templateId)?.kind) === WING_KIND ? parseWing(d.properties?.wing).holes.filter((h) => h > 0) : [])))];
+    const feathers = featherIds.length > 0 ? await this.gameData.templatesByIds(29, featherIds) : undefined;
+    return docs.map((d) => toBagItem(d, tpls.get(templateTable(d.itemType))?.get(d.templateId), feathers));
   }
 
   private async nextId(): Promise<number> {

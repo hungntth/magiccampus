@@ -20,6 +20,7 @@ import type { LoopStateDTO, NpcLoopInfo } from './loop.js';
 import type { VipLogin } from './vip.js';
 import type { OfflineLogin } from './offline.js';
 import type { MountLogin } from './mount.js';
+import type { PrsLogin } from './prs.js';
 import type { StarsData } from './zodiac.js';
 import type { TBag } from './tempBag.js';
 
@@ -74,7 +75,7 @@ export interface ClassInfo {
   largeImgFemale: string;
 }
 
-export interface PlayerData extends PetLoginInfo, Partial<PetBoostLoginInfo>, Partial<PPVELoginInfo>, Partial<PetEvolutionLoginInfo>, Partial<PetSoulLogin>, Partial<AwakenLogin>, Partial<ActivityLogin>, Partial<VipLogin>, Partial<OfflineLogin>, Partial<MountLogin> {
+export interface PlayerData extends PetLoginInfo, Partial<PetBoostLoginInfo>, Partial<PPVELoginInfo>, Partial<PetEvolutionLoginInfo>, Partial<PetSoulLogin>, Partial<AwakenLogin>, Partial<ActivityLogin>, Partial<VipLogin>, Partial<OfflineLogin>, Partial<MountLogin>, Partial<PrsLogin> {
   id: number;
   name: string;
   classId: number;
@@ -179,6 +180,8 @@ export interface SceneCharacter {
   atv?: TitleView;
   /** VIP level 0..9 (M8 phase B); absent = 0. */
   pmLevel?: number;
+  /** Equipped Chân Hồn Thần Thú form (data_tbl_prs_show id, Flash Charactor.prsUseId); absent = none. */
+  prsUseId?: number;
 }
 
 export interface SceneNpc {

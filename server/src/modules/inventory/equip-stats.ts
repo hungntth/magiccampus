@@ -25,6 +25,8 @@ export interface EquipEntry {
   props?: Readonly<Record<string, unknown>>;
   star?: number;
   gems?: readonly GemLine[];
+  /** Thang hoa lines of the piece's current level (character gear; flat like gems, not star-multiplied). */
+  sublime?: readonly GemLine[];
 }
 
 /** Gem template ids socketed in an instance (t1..t10 > 0). */
@@ -58,7 +60,7 @@ export function gemLinesOf(props: object | undefined, gemTpls: ReadonlyMap<numbe
  */
 export function equipBonusesOf(entries: readonly EquipEntry[]): Bonuses {
   const b = emptyBonuses();
-  for (const { tpl, props = {}, star = 0, gems = [] } of entries) {
+  for (const { tpl, props = {}, star = 0, gems = [], sublime = [] } of entries) {
     // Magic weapons (kind 8) keep their upgrade level in `star`, but the ladder values are already written into the lines.
     const mult = int(tpl.kind) === MW_KIND ? 1 : starMultiplier(star);
     for (const n of [1, 2]) {
@@ -78,6 +80,7 @@ export function equipBonusesOf(entries: readonly EquipEntry[]): Bonuses {
       addProp(b, EQUIP_PROP, prop, own > 0 ? int(props[`propNum${n}`]) : int(tpl[`prop_num${n}`]), false);
     }
     for (const g of gems) addProp(b, EQUIP_PROP, g.prop, g.num, false); // flat, not multiplied by the star
+    for (const g of sublime) addProp(b, EQUIP_PROP, g.prop, g.num, false);
   }
   return b;
 }

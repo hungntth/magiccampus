@@ -12,6 +12,7 @@ import { CharacterItem, CharacterItemSchema } from '../inventory/character-item.
 import { InventoryModule } from '../inventory/inventory.module';
 import { TradeModule } from '../trade/trade.module';
 import { VipCoreModule } from '../vip/vip-core.module';
+import { MxOpenRegistry } from './mx-open.registry';
 import { TempBagHoldersService } from './tempbag-holders.service';
 import { TempBagLootService } from './tempbag-loot.service';
 import { TempBagMovesService } from './tempbag-moves.service';
@@ -28,8 +29,8 @@ import { TemporaryBagService } from './temporary-bag.service';
     ]),
     CharacterModule, GameDataModule, InventoryModule, TradeModule, VipCoreModule,
   ],
-  providers: [TempBagStateService, TempBagMovesService, TempBagHoldersService, TemporaryBagService, TempBagLootService, TempBagRpc],
-  exports: [TempBagLootService, TemporaryBagService, TempBagStateService],
+  providers: [MxOpenRegistry, TempBagStateService, TempBagMovesService, TempBagHoldersService, TemporaryBagService, TempBagLootService, TempBagRpc],
+  exports: [MxOpenRegistry, TempBagLootService, TemporaryBagService, TempBagStateService],
 })
 export class TempBagModule implements OnModuleInit {
   constructor(

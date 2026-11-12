@@ -16,6 +16,7 @@ import { doomsdaySteps } from './mechanics/doomsday';
 import { applyDeathRule, roundRevives, type DeathRule } from './mechanics/revive';
 import { splitStage } from './mechanics/split';
 import { roundStartExpiry, turnStart } from './mechanics/turn-start';
+import { fairyTurnStart } from './mechanics/fairy-battle';
 import { castInPlace, healSelf, meleeAttack, step, type StrikeCtx } from './strike';
 
 export const MAX_ROUNDS = 30;
@@ -193,6 +194,7 @@ export function resolveRound(
   let result: number | null = doom.length > 0 ? settle() : null;
   for (const actor of result === null ? order : []) {
     if (!actor.alive) continue;
+    fairyTurnStart(ctx, actor, round); // M13 G2 (Go turnStartFairyActions): MP burn, then the guarding fairy's rotation cast
     const ts = turnStart(ctx, actor, round, (f) => doomAtTurnStart(ctx, f));
     if (ts.died) {
       result = settle();

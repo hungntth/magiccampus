@@ -1,0 +1,74 @@
+/* Tiểu Tinh Linh window, built on the .feature-window shell (featureWindow.css). */
+.feature-window.fairy-window { width: 760px; height: 520px; left: calc(50% - 380px); top: 5%; }
+
+.fy-cols { display: flex; gap: 8px; align-items: flex-start; }
+.fy-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.fy-roster { width: 160px; flex: none; display: flex; flex-direction: column; gap: 4px; }
+.fy-count { color: #ffe9a8; font-weight: 700; }
+.fy-entry { padding: 4px 6px; border: 1px solid #3a556c; border-radius: 4px; background: rgba(255, 255, 255, 0.04); cursor: pointer; }
+.fy-entry:hover { border-color: #6fa3cf; }
+.fy-entry.on { border-color: #ffd54a; box-shadow: 0 0 5px #ffd54a88; }
+.fy-entry.guard .fy-entry-sub { color: #00ffcc; }
+.fy-entry-name { font-weight: 700; }
+.fy-entry-sub { font-size: 11px; color: #b9d3ea; }
+.fy-pager { display: flex; align-items: center; justify-content: center; gap: 6px; }
+
+.fy-c0 { color: #ffffff; }
+.fy-c1 { color: #00ff00; }
+.fy-c2 { color: #3fa9ff; }
+.fy-c3 { color: #d466ff; }
+.fy-c4 { color: #ff9900; }
+
+.fy-box { display: flex; flex-direction: column; gap: 4px; padding: 6px; border: 1px solid #4f86b3; border-radius: 4px; background: rgba(255, 255, 255, 0.04); }
+.fy-title { font-weight: 700; color: #ffe9a8; }
+.fy-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.fy-k { color: #cfe6ff; }
+.fy-v { color: #fff; font-weight: 700; }
+.fy-up { color: #00ff66; }
+.fy-warn { color: #ff6b6b; }
+.fy-help { font-size: 11px; line-height: 1.4; color: #b9d3ea; }
+.fy-help.pre { white-space: pre-line; }
+.fy-note { color: #ffd54a; font-weight: 700; }
+.fy-guard { color: #00ffcc; font-weight: 700; }
+.fy-bonus { color: #00ff66; }
+
+.fy-top { display: flex; gap: 8px; }
+.fy-model { width: 120px; height: 120px; flex: none; background: #071a2c; border: 1px solid #3a556c; border-radius: 4px; }
+.fy-head { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.fy-name { font-size: 14px; font-weight: 700; }
+.fy-attrs { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; }
+.fy-attr { display: grid; grid-template-columns: 40px 40px 1fr 40px; gap: 4px; }
+
+.fy-compare { display: grid; grid-template-columns: 70px 1fr 1fr; gap: 2px 8px; padding: 6px; border: 1px solid #3a556c; border-radius: 4px; }
+.fy-grow-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.fy-grow-cell { display: flex; flex-direction: column; gap: 3px; }
+
+.fy-subtabs { display: flex; gap: 4px; }
+.fy-subtabs .ft-btn.on { border-color: #ffd54a; color: #fff3b0; }
+.fy-items { display: flex; flex-direction: column; gap: 3px; max-height: 260px; overflow-y: auto; }
+.fy-item { display: flex; align-items: center; gap: 6px; }
+.fy-item-name { flex: 1; color: #ff66ff; }
+.fy-cell {
+  position: relative; width: 36px; height: 36px; flex: none; box-sizing: border-box; display: flex; align-items: center; justify-content: center;
+  border: 1px solid #4f86b3; border-radius: 3px; background: #071a2c;
+}
+.fy-cell img { max-width: 32px; max-height: 32px; }
+.fy-qty { position: absolute; right: 2px; bottom: 0; font-size: 11px; color: #fff; text-shadow: 0 0 2px #000; }
+
+.fy-slots { display: grid; grid-template-columns: repeat(10, 36px); gap: 4px; }
+.fy-slot { cursor: pointer; }
+.fy-slot.empty { cursor: default; opacity: 0.5; }
+.fy-slot.on { border-color: #ffd54a; box-shadow: 0 0 5px #ffd54a; }
+
+.fy-cfg.on { border-color: #ffd54a; }
+.fy-cfg-slots { display: flex; gap: 4px; flex-wrap: wrap; }
+.fy-cfg-slot { display: flex; align-items: center; gap: 2px; }
+.fy-cfg-slot select { max-width: 104px; font-size: 11px; }
+.fy-radio { display: inline-flex; align-items: center; gap: 3px; cursor: pointer; }
+
+.fy-skins { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; max-height: 420px; overflow-y: auto; }
+.fy-skin { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px; border: 1px solid #3a556c; border-radius: 4px; font-size: 11px; }
+.fy-skin canvas { background: #071a2c; border-radius: 4px; }
+.fy-skin.on { border-color: #00ffff; box-shadow: 0 0 5px #00ffff88; }
+.fy-skin.locked canvas { filter: grayscale(0.8) brightness(0.7); }
+.fy-skin-name { text-align: center; color: #ffe9a8; }

@@ -67,6 +67,17 @@ import { PetSoulModule } from './modules/pet-soul/pet-soul.module';
 import { PetBattleModule } from './modules/pet-battle/pet-battle.module';
 import { ItemUseModule } from './modules/item-use/item-use.module';
 import { AppearanceModule } from './modules/appearance/appearance.module';
+import { DressModule } from './modules/dress/dress.module';
+import { WingModule } from './modules/wing/wing.module';
+import { DecoModule } from './modules/deco/deco.module';
+import { RuneModule } from './modules/rune/rune.module';
+import { MedalModule } from './modules/medal/medal.module';
+import { StoneSealModule } from './modules/stoneseal/stoneseal.module';
+import { MysteryModule } from './modules/mystery/mystery.module';
+import { AstrologyModule } from './modules/astrology/astrology.module';
+import { PrsModule } from './modules/prs/prs.module';
+import { FairyModule } from './modules/fairy/fairy.module';
+import { MonsterHeartModule } from './modules/monsterheart/monsterheart.module';
 
 @Module({
   imports: [
@@ -136,6 +147,17 @@ import { AppearanceModule } from './modules/appearance/appearance.module';
     PetBattleModule,
     ItemUseModule,
     AppearanceModule,
+    DressModule,
+    WingModule,
+    DecoModule,
+    RuneModule,
+    MedalModule,
+    StoneSealModule,
+    MysteryModule,
+    AstrologyModule,
+    PrsModule,
+    FairyModule,
+    MonsterHeartModule,
   ],
 })
 export class AppModule {}

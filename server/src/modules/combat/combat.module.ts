@@ -1,5 +1,6 @@
 // Wiring for PvE combat, solo and party groups (encounters, rounds, rewards, relive modes, blood bag, spectate). Exports CombatService and QuestBattleService (quest-battle
 // NPCs, called by the NPC module). Writes Character through its own model like QuestModule.
+// Imports FairyModule for the guarding fairy rotation (M13 G2, FairyBattleKits); FairyModule does not import combat.
 
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -40,6 +41,8 @@ import { ReviveRpc } from './revive.rpc';
 import { ReviveService } from './revive.service';
 import { BloodBagRpc } from './blood-bag.rpc';
 import { BloodBagService } from './blood-bag.service';
+import { FairyModule } from '../fairy/fairy.module';
+import { FairyBattleKits } from './fairy-kits.service';
 import { CharacterItem, CharacterItemSchema } from '../inventory/character-item.schema';
 
 @Module({
@@ -49,6 +52,7 @@ import { CharacterItem, CharacterItemSchema } from '../inventory/character-item.
     AppearanceModule,
     BuffModule,
     CharacterModule,
+    FairyModule,
     GameDataModule,
     InventoryModule,
     LoopCoreModule,
@@ -66,7 +70,7 @@ import { CharacterItem, CharacterItemSchema } from '../inventory/character-item.
   providers: [
     BattleManager, BattleCommandService, BattleEndService, BattleLootService, BattleSettleService, CombatService, CombatRpc, NpcBattleService, PvpService, QuestBattleService, ReviveService, ReviveRpc,
     BloodBagService, BloodBagRpc, SpectateService, SpectateRpc, BattleHooks, NpcSkillCatalog,
-    EncounterService,
+    EncounterService, FairyBattleKits,
   ],
   exports: [CombatService, PvpService, QuestBattleService, BattleHooks, NpcBattleService, NpcSkillCatalog, EncounterService],
 })

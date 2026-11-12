@@ -1,4 +1,4 @@
-// Appearance RPCs (M13 phase A): beginFlying / stopFlying / fixFlyState (no args, reply null; results travel as onBeginFlying /
+// Appearance RPCs (M13 phase A + C): setWingHide(hide) -> boolean | -1 and beginFlying / stopFlying / fixFlyState (no args, reply null; results travel as onBeginFlying /
 // onStopFlying pushes or onMidNote / onRedMsg refusals) and setDressHide(hide) -> boolean (look sync pushes follow).
 
 import { Injectable } from '@nestjs/common';
@@ -36,5 +36,17 @@ export class AppearanceRpc {
     const v = args[0];
     if (typeof v !== 'boolean' && v !== 0 && v !== 1) throw RpcException.invalidArgs('hide');
     return this.appearance.setDressHide(session.characterId!, v === true || v === 1);
+  }
+
+  /** hide: boolean or 0 / 1. Reply: the stored flag, or -1 on failure (the client unticks the box). */
+  @Rpc('setWingHide', { requireCharacter: true })
+  async setWingHide(session: Session, args: unknown[]): Promise<boolean | -1> {
+    const v = args[0];
+    if (typeof v !== 'boolean' && v !== 0 && v !== 1) throw RpcException.invalidArgs('hide');
+    try {
+      return await this.appearance.setWingHide(session.characterId!, v === true || v === 1);
+    } catch {
+      return -1;
+    }
   }
 }

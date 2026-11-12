@@ -7,6 +7,7 @@ import type { KillCredit } from '../quest/quest.service';
 import type { SkillSpec } from './damage';
 import type { ActiveBuff, ActiveStatus } from './mechanics/battle-buffs';
 import type { DoomsdayStrike } from './mechanics/doomsday';
+import type { FairyKit } from './mechanics/fairy-battle-rules';
 import type { DeathRule } from './mechanics/revive';
 import type { SummonPlan } from './mechanics/summon';
 
@@ -42,6 +43,10 @@ export interface CombatStats {
   immuneMagic?: number;
   fullResistPhys?: number;
   fullResistMagic?: number;
+  // M13 G2 (fairy buffs): Go 901 damage taken % (negative = less), 903 reflect % of every hit taken, life steal % of damage dealt
+  damageTaken?: number;
+  reflectAll?: number;
+  lifeSteal?: number;
 }
 
 /**
@@ -112,6 +117,7 @@ export interface Fighter extends CombatStats {
   roundRevives?: number; // E2.3 same-round revives left (Atula)
   deathMarks?: number; // E2.7 Mehdi stacks on this unit
   doomsday?: DoomsdayStrike; // E2.10 world boss Ngày Diệt Vong
+  fairy?: FairyKit; // M13 G2: the guarding fairy's active skills (player characters, PvE and PvP)
 }
 
 /** What one participant is owed, filled when the battle is settled and pushed at that member's own battlePlayEnd. */

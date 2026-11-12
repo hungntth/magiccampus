@@ -67,3 +67,10 @@ test('tier upgrade resets stars, holes, gems and rolls on the next template', ()
   assert.deepEqual(r, { templateId: 153, colorCode: 3, star: 0, properties: {}, durability: 450, maxDurability: 450 });
   assert.equal(tierResetFields({ id: 9, color: -1, endure_max: 0 }, [0]).colorCode, 0);
 });
+
+test('a tier upgrade keeps Thang hoa and Ky Linh and drops every other roll', () => {
+  const old = { quality: 25, prefix: 5, holeNum: 3, t1: 9, sublime: { lv: 4, add: 5, el: 2 }, qiling: [{ t: 4, v: 1, max: 2500 }] };
+  const r = tierResetFields({ id: 9, color: 1, endure_max: 10 }, [3], old);
+  assert.deepEqual(r.properties, { sublime: old.sublime, qiling: old.qiling });
+  assert.deepEqual(tierResetFields({ id: 9, color: 1, endure_max: 10 }, [3]).properties, {});
+});

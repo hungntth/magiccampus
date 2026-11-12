@@ -4,6 +4,7 @@
 import type { UpgradeRequest } from '@mc/shared';
 import { RpcException } from '../../gateway/errors';
 import type { Session } from '../../gateway/session';
+import { sendPushes, type Push } from '../inventory/pushes';
 
 export async function guarded<T>(session: Session, fail: T, fn: () => Promise<T>): Promise<T> {
   try {
@@ -45,4 +46,22 @@ export function parseUpgradeRequest(v: unknown): UpgradeRequest {
     return { idx, flag: r.flag === true || r.tempBagFlag === true };
   };
   return { e: idArg(o.e, 'e'), i1: ref('i1'), i2: ref('i2'), i3: ref('i3') };
+}
+
+/** Runs a service call: its pushes go out in order, then its reply; a refusal becomes a note toast plus the legacy failure reply `fail`. */
+export function sendOut<T>(session: Session, fail: T, fn: () => Promise<{ reply: T; pushes: Push[] }>): Promise<T> {
+  return guarded(session, fail, async () => {
+    const out = await fn();
+    sendPushes(session, out.pushes);
+    return out.reply;
+  });
+}
+
+/** Boolean RPC argument sent as true / 1 / "1" / "true". */
+export const flexBool = (v: unknown): boolean => v === true || v === 1 || v === '1' || v === 'true';
+
+/** Optional stack-slot id argument: the Flash client sends NaN / null when the slot is empty (0 then). */
+export function optionalId(v: unknown): number {
+  const n = Number(v);
+  return Number.isInteger(n) && n > 0 ? n : 0;
 }

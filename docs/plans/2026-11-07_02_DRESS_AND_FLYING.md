@@ -74,8 +74,18 @@ the `with_cloud` pools); battle units still draw the class body. Details: `docs/
 
 ### B — Dress system
 
-> **Deferred** (user, 2026-11-07: "A xong là được rồi"). Not started: no `modules/dress`, `shared/dress.ts` or `ui/dress` exist. Phase A's
-> `AppearanceService.fakeArts` hook is where the fake dress / fake flyer plug in when this resumes.
+**Phase B status (2026-11-09): done** (resumed at the user's request; the earlier deferral is lifted). Implemented: shared `dress.ts` (+ the `shishangdian`
+currency, id 61), `modules/dress/` (pure rules and draw pools with tests, state / service / draw service, `dress.rpc.ts` + `dress-recipe.rpc.ts`: 17 RPCs +
+`getDressCatalog`), cached `data_tbl_dress` / `data_tbl_recipe` accessors in `GameDataService`, `DressBonusProvider`, a live `AppearanceService.fakeArts`, the
+forge gate (`ForgeItemsService.equipRow`), client `DressController` + `ui/dress/*` opened from the character panel "Tủ đồ" button (the bag stays on its HUD
+button / B). Deviations: dress 1072 is excluded from the draw pools (Go default); the rare-set announcement is plain text (no `[@PID|..]` chat links in H5);
+no rotating 3D preview, drag and drop or "Chọn bộ" picker in the panel (click-to-fill; the server accepts `picked`); Đổi bộ hides unbuyable sets; the
+`resCode` / `wavCode` arguments of the fake calls are ignored (art resolved server side); `PlayerData` has no `dressInfo` (fetched on open). Details:
+`docs/memory/dress.md`.
+
+- [x] Shared contract  - [x] Dress module + tests  - [x] Gamedata accessors  - [x] DressBonusProvider  - [x] Fake dress / flyer in the resolver
+- [x] Forge gate  - [x] Client panel + Đổi bộ + popups  - [x] ws e2e  - [x] Browser check (single client; the two-client fake view is not checked)
+
 | Touch point | Change |
 |---|---|
 | `packages/shared/src/dress.ts` | `DressInfo`, catalog rows, every RPC reply type, constants (costs 30/288/300/2880, crystal 1 / jewel 5 gold, `DRESS_FREE_EXTRACT 1`, chip `num`) |

@@ -126,6 +126,8 @@ export class Entity extends Container {
     this.avatar.setWeapon(av?.wp ?? sc.wp);
     this.avatar.setFlyer(av?.flyer, av?.flyerFront);
     this.avatar.setMount(av?.mount);
+    this.avatar.setWing(av?.wing);
+    this.avatar.setDeco(av?.deco);
     if (av?.flying) this.beginFlight(true);
     else this.endFlight(true);
   }
@@ -146,6 +148,11 @@ export class Entity extends Container {
 
   get flyingState(): FlyingState {
     return this.flyState;
+  }
+
+  /** Current body lift in px (0 on the ground, FLIGHT_HEIGHT in the air); the guarding fairy follows it. */
+  get liftPx(): number {
+    return this.lift;
   }
 
   /** True while taking off or in the air: moves ignore the hit mask. */

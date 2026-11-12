@@ -44,3 +44,11 @@ Same module, no new panel yet: `pet-gear-ops/up/mod`, `sublime`, `pet-gear-repai
 
 ## Pet gear tabs in the forge window (M12 client C4)
 `ForgeTab.group = 'pet'` tabs (`ui/forge/petGearTab.ts`, `petLevelTabs.ts`, `petModTabs.ts`, `petSublimeTabs.ts`) are appended in `FORGE_TABS`; `ForgePanel` shows one group at a time with a switch button. `ForgeHost.petGear()` is the host list for them (bag, pet item page, worn by pets); materials reuse `MaterialSlots`. `EquipPicker(sticky)` keeps a selection across the delete/re-add pair a tier-up pushes. Details: `docs/memory/pet-depth.md`.
+
+## Fashion / flyer gate (M13 phase B, 2026-11-09)
+`ForgeItemsService.equipRow` refuses kind 10 / 11 and position 14 / 21 equipment for every mutating call (star, hole, socket, upgrade, prefix, element / bind / soul, name, resolve) with "Thời trang và vật phẩm bay không thể thăng cấp / thăng tinh / đục lỗ / khảm nạm."; info calls pass `gate = false`, `bindItem` calls `refuseDressGear`. See `dress.md`.
+
+## Equipment depth (M13 phase D, 2026-11-09)
+Character Thăng hoa / Khắc chế, Kỳ Linh / Trùng Chú and the jewel exchange (`pmJewelExchage`, `MixService.exchangeJewel`, add before remove) live in this module: `equip-sublime.*`, `qiling.*`, `qiling-rules.ts`,
+`equip-sublime-rules.ts`. State on `properties.sublime` / `properties.qiling`; `TierService` keeps both through a tier upgrade (`keptProperties`); `ForgeMoneyService` has mode `'gold'` (plain Vàng). The forge window gained
+the tabs Thăng hoa, Khắc chế, Kỳ Linh, Trùng Chú (group Cải tạo) and Đổi bảo thạch (group Bảo thạch). Details: `docs/memory/equip-depth.md`.

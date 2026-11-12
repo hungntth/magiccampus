@@ -80,3 +80,11 @@ describe('equip gates', () => {
     assert.equal(equipPosition(undefined), null);
   });
 });
+
+describe('Thang hoa lines', () => {
+  it('add flat lines that the star multiplier does not touch', () => {
+    const b = equipBonusesOf([{ tpl: { main_prop1: 4, main_prop_num1: 100 }, star: 1, sublime: [{ prop: 4, num: 2500 }, { prop: 5, num: 2000 }] }]);
+    assert.equal(b.flat.attack, 110 + 2500);
+    assert.equal(b.flat.magicAttack, 2000);
+  });
+});

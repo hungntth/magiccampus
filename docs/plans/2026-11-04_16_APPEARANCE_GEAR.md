@@ -514,7 +514,7 @@ Each phase is independently shippable: shared build, `pnpm -r lint`, `pnpm -r te
 - [ ] Missing sheets fall back silently (one log line).
 - [ ] `docs/memory/appearance.md` (new) + index line; `activities.md` mount note updated; `assets-pipeline.md` paging.
 
-### Phase B — Dress / Thời trang (13.2)
+### Phase B — Dress / Thời trang (13.2) — dress part DONE; the 10 deco RPCs were built in E1 (2026-11-09, `docs/memory/rune-deco.md`)
 | Touch point | Change |
 |---|---|
 | shared `dress.ts` | contracts |
@@ -522,29 +522,34 @@ Each phase is independently shippable: shared build, `pnpm -r lint`, `pnpm -r te
 | `client/src/ui/dress/*`, `game/DressController.ts` | panel |
 - [ ] Activate, fake dress / fake flyer dress visible to others; recipes, extract, exchange, chips, goods; deco holes/show/suit stats.
 
-### Phase C — Wings (13.3)
+### Phase C — Wings (13.3) — DONE 2026-11-09 (`docs/memory/wings.md`, research `docs/research/2026-11-09_01_WINGS_RESEARCH.md`)
 | Touch point | Change |
 |---|---|
 | shared `wing.ts` | tables, `wingResFor`, `holeNumCode`, payloads |
 | `server/src/modules/wing/*`, `inventory/equip-stats.ts` (wing bonus), `pet/pet-bonus.ts` (even feathers), `progression/grant` (`/grant wing`) | 20 RPCs |
 | `client/src/ui/wing/*`, `game/WingController.ts`, `ui/itemCell.ts` (wing tooltip: level, holes, feathers) | panels |
-- [ ] Join/senior join, star, hole, inlay/remove, feather upgrade/mix, prefix/bind previews, advance + crit charm, look/dye change shows on the avatar.
+- [x] Join/senior join, star, hole, inlay/remove, feather upgrade/mix, prefix/bind previews, advance + crit charm, look/dye change shows on the avatar
+  (look 1 / 2 and the dye are implemented but refused until their art is in the cache: only 16 wing sheets exist).
+- Deviations: wing state in `properties.wing` incl. `holes[]` (never the gem `t*` keys); `wingBonusOf` lives in `inventory/wing-stats.ts`; even-hole feathers use a
+  `PetStatProvider` ('wing') instead of editing `pet-bonus.ts`; the Light wing fuses with 1675-1678 (Go owner rule); `TEMPLATE_FIELDS` gained `i3, n1..n3`.
 
-### Phase D — Equipment depth (13.4)
+### Phase D — Equipment depth (13.4) — DONE 2026-11-09 (`docs/memory/equip-depth.md`, research `docs/research/2026-11-09_02_EQUIP_DEPTH_RESEARCH.md`)
 | Touch point | Change |
 |---|---|
 | shared `equipDepth.ts` | contracts |
 | `server/src/modules/forge/{sublime,qiling}.*`, `mix.service.ts` (jewel exchange), `forge.rpc.ts` (`isEquSid`, `checkEquipEdit`), `equip-stats.ts` | rules + stats |
 | `client/src/ui/forge/*` | three tabs + Kỳ Linh panel |
-- [ ] Sublime to +2 with a failure pity; restrain confirm flow; qiling roll + chongzhu with locks; set bonus in stats; jewel exchange.
+- [x] Sublime to +2 with a failure pity; restrain confirm flow; qiling roll + chongzhu with locks; set bonus in stats; jewel exchange.
+- Reality notes: files are `equip-sublime.*` (the names `sublime.*` / `sublime-rules.ts` were taken by the M12 pet twin, whose rules are reused); the client tabs live in `equipSublimeTabs.ts`, `qilingTabs.ts`, `jewelExchange.ts` (Kỳ Linh also opens from strip icon 68);
+  `equipt_suit` has no character consumer (pet gear / wings only) so the set bonus is the Kỳ Linh one; sublime element hurt is stored and shown but not applied in combat (element numbering to confirm).
 
-### Phase E — Runes, medals, stone seal, monster heart (13.5 a, c, d, e); E2 soul gems (13.5b) unless M12.3 shipped them
+### Phase E — Runes, medals, stone seal, monster heart (13.5 a, c, d, e) — E1 runes + Hồn Khí DONE 2026-11-09 (`docs/memory/rune-deco.md`, research `docs/research/2026-11-09_03_RUNE_DECO_RESEARCH.md`); medals / stone seal / monster heart DONE 2026-11-09 (E2: `docs/memory/medal.md`, `stone-seal.md`, `monster-heart.md`, research `docs/research/2026-11-09_04_MEDAL_SEAL_HEART_RESEARCH.md`)
 | Touch point | Change |
 |---|---|
 | shared `rune.ts` `medal.ts` `stoneSeal.ts` `monsterHeart.ts` (`soulGem.ts`) | contracts |
 | `server/src/modules/{rune,medal,stoneseal,monsterheart}/*`, `use-item.service.ts` (type 550 opener), `stats.module.ts`, `pet-bonus.ts` | 28 RPCs + `oneKeyOpenAllMXTemp` if the temp bag exists |
 | `client/src/ui/deco/*`, `ui/feature/*` | panels |
-- [ ] Each system: one mutation changes stats (character or pet) and survives relog.
+- [x] Each system: one mutation changes stats (character or pet) and survives relog (E1 runes, E2 medals / stone seal / monster heart: ws e2e 2026-11-09).
 
 ### Phase F — Mystery treasure + furnace, astrology (13.6 a, d)
 | Touch point | Change |
@@ -552,7 +557,7 @@ Each phase is independently shippable: shared build, `pnpm -r lint`, `pnpm -r te
 | shared `mystery.ts`, `astrology.ts` | contracts |
 | `server/src/modules/{mystery,astrology}/*`, `use-item.service.ts` (books 5042–5107) | 17 RPCs |
 | client panels | Mật Bảo pages, Lò luyện, Năng Lượng Tự Nhiên |
-- [ ] Craft (50/day), book learn, collection stat, resolve → Bí Ngân, furnace both modes, astrology cycle with first-completion bonus and announcement.
+- [x] Craft (50/day), book learn, collection stat, resolve → Bí Ngân, furnace both modes, astrology cycle with first-completion bonus and announcement. **Done 2026-11-12** (`docs/memory/mystery-treasure.md`, `docs/memory/astrology.md`; ws smoke + browser DOM check). Deviations: 19 RPCs (17 + H5 `getMysCatalog` / `getFurnaceInfo`); a craft purchase is exactly +1 (Go refilled the allowance); astrology formulas use an own PRNG; resolve also drops runes / chips (owner rule of 2026-11-06); entry points = Hồn Khí tab 4, strip icons 28 and 51.
 
 ### Phase G — Fairy, PRS (13.6 b, c); G2 fairy battle skills
 | Touch point | Change |
@@ -560,7 +565,9 @@ Each phase is independently shippable: shared build, `pnpm -r lint`, `pnpm -r te
 | shared `fairy.ts`, `prs.ts` | contracts |
 | `server/src/modules/{fairy,prs}/*`, `npc` (NPC 1726 menu), `appearance` (fairy layer), `combat` (G2 fairy active skills) | 26 RPCs |
 | client `ui/fairy/*`, `ui/pet/prsPanel.ts`, `AvatarView` fairy layer | panels |
-- [ ] Adopt, feed, grow, raise, skills, guard on/off visible to others; PRS tree, chips, forms on the pet.
+- [x] Adopt, feed, grow, raise, skills, guard on/off visible to others (fairy half, 13.6b + G2). **Done 2026-11-12** (`docs/memory/fairy.md`; ws smoke, live G2 battle, client panel).
+  **Server half done 2026-11-12** (`docs/memory/fairy.md`, research § Fairy; ws smoke): shared `fairy.ts` + generated `fairyData.ts`, module `fairy` (12 RPCs), NPC 1726 menu, gift bags, `av.fairy` + onFairyOn/Off, `FairyBonusProvider`, `/grant fairy`, G2 accessor `FairySkillService.battleSkills`. Still open: client panels (`ui/fairy/*`, `AvatarView` fairy follower, entry = HUD pet bar fairy toggle) and G2 combat casting. Deviations: raise type check, server-side skill grow-level gate, owned-fairy skins usable, skins 15/16 not sold for gold, silver = selected money type, UTC+7 daily reset.
+- [x] PRS tree, chips, forms on the pet. **Done 2026-11-12** (`docs/memory/prs.md`, research `docs/research/2026-11-12_02_FAIRY_PRS_RESEARCH.md`; ws smoke + browser DOM check). Deviations: swap follows PRS_PANEL[15] (3 different chips -> 1, Go rerolled 1:1); chip bag merged + compacted; server clock prunes timed forms; `onReplacePRSShow` map-wide and the follow / battle pet use the form art; drop table read at startup; entry = strip icon 58; window files under `ui/pet/prs/`.
 
 ## 8. Non-goals
 
@@ -614,3 +621,42 @@ Each phase is independently shippable: shared build, `pnpm -r lint`, `pnpm -r te
     (100/9) or the odds the client text announces (51.6 % / 48.4 %)?
 11. Fashion items: Go blocks star/hole/socket/upgrade on fashion and flyers (owner rule 2026-11-02); H5 forge should adopt that gate in phase B?
 
+
+## 12. Execution addendum (2026-11-09, user: "triển khai full M13")
+
+Phases A and B (dress part) are done (`docs/memory/appearance.md`, `docs/memory/dress.md`). The remaining phases run in this order, one
+implementer pass each (phase research → `docs/research/2026-11-09_<NN>_<PHASE>_RESEARCH.md` → code → gate → memory):
+C wings → D equipment depth → E1 runes + Hồn Khí / deco (the 10 deco RPCs of 13.2 move here: they share `deco_hole` / `deco_rune`) →
+E2 medals + stone seal + monster heart → F mystery treasure + furnace + astrology → G fairy + PRS (+ G2 fairy battle skills).
+Soul gems (13.5b) shipped in M12 (`modules/pet-soul`), so the old phase E2 is dropped.
+
+Open questions answered with the defaults: (1) order above; (2) wing star failure keeps the star; (4) wings start with 0 holes (Go);
+(5) Go-invented qiling caps / sublime pity / dust price kept and marked `// Go-invented`; (6) rebirth stays out — `changeRebirthedRes`
+is registered and refuses; (7) dye / 3-look orange wings only where the palette sheets exist; (8) Kỳ Linh worn count follows Go
+(not enforced); (9) paid previews stay in memory (forge rule).
+
+**User decisions of 2026-11-09 for wings (override the defaults above):**
+1. Wing star failure is level dependent (not "keeps the star"): thresholds from the legacy `EquipStarFailStar` table (0 stays 0, 1..5 stars -> one lower, 6 -> 4,
+   7 -> 5, 8 and 9 -> 0). Constant `WING_STAR_FAIL_TO` / `WING_STAR_RESET_FROM` in `packages/shared/src/wing.ts`; the owner still confirms the numbers.
+2. New wings start with all 10 holes open (5 character on odd slots, 5 pet on even slots); `addWingHole` stays registered and refuses ("all open"). Overrides (4).
+3. Go-invented constants stay as they are. 5. Kỳ Linh worn count follows Go (not enforced). 6. Paid previews stay in memory (forge rule).
+
+E1 done (2026-11-09): modules `deco` and `rune` (not inside `dress/`), shared `deco.ts` / `decoText.ts` / `rune.ts`, look layers (`av.deco`, `onDeco*`), Hồn Khí window; the character panel "Hồn khí" button now opens it.
+
+
+E2 done (2026-11-09): modules `medal`, `stoneseal`, `monsterheart` (shared `medal.ts`, `stoneSeal.ts`, `monsterHeart.ts`), providers in `stats/growth-providers.ts`, Ma Tâm / medal exp item handlers, `MxOpenRegistry` for `oneKeyOpenAllMXTemp`, three windows opened from the new second tool row of the character panel. Deviations: stone seal replies carry an H5 `view`; stone replace is allowed (Go refused); stones only from the bag; Kim Cương colour >= the hole's; the hidden Hoàn Mỹ gem HP bonus of Go is not ported; pets get medal stats through the pet rune dictionary only; the Flash `onInitViewProp` stat push is `onUPP`.
+
+
+F done (2026-11-12): modules `mystery` (Mật Bảo + Lò luyện) and `astrology`, shared `mystery.ts` / `astrology.ts`, `MysteryBonusProvider`, books 5042-5107 through the item-use registry, Mật Bảo as the 4th tab of the Hồn Khí window, strip icons 28 (Năng Lượng Tự Nhiên) and 51 (Lò Luyện Thần Bí). Research: `docs/research/2026-11-12_01_MYSTERY_ASTROLOGY_RESEARCH.md`.
+
+
+G done (2026-11-12): fairy (`modules/fairy`, 12 RPCs, `ui/fairy/*`, `FairyLayer` follower, `av.fairy`, `FairyBonusProvider`), PRS (`modules/prs`, 14 RPCs, strip icon 58, form on the battle pet) and G2 fairy battle skills in combat (`docs/memory/fairy.md`, `prs.md`, `combat.md`).
+
+**M13 COMPLETE (2026-11-12).** Phases A-G are implemented and gated. Still deferred across M13 (details in the per-feature memory docs):
+- Rebirth itself (quest 1946, `expRe`, rebirth skills); `changeRebirthedRes` refuses. Timed dyes, Chiến Thần / Khổng Tước wing skins, timed wings, NPC 1502 / 1571 wing hooks.
+- Art gaps: missing flyer / dress / wing-orange / dye sheets (fall back to the layer below); fairy battle follower sprite; PRS form art not seen on the map.
+- Income sources for medals, PRS Lộ Thu Thập / Kết Tinh / event items, fairy fruits, stone-seal dust, Ma Tâm shop items, rune chests (only `/grant` today); achievement type 109.
+- Pet-gear suits, `sublimeEquipMulti`, sublime element damage in combat (no unit elements), Hoàn Mỹ gem HP bonus, pet medal combo / resist lines.
+- Astrology: level gate 50 vs 70, record feed not persisted, birth-flag multiplier event; Mật Bảo drag-and-drop replaced by auto-place; secondary password ignored.
+- Not browser-checked: two-client dress / fake flyer view, orange wing looks, equip-depth restrain dialog, PvP fairy cast and fairy procs live, PRS drop-table edits need restart.
+- Owner confirmation pending on Go-invented constants (qiling caps, sublime pity, crit odds, collect numbers, fairy poison %, star weights) and all new RPCs stay un-quieted until the owner confirms.

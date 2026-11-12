@@ -36,9 +36,13 @@ export abstract class PetGearView implements ForgeTabView {
   protected busy = false;
   protected disposed = false;
 
-  protected constructor(protected readonly host: ForgeHost, body: HTMLElement) {
+  /** `scope` = where the choices come from: pet gear by default; the character tabs (Thăng hoa / Khắc chế / Kỳ Linh) pass the bag + worn equipment. */
+  protected constructor(
+    protected readonly host: ForgeHost, body: HTMLElement,
+    scope: { items: () => BagItem[]; allow: (i: BagItem) => boolean } = { items: () => host.petGear(), allow: isPetGear },
+  ) {
     this.slots = new MaterialSlots(host, () => this.renderDetail());
-    this.picker = new EquipPicker({ ...host, items: () => host.petGear() }, () => this.renderDetail(), isPetGear, true);
+    this.picker = new EquipPicker({ ...host, items: scope.items }, () => this.renderDetail(), scope.allow, true);
     body.append(this.picker.root, this.detail);
   }
 

@@ -9,6 +9,9 @@ import {
 import type { GameClient } from '../net/client';
 import { DailyActPanel } from '../ui/dailyActPanel';
 import { ActivityStrip } from '../ui/hud/activityStrip';
+import { AstrologyController } from './AstrologyController';
+import { FurnaceController } from './FurnaceController';
+import { PrsController } from './PrsController';
 import { DailySystemsController } from './DailySystemsController';
 import { StoreSystemsController } from './StoreSystemsController';
 import { TowerController } from './TowerController';
@@ -34,6 +37,8 @@ export interface ActivityHost {
   openMaze(): void;
   /** M10 phase G: strip icon 16 (Đố Vui Có Thưởng) */
   openQuiz(): void;
+  /** M13 phase D: strip icon 68 (Kỳ Linh tab of the forge window) */
+  openQiling(): void;
 }
 
 const fail = (e: unknown): void => toast((e as Error).message, true);
@@ -48,6 +53,9 @@ export class ActivityController {
   private readonly towers: TowerController;
   private readonly trials: TrialsController;
   private readonly stores: StoreSystemsController;
+  private readonly astrology: AstrologyController;
+  private readonly furnace: FurnaceController;
+  private readonly prs: PrsController;
   private readonly offs: (() => void)[] = [];
   private catalog: DiaryEntry[] = [];
   private diary: DiaryData | null = null;
@@ -72,6 +80,9 @@ export class ActivityController {
     this.training = new TrainingController({ client, player });
     this.towers = new TowerController({ client, player });
     this.trials = new TrialsController(client);
+    this.astrology = new AstrologyController({ client, player });
+    this.furnace = new FurnaceController({ client, player });
+    this.prs = new PrsController({ client, player, bagCount: host.bagCount });
     this.stores = new StoreSystemsController({ client, player, bagCount: host.bagCount });
     this.strip.setList(player.startedActList ?? {});
     this.daily = new DailyActPanel({
@@ -118,6 +129,9 @@ export class ActivityController {
     this.towers.destroy();
     this.trials.destroy();
     this.stores.destroy();
+    this.astrology.destroy();
+    this.furnace.destroy();
+    this.prs.destroy();
   }
 
   /** Strip icon dispatch (phase D ids: 21 wish tree, 24 magic array, 25 festival, 49 daily boss). */
@@ -126,6 +140,7 @@ export class ActivityController {
     else if (id === ActivityId.STAR) this.host.openStar();
     else if (id === ActivityId.MAZE) this.host.openMaze();
     else if (id === ActivityId.QUIZ) this.host.openQuiz();
+    else if (id === ActivityId.QILING) this.host.openQiling();
     else if (id === ActivityId.WORLD_BOSS) void this.host.client.call('canEnterWbMap', this.host.player.id).catch(fail); // M10 I: the server teleports + initWbView
     else if (id === ActivityId.TXKC) this.training.openTxkc();
     else if (id === ActivityId.HMTXL) this.training.openHmtxl();
@@ -137,6 +152,9 @@ export class ActivityController {
     else if (id === ActivityId.FEAST) this.daily2.openFeast();
     else if (id === ActivityId.LOTTO) this.stores.openLotto();
     else if (id === ActivityId.PRABUFF) this.stores.openPrabuff();
+    else if (id === ActivityId.ASTROLOGIC) this.astrology.toggle();
+    else if (id === ActivityId.MYSTERY_FURNACE) this.furnace.toggle();
+    else if (id === ActivityId.PET_REAL_SOUL) this.prs.toggle();
     else this.openDaily();
   }
 

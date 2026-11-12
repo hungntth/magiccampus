@@ -71,3 +71,15 @@ test('art helpers read the template columns', () => {
   assert.deepEqual(flyerArt({ res_code: 5, wav_code: 0 }), { res: '5', wav: null });
   assert.equal(flyerArt({ res_code: 0 }), null);
 });
+
+test('the wing art rides on the view and is absent when none is worn or it is hidden', () => {
+  assert.equal(appearanceOf(input({ wing: '2070390004003' })).wing, '2070390004003');
+  assert.equal('wing' in appearanceOf(input({ wing: null })), false);
+  // a wing does not change the body kind
+  assert.equal(appearanceOf(input({ wing: '2070390004003', costume: '2060100000001' })).body, 'dress');
+});
+
+test('the guarding fairy art rides on the view (M13 G) and is absent when none guards', () => {
+  assert.equal(appearanceOf(input({ fairy: '2060100300002' })).fairy, '2060100300002');
+  assert.equal('fairy' in appearanceOf(input({ fairy: null })), false);
+});

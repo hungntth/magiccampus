@@ -80,13 +80,18 @@ export function tierColor(materialColors: readonly number[], nextTplColor: numbe
   return c > 0 ? c : Math.max(0, nextTplColor);
 }
 
+/** Thang hoa and Ky Linh survive a tier upgrade (Go carryOverChangeLevel keeps both); everything else is re-rolled. */
+export function keptProperties(old: EquipProperties | undefined): EquipProperties {
+  return { ...(old?.sublime ? { sublime: old.sublime } : {}), ...(old?.qiling ? { qiling: old.qiling } : {}) };
+}
+
 /** Row fields after a tier upgrade: the next template, stars / holes / gems / rolls reset, fresh durability; the bound flag is kept. */
-export function tierResetFields(next: Tpl, materialColors: readonly number[]): {
+export function tierResetFields(next: Tpl, materialColors: readonly number[], old?: EquipProperties): {
   templateId: number; colorCode: number; star: number; properties: EquipProperties; durability: number; maxDurability: number;
 } {
   const durability = int(next.endure_max);
   return {
-    templateId: int(next.id), colorCode: tierColor(materialColors, int(next.color)), star: 0, properties: {},
+    templateId: int(next.id), colorCode: tierColor(materialColors, int(next.color)), star: 0, properties: keptProperties(old),
     durability, maxDurability: durability,
   };
 }

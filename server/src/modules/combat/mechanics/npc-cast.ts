@@ -65,6 +65,7 @@ function clusterDamage(ctx: CastCtx, a: Fighter, sk: NpcSkill, targets: Fighter[
   for (let i = 0; i < sk.hits && a.alive; i++) {
     const hurt: BattleStep[] = [];
     const follow: BattleStep[] = [];
+    const after: BattleStep[][] = []; // M13 G2 reactions (attacker life steal, fairy procs, reflect)
     for (const t of targets) {
       if (!t.alive) continue;
       const h = landHit(ctx, a, t, sk.spec, true, { kill: sk.kill, maxHpPct: sk.maxHpPct });
@@ -75,9 +76,12 @@ function clusterDamage(ctx: CastCtx, a: Fighter, sk: NpcSkill, targets: Fighter[
       landed.add(t);
       hurt.push(step(t.slot, a.slot, ctx.defending.has(t.slot) ? B.DEFENCE : B.HURT, 100, { sSObj: h.state }));
       follow.push(followStep(t, a.slot, h));
+      if (h.src) after.push([idle(a, h.src)]);
+      if (h.after) after.push(...h.after);
     }
     if (hurt.length) ctx.groups.push(hurt);
     if (follow.length) ctx.groups.push(follow);
+    ctx.groups.push(...after);
   }
   if (sk.approach && a.alive) ctx.groups.push([step(a.slot, a.slot, B.BACK, 0)]);
   if (a.alive && (sk.approach || !sk.physical)) ctx.groups.push([step(a.slot, a.slot, B.TURNBACK, 300)]);

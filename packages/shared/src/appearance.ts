@@ -1,6 +1,9 @@
 // Avatar appearance + flying contract (M13 phase A). Equip positions, the AvatarView carried by scene / login payloads, and the pushes
-// onEquipOn / onEquipOff (weapon dressFlag false, costume dressFlag true), onSetRes, onFlyerOn, onBeginFlying, onStopFlying. RPCs (no
+// onEquipOn / onEquipOff (weapon dressFlag false, costume dressFlag true), onSetRes, onFlyerOn, onBeginFlying, onStopFlying, onFairyOn /
+// onFairyOff (guarding Tiểu Tinh Linh, M13 G). RPCs (no
 // args unless stated): beginFlying, stopFlying, fixFlyState, setDressHide(hide) -> boolean. Art codes are string resource codes.
+
+import type { DecoLook } from './deco.js';
 
 /** Template position (= equipped sid) of the weapon, the flyer (Phi hành) and the fashion costume (Thời trang). */
 export const WEAPON_POSITION = 3;
@@ -59,6 +62,12 @@ export interface AvatarView {
   flying: boolean;
   /** Riding mount skin art (state; hidden while flying or on a costume / transform body). */
   mount?: string;
+  /** Wing art behind / in front of the body (absent = none worn or hidden by setWingHide). */
+  wing?: string;
+  /** Hồn Khí looks of the equipped, visible positions (M13 E1); absent = none. */
+  deco?: DecoLook[];
+  /** World art of the guarding Tiểu Tinh Linh (active skin or its template `rc`, M13 G); absent = none guarding. */
+  fairy?: string;
 }
 
 /** onEquipOn: `dressFlag` false = weapon art in hand, true = the costume body art. */
@@ -88,6 +97,12 @@ export interface FlyerOnPush {
   cid: number;
   resCode: string;
   wavCode?: string;
+}
+
+/** onFairyOn: the guarding fairy of `cid` now shows `fairy.resCode` (Flash CreatureView.fairyOn). onFairyOff carries the bare cid. */
+export interface FairyOnPush {
+  cid: number;
+  fairy: { resCode: string };
 }
 
 /** onBeginFlying / onStopFlying. */

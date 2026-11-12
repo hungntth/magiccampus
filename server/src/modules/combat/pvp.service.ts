@@ -17,7 +17,8 @@ import { BattleManager } from './battle.manager';
 import { SpectateService } from './spectate.service';
 import { pushCharState } from './battle-end.service';
 import { BattleSettleService } from './battle-settle.service';
-import type { Battle, BattleMember } from './battle.types';
+import type { Battle, BattleMember, Fighter } from './battle.types';
+import { FairyBattleKits } from './fairy-kits.service';
 import { ENCOUNTER_COOLDOWN_MS } from './encounter';
 import { petFighter, playerFighter, toParticipant } from './fighters';
 import { endStepFor, leaveResult, pvpBoard } from './pvp-rules';
@@ -44,13 +45,18 @@ export class PvpService {
     private readonly characters: CharacterService,
     private readonly spectate: SpectateService,
     private readonly weapons: WeaponLookService,
+    private readonly fairyKits: FairyBattleKits,
   ) {}
 
   /** Registers the duel and sends both clients their start pushes. Sync; null when either side started another battle meanwhile. */
   start(attacker: Duelist, target: Duelist): Battle | null {
     if (attacker.session.battleId !== null || target.session.battleId !== null) return null;
-    const fighterOf = (d: Duelist, slot: number) =>
-      playerFighter(slot, d.st, this.characters.resCode(d.st.doc.classId, d.st.doc.gender), this.weapons.cached(d.st.doc._id));
+    const fighterOf = (d: Duelist, slot: number): Fighter => {
+      const f = playerFighter(slot, d.st, this.characters.resCode(d.st.doc.classId, d.st.doc.gender), this.weapons.cached(d.st.doc._id));
+      const fairy = this.fairyKits.take(d.st.doc._id); // M13 G2: preloaded by CombatService.loadPets (pk.service)
+      if (fairy) f.fairy = fairy;
+      return f;
+    };
     const a = fighterOf(attacker, 0);
     const t = fighterOf(target, 0);
     const board = pvpBoard(a, attacker.pet && petFighter(a.slot, attacker.pet), t, target.pet && petFighter(t.slot, target.pet));

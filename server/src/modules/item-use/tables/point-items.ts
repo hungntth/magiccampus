@@ -1,7 +1,7 @@
 // Point / currency items of type 550 that credit a counter instead of opening a bag. Constant tables copied from Go
 // application/item/effect_point_items.go (pointItems), effect_spirituality_items.go (spiritualityItems), effect_talent_items.go
 // (anhLinhDescPattern; amounts are read from the description) and effect_merit_nature_items.go (npPnt amounts).
-// Skipped (no target system in this port): 3816 / 5114 / 5275 medal exp, 6524 / 6525 Van Chi (carve KP).
+// Skipped (no target system in this port): 6524 / 6525 Van Chi (carve KP).
 
 import type { CurrencyKey } from '@mc/shared';
 

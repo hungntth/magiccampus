@@ -3,9 +3,9 @@
 // (beginFlying; landing first walks to the nearest walkable cell, then stopFlying) and the character panel checkbox calls setDressHide.
 
 import {
-  FLIGHT_BUTTON_THROTTLE_MS, FLIGHT_FIX_INTERVAL_MS, FLIGHT_TEXT, FLYING_STATE, settingOn,
-  type EquipOffPush, type EquipOnPush, type FlyerOnPush, type FlyingPush, type FlyingState, type MountOffPush, type MountOnPush, type PlayerData,
-  type SetResPush,
+  DECO_POSITION_CALLBACK, FLIGHT_BUTTON_THROTTLE_MS, FLIGHT_FIX_INTERVAL_MS, FLIGHT_TEXT, FLYING_STATE, settingOn,
+  type DecoOffPush, type DecoOnPush, type EquipOffPush, type EquipOnPush, type FlyerOnPush, type FlyingPush, type FlyingState, type MountOffPush, type MountOnPush, type PlayerData,
+  type SetResPush, type WingOffPush, type WingOnPush,
 } from '@mc/shared';
 import type { GameClient } from '../net/client';
 import { toast } from '../ui/screens';
@@ -66,6 +66,17 @@ export class AppearanceController {
       const res = String(p.resCode ?? '');
       this.avatarOf(p.cid)?.setFlyer(isNone(res) ? null : res, p.wavCode === undefined || isNone(String(p.wavCode)) ? null : String(p.wavCode));
     });
+    on('onWingOn', (d) => this.avatarOf((d as WingOnPush).cid)?.setWing(String((d as WingOnPush).resCode)));
+    on('onWingOff', (d) => this.avatarOf((d as WingOffPush).cid)?.setWing(null));
+    // Hồn Khí looks (M13 E1): the server sends Off first, then On when the position is equipped and visible.
+    for (const pos of [1, 2, 3, 4]) {
+      const name = DECO_POSITION_CALLBACK[pos];
+      on(`onDeco${name}On`, (d) => {
+        const p = d as DecoOnPush;
+        this.avatarOf(p.cid)?.setDecoAt(pos, { pos, res: String(p.res), mask: String(p.mask) });
+      });
+      on(`onDeco${name}Off`, (d) => this.avatarOf((d as DecoOffPush).cid)?.setDecoAt(pos, null));
+    }
     on('onMountOn', (d) => this.avatarOf((d as MountOnPush).cid)?.setMount(String((d as MountOnPush).resCode)));
     on('onMountOff', (d) => this.avatarOf((d as MountOffPush).cid)?.setMount(null));
     on('onBeginFlying', (d) => this.host.entityOf(Number((d as FlyingPush).id))?.beginFlight());
@@ -168,5 +179,23 @@ export class AppearanceController {
 
   dressHidden(): boolean {
     return settingOn(this.host.player.interfaceData, 'dressHide');
+  }
+
+  /** Character panel "Ẩn cánh" checkbox: setWingHide(hide) -> the stored flag, or -1 (the box is unticked again). */
+  setWingHide(hide: boolean, done: () => void): void {
+    void this.host.client.call<boolean | -1>('setWingHide', hide).then(
+      (stored) => {
+        if (stored !== -1) this.host.player.interfaceData = { ...(this.host.player.interfaceData ?? {}), wingHide: stored ? 1 : 0 };
+        done();
+      },
+      (e) => {
+        toast((e as Error).message, true);
+        done();
+      },
+    );
+  }
+
+  wingHidden(): boolean {
+    return settingOn(this.host.player.interfaceData, 'wingHide');
   }
 }

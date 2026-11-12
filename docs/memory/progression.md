@@ -44,3 +44,13 @@ The stat-feature panels are in `stat-features.md`; the magic weapon is in `magic
 - Push names come from Go (hidden in Flash): `onUpdateAchieve(type, id, obj)`, `updateAchieveAwardLog`, `onAchieveTitle`.
   `getAchieveList` is an H5 catalog RPC. `rankGet('achPoint')` is live.
 - Client: the achievement panel opens from the HUD button or R.
+
+## M13 E2 additions
+`mhjingshi` (Tâm Tinh Thạch, Go 232) joins `CURRENCY_IDS`; `GrantKind` gains `medal`, `medalexp`, `heart` (`/grant medal <id> <n>`, `/grant medalexp <n>`, `/grant heart <id> <n>`, `progression/grant-growth.ts`).
+Three providers in `stats/growth-providers.ts` (`MedalBonusProvider`, `StoneSealBonusProvider`, `MonsterHeartBonusProvider`) read the feature keys `medal`, `stone_seal`, `monster_heart`; see `medal.md`, `stone-seal.md`, `monster-heart.md`.
+
+## M13 E1 currencies
+`decoSilver` (Bí Ngân, Go id 216) joins `CURRENCY_IDS`; `runeExp` (217) is the rune level-up exp. `/grant currency decoSilver|runeExp <n>`, `/grant rune <id> <n>`, `/grant runechip <id> <n>` fill them (no income source until the Mật Bảo phase).
+
+## M13 phase F
+No new currency keys: `mysteryCrystal` (215), `npPnt` (236) and every furnace score key already existed. `/grant item <id> <n> [colour]` takes the instance colour (Mật Bảo materials need colour 2); `ActivityId.ASTROLOGIC` (28) and `MYSTERY_FURNACE` (51) joined `ACTIVITY_PORTED_IDS`. Gold spends use the unbound `gold` wallet (`CharacterService.spendMoney`), npPnt / Bí Ngân credits go through `CurrencyService`. See `mystery-treasure.md`, `astrology.md`.
